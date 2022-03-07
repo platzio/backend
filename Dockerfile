@@ -1,0 +1,5 @@
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
+
+WORKDIR /root/
+COPY ./dist/ /root/

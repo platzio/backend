@@ -1,0 +1,44 @@
+[package]
+edition = "2021"
+name = "platz-task-runner"
+version = "0.1.0"
+
+[dependencies]
+anyhow = {version = "1", features = ["backtrace"]}
+async-trait = "0.1.48"
+aws-arn = "0.2.0"
+base64 = "0.13.0"
+chrono = {version = "0.4", features = ["std", "serde"]}
+env_logger = "0.9.0"
+futures = "0.3.13"
+http = "0.2.6"
+humantime = '2.1.0'
+itertools = "0.10.0"
+k8s-openapi = {version = "0.14.0", default-features = false, features = ["v1_21"]}
+kube = {version = "0.68.0", features = ["gzip", "ws"]}
+kube-runtime = {version = "0.68.0"}
+lazy_static = "1"
+log = "0.4.14"
+maplit = "1"
+platz-sdk = "0.1.0"
+reqwest = {version = "0.11.4", features = ["rustls-tls", "json"]}
+rusoto_core = {version = "0.47.0", default-features = false, features = ["rustls"]}
+rusoto_eks = {version = "0.47.0", default-features = false, features = ["rustls"]}
+serde = {version = "1", features = ["derive"]}
+serde_json = "1"
+serde_yaml = "0.8.17"
+structopt = "0.3.22"
+thiserror = "1.0.30"
+tokio = {version = "1", features = ["full"]}
+tokio-util = {version = "0.6.5"}
+url = "2.2.2"
+uuid = {version = "0.8", features = ["serde", "v4"]}
+
+[dependencies.platz-db]
+path = "../db"
+
+[dependencies.platz-ui-schema]
+path = "../ui-schema"
+
+[dependencies.rusoto-utils]
+path = "../rusoto-utils"

@@ -1,0 +1,10 @@
+[workspace]
+members = [
+  "api",
+  "chart-discovery",
+  "db",
+  "rusoto-utils",
+  "status-updates",
+  "task-runner",
+  "ui-schema",
+]
