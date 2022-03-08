@@ -1,8 +1,8 @@
-use platz_ui_schema::{UiSchemaCollections, UiSchemaInputError};
-use serde::Deserialize;
+use platz_chart_ext::{UiSchemaCollections, UiSchemaInputError};
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-#[derive(Debug, Deserialize, strum::Display)]
+#[derive(Debug, Deserialize, Serialize, strum::Display)]
 pub enum TestDb {
     First,
     Second,

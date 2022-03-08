@@ -2,10 +2,11 @@ use crate::ecr_events::{EcrEvent, EcrEventDetail};
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use log::*;
+use platz_chart_ext::ChartExt;
 use platz_db::{HelmChart, NewHelmChart, UpdateHelmChart};
 use rusoto_ecr::EcrClient;
-use std::path::{Path, PathBuf};
-use tokio::{process::Command, try_join};
+use std::path::PathBuf;
+use tokio::process::Command;
 
 const HELM_ARTIFACT_MEDIA_TYPE: &str = "application/vnd.cncf.helm.config.v1+json";
 const TEMP_DOWNLOAD_PATH: &str = "/tmp/platz-chart-download";
@@ -29,17 +30,13 @@ pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
         Utc,
     );
 
-    let chart_path = download_chart(&event).await?;
-
     let helm_registry = event.find_or_create_ecr_repo().await?;
 
-    let (values_ui, actions_schema, features, error) = match try_join!(
-        read_json_if_exists(&chart_path, "values.ui.json"),
-        read_json_if_exists(&chart_path, "actions.schema.json"),
-        read_json_if_exists(&chart_path, "features.json"),
-    ) {
+    let chart_path = download_chart(&event).await?;
+    let chart_ext = ChartExt::from_path(&chart_path).await?;
+    let (values_ui, actions_schema, features, error) = match chart_ext.to_values() {
         Ok((values_ui, actions_schema, features)) => (values_ui, actions_schema, features, None),
-        Err(err) => (None, None, None, Some(err.to_string())),
+        Err(error) => (None, None, None, Some(error)),
     };
 
     let chart = NewHelmChart {
@@ -99,23 +96,6 @@ async fn download_chart(event: &EcrEvent) -> Result<PathBuf> {
             "Expected exactly one folder after exporting chart, found: {:?}",
             files
         )),
-    }
-}
-
-async fn read_json_if_exists(path: &Path, filename: &str) -> Result<Option<serde_json::Value>> {
-    match tokio::fs::read_to_string(path.join(filename)).await {
-        Ok(contents) => Ok(Some(serde_json::from_str(&contents)?)),
-        Err(err) => {
-            if err.kind() == std::io::ErrorKind::NotFound {
-                Ok(None)
-            } else {
-                Err(anyhow!(
-                    "Error while parsing {}: {}",
-                    filename,
-                    err.to_string()
-                ))
-            }
-        }
     }
 }
 

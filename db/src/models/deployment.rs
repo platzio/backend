@@ -10,7 +10,7 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_derive_more::DBEnum;
-use platz_ui_schema::UiSchema;
+use platz_chart_ext::UiSchema;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use uuid::Uuid;
@@ -116,7 +116,7 @@ impl Deployment {
             Err(DbError::InvalidDeploymentRevision) => return Ok(false),
             Err(err) => return Err(err),
         };
-        let input_schema: UiSchema = match chart.values_ui {
+        let values_ui: UiSchema = match chart.values_ui {
             None => return Ok(false),
             Some(values_ui) => serde_json::from_value(values_ui)
                 .map_err(DbError::HelmChartValuesSchemaParseError)?,
@@ -126,20 +126,7 @@ impl Deployment {
             Err(DbError::TaskHasNoConfig) => return Ok(false),
             Err(err) => return Err(err),
         };
-        let db_table_name = serde_json::to_value(&table)
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_owned();
-        Ok(input_schema.inputs.into_iter().any(|input| {
-            let used_collection = match input.input_type.single_type {
-                platz_ui_schema::UiSchemaInputSingleType::CollectionSelect { collection } => {
-                    Some(collection)
-                }
-                _ => None,
-            };
-            used_collection.as_ref() == Some(&db_table_name) && config[input.id] == id
-        }))
+        Ok(values_ui.is_collection_in_inputs(config, &table, id))
     }
 
     pub async fn find_using(table: DbTable, id: Uuid) -> DbResult<Vec<Self>> {

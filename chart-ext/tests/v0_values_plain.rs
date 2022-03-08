@@ -2,7 +2,7 @@ mod fake_db;
 
 use anyhow::Result;
 use fake_db::TestDb;
-use platz_ui_schema::UiSchema;
+use platz_chart_ext::UiSchema;
 use serde_json::json;
 
 #[tokio::test]

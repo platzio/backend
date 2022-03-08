@@ -3,8 +3,8 @@ use anyhow::Result;
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, Patch, PatchParams};
+use platz_chart_ext::UiSchema;
 use platz_db::{DbTable, Deployment, DeploymentTask};
-use platz_ui_schema::UiSchema;
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
@@ -13,25 +13,13 @@ pub async fn apply_secrets(
     deployment: &Deployment,
     task: &DeploymentTask,
 ) -> Result<()> {
-    let config = task.get_config()?;
-    for (secret_name, attrs_schema) in ui_schema.outputs.secrets.iter() {
-        let mut attrs: BTreeMap<String, String> = Default::default();
-        for (key, attr_schema) in attrs_schema.iter() {
-            let value = attr_schema
-                .resolve::<DbTable>(&ui_schema.inputs, config)
-                .await?;
-            attrs.insert(
-                key.clone(),
-                value
-                    .as_str()
-                    .map_or_else(|| value.to_string(), |v| v.to_owned()),
-            );
-        }
+    let inputs = task.get_config()?;
+    for secret in ui_schema.get_secrets::<DbTable>(inputs).await?.into_iter() {
         apply_secret(
             deployment.cluster_id,
             &deployment.namespace_name(),
-            secret_name,
-            attrs,
+            &secret.name,
+            secret.attrs,
         )
         .await?;
     }

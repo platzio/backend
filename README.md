@@ -7,7 +7,7 @@ This repo contains Platz's backend. It's written in Rust 🦀 and is broken down
 * `platz-task-runner`
 * `platz-chart-discovery`
 * `platz-status-updates`
-* `platz-ui-schema`
+* `platz-chart-ext`
 
 ## How to Develop
 
@@ -89,7 +89,7 @@ This worker is responsible for watching Platz deployments that have enabled the 
 
 For each deployment, Platz queries the status endpoint and updates the deployment's status in the database. The frontend can then display this information.
 
-### `platz-ui-schema`
+### `platz-chart-ext`
 
 This library implements the UI Schema data structures and contains the relevant code to convert user inputs, created by this schema's definitions, to outputs and secrets that can then be used by `platz-task-runner` when installing deployments.
 

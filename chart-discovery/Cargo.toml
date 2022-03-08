@@ -15,8 +15,12 @@ rusoto_sqs = {version = "0.47.0", default-features = false, features = ["rustls"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 structopt = "0.3.22"
+thiserror = "1"
 tokio = {version = "1", features = ["full"]}
 uuid = {version = "0.8", features = ["serde", "v4"]}
+
+[dependencies.platz-chart-ext]
+path = "../chart-ext"
 
 [dependencies.platz-db]
 path = "../db"

@@ -36,5 +36,5 @@ features = [
 ]
 version = "1.4"
 
-[dependencies.platz-ui-schema]
-path = "../ui-schema"
+[dependencies.platz-chart-ext]
+path = "../chart-ext"

@@ -2217,6 +2217,7 @@ dependencies = [
  "jsonwebtoken",
  "log",
  "openid",
+ "platz-chart-ext",
  "platz-db",
  "rand",
  "serde",
@@ -2238,6 +2239,7 @@ dependencies = [
  "env_logger",
  "itertools",
  "log",
+ "platz-chart-ext",
  "platz-db",
  "rusoto-utils",
  "rusoto_core",
@@ -2246,6 +2248,23 @@ dependencies = [
  "serde",
  "serde_json",
  "structopt",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "platz-chart-ext"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "strum",
+ "strum_macros",
+ "thiserror",
  "tokio",
  "uuid",
 ]
@@ -2266,7 +2285,7 @@ dependencies = [
  "lazy_static",
  "log",
  "maplit",
- "platz-ui-schema",
+ "platz-chart-ext",
  "postgres",
  "rust_decimal",
  "serde",
@@ -2300,6 +2319,7 @@ dependencies = [
  "futures",
  "futures-util",
  "log",
+ "platz-chart-ext",
  "platz-db",
  "reqwest",
  "serde",
@@ -2330,9 +2350,9 @@ dependencies = [
  "lazy_static",
  "log",
  "maplit",
+ "platz-chart-ext",
  "platz-db",
  "platz-sdk",
- "platz-ui-schema",
  "reqwest",
  "rusoto-utils",
  "rusoto_core",
@@ -2345,21 +2365,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "url",
- "uuid",
-]
-
-[[package]]
-name = "platz-ui-schema"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "strum",
- "strum_macros",
- "thiserror",
- "tokio",
  "uuid",
 ]
 

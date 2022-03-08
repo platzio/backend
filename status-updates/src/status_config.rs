@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
-use platz_db::{Deployment, HelmChartActionEndpoint};
+use platz_chart_ext::HelmChartActionEndpoint;
+use platz_db::Deployment;
 use std::time::Duration;
 use tokio::time::{interval, Interval};
 use url::Url;
@@ -14,7 +15,7 @@ impl StatusConfig {
     pub async fn new(deployment: &Deployment) -> Result<Self> {
         let chart = deployment.current_helm_chart().await?;
         let features = chart.features()?;
-        let status_feature = match features.status {
+        let status_feature = match features.status() {
             None => {
                 bail!(
                     "Deployment {} ({}) doesn't have the status feature on, it won't be monitored",

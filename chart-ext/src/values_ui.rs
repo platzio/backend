@@ -2,10 +2,112 @@ use crate::UiSchemaCollections;
 use crate::UiSchemaInputError;
 use serde::Deserialize;
 use serde::Serialize;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 
-#[derive(Debug, Deserialize)]
-pub struct UiSchema {
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum UiSchema {
+    V1(UiSchemaV1),
+    V0(UiSchemaV0),
+}
+
+impl UiSchema {
+    pub fn is_collection_in_inputs<C>(
+        &self,
+        inputs: &serde_json::Value,
+        collection: &C,
+        id: &str,
+    ) -> bool
+    where
+        C: UiSchemaCollections,
+    {
+        let collection_name_value = serde_json::to_value(collection).unwrap();
+        let collection_name = collection_name_value.as_str().unwrap();
+        let schema_inputs = match self {
+            Self::V1(v1) => &v1.inputs,
+            Self::V0(v0) => &v0.inputs,
+        };
+        schema_inputs.iter().any(|input| {
+            let used_collection = match &input.input_type.single_type {
+                UiSchemaInputSingleType::CollectionSelect { collection } => {
+                    Some(collection.as_str())
+                }
+                _ => None,
+            };
+            used_collection == Some(collection_name) && inputs[&input.id] == id
+        })
+    }
+
+    pub async fn get_values<C>(
+        &self,
+        inputs: &serde_json::Value,
+    ) -> Result<Map, UiSchemaInputError<C>>
+    where
+        C: UiSchemaCollections,
+    {
+        let (schema_inputs, schema_outputs) = match self {
+            Self::V1(v1) => (&v1.inputs, &v1.outputs),
+            Self::V0(v0) => (&v0.inputs, &v0.outputs),
+        };
+        let mut values = Map::new();
+        for output in schema_outputs.values.iter() {
+            output
+                .resolve_into(schema_inputs, inputs, &mut values)
+                .await?;
+        }
+        Ok(values)
+    }
+
+    pub async fn get_secrets<C>(
+        &self,
+        inputs: &serde_json::Value,
+    ) -> Result<Vec<RenderedSecret>, UiSchemaInputError<C>>
+    where
+        C: UiSchemaCollections,
+    {
+        let mut result: Vec<RenderedSecret> = Vec::new();
+        let (schema_inputs, schema_outputs) = match self {
+            Self::V1(v1) => (&v1.inputs, &v1.outputs),
+            Self::V0(v0) => (&v0.inputs, &v0.outputs),
+        };
+        for (secret_name, attrs_schema) in schema_outputs.secrets.iter() {
+            let mut attrs: BTreeMap<String, String> = Default::default();
+            for (key, attr_schema) in attrs_schema.iter() {
+                let value = attr_schema.resolve::<C>(schema_inputs, inputs).await?;
+                attrs.insert(
+                    key.clone(),
+                    value
+                        .as_str()
+                        .map_or_else(|| value.to_string(), |v| v.to_owned()),
+                );
+            }
+            result.push(RenderedSecret {
+                name: secret_name.to_owned(),
+                attrs,
+            })
+        }
+        Ok(result)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct UiSchemaV0 {
+    pub inputs: Vec<UiSchemaInput>,
+    pub outputs: UiSchemaOutputs,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum V1 {
+    #[serde(rename = "platz.io/values-ui/v1")]
+    Value,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UiSchemaV1 {
+    #[serde(rename = "apiVersion")]
+    pub api_version: V1,
     pub inputs: Vec<UiSchemaInput>,
     pub outputs: UiSchemaOutputs,
 }
@@ -13,7 +115,7 @@ pub struct UiSchema {
 #[derive(
     Debug, Deserialize, Serialize, strum_macros::EnumString, strum_macros::EnumDiscriminants,
 )]
-#[strum_discriminants(derive(strum_macros::EnumString, strum_macros::Display,))]
+#[strum_discriminants(derive(strum_macros::EnumString, strum_macros::Display))]
 #[strum_discriminants(strum(ascii_case_insensitive))]
 pub enum UiSchemaInputSingleType {
     #[serde(rename = "text")]
@@ -104,25 +206,25 @@ pub struct UiSchemaInput {
 
 pub type UiSchemaOutputSecrets = HashMap<String, HashMap<String, UiSchemaInputRef>>;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UiSchemaOutputs {
     pub values: Vec<UiSchemaOutputValue>,
     #[serde(default)]
     pub secrets: UiSchemaOutputSecrets,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct InputFieldValue {
     pub input: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct InputFieldProperty {
     pub input: String,
     pub property: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum UiSchemaInputRef {
     FieldValue(InputFieldValue),
     FieldProperty(InputFieldProperty),
@@ -228,7 +330,7 @@ impl UiSchemaInputRef {
 
 type Map = serde_json::Map<String, serde_json::Value>;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UiSchemaOutputValue {
     pub path: Vec<String>,
     pub value: UiSchemaInputRef,
@@ -271,20 +373,7 @@ impl UiSchemaOutputValue {
     }
 }
 
-impl UiSchema {
-    pub async fn get_values<C>(
-        &self,
-        inputs: &serde_json::Value,
-    ) -> Result<Map, UiSchemaInputError<C>>
-    where
-        C: UiSchemaCollections,
-    {
-        let mut values = Map::new();
-        for output in self.outputs.values.iter() {
-            output
-                .resolve_into(&self.inputs, inputs, &mut values)
-                .await?;
-        }
-        Ok(values)
-    }
+pub struct RenderedSecret {
+    pub name: String,
+    pub attrs: BTreeMap<String, String>,
 }

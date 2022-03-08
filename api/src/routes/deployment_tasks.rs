@@ -2,8 +2,8 @@ use crate::auth::CurUser;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use platz_db::{
-    Deployment, DeploymentTask, DeploymentTaskOperation, HelmChart, Json, K8sResource,
-    NewDeploymentTask,
+    DbError, DbTable, Deployment, DeploymentTask, DeploymentTaskOperation, HelmChart, Json,
+    K8sResource, NewDeploymentTask,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -50,8 +50,13 @@ async fn create(cur_user: CurUser, task: web::Json<ApiNewDeploymentTask>) -> Api
             if params.helm_chart_id == deployment.helm_chart_id {
                 let chart = HelmChart::find(params.helm_chart_id).await?;
                 let actions_schema = chart.actions_schema()?;
-                let action_schema = actions_schema.find(&params.action_id)?;
-                match action_schema.generate_body(params.body.clone()).await {
+                let action_schema = actions_schema
+                    .find(&params.action_id)
+                    .ok_or_else(|| DbError::HelmChartNoSuchAction(params.action_id.to_owned()))?;
+                match action_schema
+                    .generate_body::<DbTable>(params.body.clone())
+                    .await
+                {
                     Ok(_) => HttpResponse::Created().json(task.insert().await?),
                     Err(err) => HttpResponse::BadRequest().json(json!({
                         "message": err.to_string()

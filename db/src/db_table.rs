@@ -1,5 +1,5 @@
 use crate::DbError;
-use platz_ui_schema::{UiSchemaCollections, UiSchemaInputError};
+use platz_chart_ext::{UiSchemaCollections, UiSchemaInputError};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 use uuid::Uuid;

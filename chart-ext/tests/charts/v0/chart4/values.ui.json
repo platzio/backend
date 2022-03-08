@@ -1,0 +1,65 @@
+{
+    "inputs": [
+        {
+            "id": "required_enum",
+            "type": "RadioSelect",
+            "label": "Required enum",
+            "options": [
+                {
+                    "value": "value1",
+                    "label": "Value 1"
+                },
+                {
+                    "value": "value2",
+                    "label": "Value 2"
+                },
+                {
+                    "value": "value3",
+                    "label": "Value 3",
+                    "helpText": "Third value"
+                }
+            ],
+            "required": true
+        },
+        {
+            "id": "required_dependent_num",
+            "label": "Required dependent num",
+            "type": "number",
+            "minimum": 0,
+            "showIfAll": [
+                {
+                    "field": "required_enum",
+                    "value": "value3"
+                }
+            ],
+            "required": true
+        }
+    ],
+    "outputs": {
+        "values": [
+            {
+                "path": [
+                    "config",
+                    "required_enum"
+                ],
+                "value": {
+                    "FieldValue": {
+                        "input": "required_enum"
+                    }
+                }
+            },
+            {
+                "path": [
+                    "config",
+                    "required_dependent_num"
+                ],
+                "value": {
+                    "FieldValue": {
+                        "input": "required_dependent_num"
+                    }
+                }
+            }
+        ],
+        "secrets": {}
+    }
+}

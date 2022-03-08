@@ -34,11 +34,11 @@ tokio-util = {version = "0.6.5"}
 url = "2.2.2"
 uuid = {version = "0.8", features = ["serde", "v4"]}
 
+[dependencies.platz-chart-ext]
+path = "../chart-ext"
+
 [dependencies.platz-db]
 path = "../db"
-
-[dependencies.platz-ui-schema]
-path = "../ui-schema"
 
 [dependencies.rusoto-utils]
 path = "../rusoto-utils"

@@ -2,8 +2,8 @@ use super::secrets::apply_secrets;
 use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
+use platz_chart_ext::{insert_into_map, UiSchema};
 use platz_db::{DbTable, Deployment, DeploymentTask, Env, K8sCluster};
-use platz_ui_schema::{insert_into_map, UiSchema};
 use serde::Serialize;
 use std::env;
 use url::Url;
@@ -130,7 +130,7 @@ pub async fn create_values_and_secrets(
         platz: platz_info,
         node_selector: env.node_selector.clone(),
         tolerations: env.tolerations.clone(),
-        ingress: if features.standard_ingress {
+        ingress: if features.standard_ingress() {
             let ingress_host = deployment.standard_ingress_hostname().await?;
             Ingress::new(ingress_host)
         } else {
@@ -138,7 +138,7 @@ pub async fn create_values_and_secrets(
         },
     })?;
 
-    for path in features.node_selector_paths.iter() {
+    for path in features.node_selector_paths().iter() {
         insert_into_map(
             values.as_object_mut().unwrap(),
             path,
@@ -146,7 +146,7 @@ pub async fn create_values_and_secrets(
         );
     }
 
-    for path in features.tolerations_paths.iter() {
+    for path in features.tolerations_paths().iter() {
         insert_into_map(
             values.as_object_mut().unwrap(),
             path,

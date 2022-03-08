@@ -2,9 +2,10 @@ use crate::permissions::verify_deployment_owner;
 use crate::result::ApiResult;
 use crate::{auth::CurUser, permissions::verify_deployment_maintainer};
 use actix_web::{web, HttpResponse};
+use platz_chart_ext::HelmChartCardinality;
 use platz_db::{
     DbTable, Deployment, DeploymentKind, DeploymentStatus, DeploymentTask, HelmChart,
-    HelmChartCardinality, NewDeployment, UpdateDeployment,
+    NewDeployment, UpdateDeployment,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -57,7 +58,7 @@ async fn create(cur_user: CurUser, new_deployment: web::Json<NewDeployment>) -> 
     .await?;
 
     let chart = HelmChart::find(new_deployment.helm_chart_id).await?;
-    match chart.features()?.cardinality {
+    match chart.features()?.cardinality() {
         HelmChartCardinality::Many => {
             if new_deployment.name.is_empty() {
                 return Ok(HttpResponse::BadRequest().json(json!({
@@ -149,7 +150,7 @@ async fn update(
             || (old_deployment.values_override != new_deployment.values_override)
         {
             DeploymentTask::create_upgrade_task(&old_deployment, &new_deployment, user).await?;
-            reinstall_dependencies = features.reinstall_dependencies;
+            reinstall_dependencies = features.reinstall_dependencies();
         }
 
         if reinstall_dependencies {

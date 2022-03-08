@@ -1,0 +1,42 @@
+{
+    "inputs": [
+        {
+            "id": "a",
+            "type": "CollectionSelect",
+            "label": "Select an A",
+            "collection": "First",
+            "required": true
+        }
+    ],
+    "outputs": {
+        "values": [
+            {
+                "path": [
+                    "config",
+                    "a",
+                    "id"
+                ],
+                "value": {
+                    "FieldProperty": {
+                        "input": "a",
+                        "property": "id"
+                    }
+                }
+            },
+            {
+                "path": [
+                    "config",
+                    "a",
+                    "value"
+                ],
+                "value": {
+                    "FieldProperty": {
+                        "input": "a",
+                        "property": "a"
+                    }
+                }
+            }
+        ],
+        "secrets": {}
+    }
+}
