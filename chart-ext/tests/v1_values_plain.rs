@@ -3,13 +3,13 @@ mod utils;
 
 use anyhow::Result;
 use fake_db::TestDb;
-use platz_chart_ext::{ChartExt, UiSchema};
+use platz_chart_ext::UiSchema;
 use serde_json::json;
-use utils::chart_dir;
+use utils::load_chart;
 
 #[tokio::test]
 async fn test() -> Result<()> {
-    let chart_ext = ChartExt::from_path(&chart_dir("v1/chart1")).await?;
+    let chart_ext = load_chart("v1/chart1").await?;
     let values_ui = chart_ext.values_ui.expect("No values_ui");
     assert!(matches!(values_ui, UiSchema::V1(_)));
     let inputs = json!({

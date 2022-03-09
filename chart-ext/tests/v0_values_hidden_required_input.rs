@@ -5,11 +5,11 @@ pub use anyhow::Result;
 pub use fake_db::TestDb;
 pub use platz_chart_ext::*;
 pub use serde_json::json;
-use utils::chart_dir;
+use utils::load_chart;
 
 #[tokio::test]
 async fn test() -> Result<()> {
-    let chart_ext = ChartExt::from_path(&chart_dir("v0/chart4")).await?;
+    let chart_ext = load_chart("v0/chart4").await?;
     let values_ui = chart_ext.values_ui.expect("No values_ui");
 
     let inputs1 = json!({

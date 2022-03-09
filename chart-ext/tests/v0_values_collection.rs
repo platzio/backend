@@ -3,13 +3,13 @@ mod utils;
 
 use anyhow::Result;
 use fake_db::TestDb;
-use platz_chart_ext::{ChartExt, UiSchema};
+use platz_chart_ext::UiSchema;
 use serde_json::json;
-use utils::chart_dir;
+use utils::load_chart;
 
 #[tokio::test]
 async fn test_single_collection() -> Result<()> {
-    let chart_ext = ChartExt::from_path(&chart_dir("v0/chart1")).await?;
+    let chart_ext = load_chart("v0/chart1").await?;
     let values_ui = chart_ext.values_ui.expect("No values_ui");
     assert!(matches!(values_ui, UiSchema::V0(_)));
     let inputs = json!({
@@ -30,7 +30,7 @@ async fn test_single_collection() -> Result<()> {
 
 #[tokio::test]
 async fn test_array_of_collection() -> Result<()> {
-    let chart_ext = ChartExt::from_path(&chart_dir("v0/chart2")).await?;
+    let chart_ext = load_chart("v0/chart2").await?;
     let values_ui = chart_ext.values_ui.expect("No values_ui");
     assert!(matches!(values_ui, UiSchema::V0(_)));
     let inputs = json!({
@@ -51,7 +51,7 @@ async fn test_array_of_collection() -> Result<()> {
 
 #[tokio::test]
 async fn test_all_input_types() -> Result<()> {
-    let chart_ext = ChartExt::from_path(&chart_dir("v0/chart3")).await?;
+    let chart_ext = load_chart("v0/chart3").await?;
     let values_ui = chart_ext.values_ui.expect("No values_ui");
     assert!(matches!(values_ui, UiSchema::V0(_)));
     Ok(())

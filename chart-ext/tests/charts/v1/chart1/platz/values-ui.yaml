@@ -1,4 +1,5 @@
-apiVersion: platz.io/values-ui/v1
+apiVersion: platz.io/v1beta1
+kind: ValuesUi
 inputs:
   - id: required_num
     type: number

@@ -4,6 +4,7 @@ mod error;
 mod ext_type;
 mod features;
 mod values_ui;
+mod versions;
 
 pub use actions::*;
 pub use collection::*;

@@ -1,38 +1,18 @@
-use super::collection::UiSchemaCollections;
-use super::error::UiSchemaInputError;
-use super::values_ui::UiSchema;
+use crate::collection::UiSchemaCollections;
+use crate::error::UiSchemaInputError;
+use crate::values_ui::UiSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "apiVersion")]
-pub enum HelmChartActionsSchema {
-    #[serde(rename = "platz.io/actions/v1")]
-    V1(HelmChartActionsV1),
+pub struct ChartExtActions {
+    pub schema_version: u64,
+    pub actions: Vec<ChartExtAction>,
 }
 
-impl HelmChartActionsSchema {
-    pub fn find(&self, action_id: &str) -> Option<&HelmChartActionSchema> {
-        match self {
-            Self::V1(v1) => v1.find(action_id),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct HelmChartActionsV1 {
-    pub actions: Vec<HelmChartActionSchema>,
-}
-
-impl HelmChartActionsV1 {
-    pub fn find(&self, action_id: &str) -> Option<&HelmChartActionSchema> {
+impl ChartExtActions {
+    pub fn find(&self, action_id: &str) -> Option<&ChartExtAction> {
         self.actions.iter().find(|action| action.id == action_id)
     }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum HelmChartActionEndpoint {
-    #[serde(rename = "standard_ingress")]
-    StandardIngress,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,10 +22,16 @@ pub enum UserDeploymentRole {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct HelmChartActionSchema {
+pub enum ChartExtActionEndpoint {
+    #[serde(rename = "standard_ingress")]
+    StandardIngress,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ChartExtAction {
     pub id: String,
     pub allowed_role: UserDeploymentRole,
-    pub endpoint: HelmChartActionEndpoint,
+    pub endpoint: ChartExtActionEndpoint,
     pub path: String,
     pub method: String,
     pub title: String,
@@ -54,7 +40,7 @@ pub struct HelmChartActionSchema {
     pub ui_schema: Option<UiSchema>,
 }
 
-impl HelmChartActionSchema {
+impl ChartExtAction {
     pub async fn generate_body<C>(
         &self,
         inputs: serde_json::Value,

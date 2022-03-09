@@ -99,15 +99,10 @@ pub struct UiSchemaV0 {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum V1 {
-    #[serde(rename = "platz.io/values-ui/v1")]
-    Value,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UiSchemaV1 {
-    #[serde(rename = "apiVersion")]
-    pub api_version: V1,
+    pub api_version: crate::versions::V1,
+    pub kind: crate::versions::ValuesUi,
     pub inputs: Vec<UiSchemaInput>,
     pub outputs: UiSchemaOutputs,
 }

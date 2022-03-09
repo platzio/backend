@@ -2,7 +2,7 @@ use crate::permissions::verify_deployment_owner;
 use crate::result::ApiResult;
 use crate::{auth::CurUser, permissions::verify_deployment_maintainer};
 use actix_web::{web, HttpResponse};
-use platz_chart_ext::HelmChartCardinality;
+use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
     DbTable, Deployment, DeploymentKind, DeploymentStatus, DeploymentTask, HelmChart,
     NewDeployment, UpdateDeployment,
@@ -59,14 +59,14 @@ async fn create(cur_user: CurUser, new_deployment: web::Json<NewDeployment>) -> 
 
     let chart = HelmChart::find(new_deployment.helm_chart_id).await?;
     match chart.features()?.cardinality() {
-        HelmChartCardinality::Many => {
+        ChartExtCardinality::Many => {
             if new_deployment.name.is_empty() {
                 return Ok(HttpResponse::BadRequest().json(json!({
                     "error": "Missing name field",
                 })));
             }
         }
-        HelmChartCardinality::OnePerCluster => {
+        ChartExtCardinality::OnePerCluster => {
             if !new_deployment.name.is_empty() {
                 return Ok(HttpResponse::Conflict().json(json!({
                     "error": "This is a one per cluster deployment, therefore is cannot be assigned a name",

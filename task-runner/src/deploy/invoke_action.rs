@@ -1,7 +1,7 @@
 use super::RunnableDeploymentOperation;
 use anyhow::Result;
 use async_trait::async_trait;
-use platz_chart_ext::HelmChartActionEndpoint;
+use platz_chart_ext::ChartExtActionEndpoint;
 use platz_db::{DbError, DbTable, Deployment, DeploymentInvokeActionTask, DeploymentTask};
 use std::str::FromStr;
 use url::Url;
@@ -18,7 +18,7 @@ impl RunnableDeploymentOperation for DeploymentInvokeActionTask {
         let url = Url::parse(&format!(
             "https://{}/{}",
             match action_schema.endpoint {
-                HelmChartActionEndpoint::StandardIngress =>
+                ChartExtActionEndpoint::StandardIngress =>
                     deployment.standard_ingress_hostname().await?,
             },
             action_schema.path.trim_start_matches('/'),

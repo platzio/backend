@@ -1,0 +1,8 @@
+{
+    "standard_ingress": true,
+    "status": {
+        "endpoint": "standard_ingress",
+        "path": "/api/v1/platz-status",
+        "refresh_interval_secs": 15
+    }
+}

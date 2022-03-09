@@ -5,7 +5,7 @@ use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
-use platz_chart_ext::{HelmChartActionsSchema, HelmChartFeatures};
+use platz_chart_ext::{ChartExtActions, ChartExtFeatures};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -59,9 +59,9 @@ impl HelmChart {
             .optional()?)
     }
 
-    pub fn actions_schema(&self) -> DbResult<HelmChartActionsSchema> {
+    pub fn actions_schema(&self) -> DbResult<ChartExtActions> {
         match self.actions_schema.as_ref() {
-            Some(value) => match serde_json::from_value::<HelmChartActionsSchema>(value.clone()) {
+            Some(value) => match serde_json::from_value::<ChartExtActions>(value.clone()) {
                 Ok(schema) => Ok(schema),
                 Err(err) => Err(DbError::HelmChartActionsSchemaParseError(err)),
             },
@@ -69,7 +69,7 @@ impl HelmChart {
         }
     }
 
-    pub fn features(&self) -> DbResult<HelmChartFeatures> {
+    pub fn features(&self) -> DbResult<ChartExtFeatures> {
         Ok(match self.features.as_ref() {
             None => Default::default(),
             Some(value) => serde_json::from_value(value.clone())

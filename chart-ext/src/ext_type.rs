@@ -1,5 +1,5 @@
-use super::actions::HelmChartActionsSchema;
-use super::features::HelmChartFeatures;
+use super::actions::ChartExtActions;
+use super::features::ChartExtFeatures;
 use super::values_ui::UiSchema;
 use serde::{de::DeserializeOwned, Serialize};
 use std::path::Path;
@@ -9,8 +9,8 @@ use tokio::try_join;
 #[derive(Debug)]
 pub struct ChartExt {
     pub values_ui: Option<UiSchema>,
-    pub actions: Option<HelmChartActionsSchema>,
-    pub features: Option<HelmChartFeatures>,
+    pub actions: Option<ChartExtActions>,
+    pub features: Option<ChartExtFeatures>,
     pub error: Option<String>,
 }
 
@@ -80,8 +80,8 @@ async fn read_chart_extensions(
 ) -> Result<
     (
         Option<UiSchema>,
-        Option<HelmChartActionsSchema>,
-        Option<HelmChartFeatures>,
+        Option<ChartExtActions>,
+        Option<ChartExtFeatures>,
     ),
     ChartExtError,
 > {
@@ -115,8 +115,8 @@ async fn try_read_chart_extensions(
 ) -> Result<
     (
         Option<UiSchema>,
-        Option<HelmChartActionsSchema>,
-        Option<HelmChartFeatures>,
+        Option<ChartExtActions>,
+        Option<ChartExtFeatures>,
     ),
     ChartExtError,
 > {

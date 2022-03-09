@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use platz_chart_ext::HelmChartActionEndpoint;
+use platz_chart_ext::ChartExtActionEndpoint;
 use platz_db::Deployment;
 use std::time::Duration;
 use tokio::time::{interval, Interval};
@@ -27,7 +27,7 @@ impl StatusConfig {
         };
 
         let url = Url::parse(&match status_feature.endpoint {
-            HelmChartActionEndpoint::StandardIngress => format!(
+            ChartExtActionEndpoint::StandardIngress => format!(
                 "https://{}/{}",
                 deployment.standard_ingress_hostname().await?,
                 status_feature.path.trim_start_matches('/')

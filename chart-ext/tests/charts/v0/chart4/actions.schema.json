@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "actions": [
+    {
+      "id": "start",
+      "allowed_role": "Maintainer",
+      "allowed_on_statuses": [
+        "Stopped"
+      ],
+      "endpoint": "standard_ingress",
+      "path": "/api/v1/start",
+      "method": "POST",
+      "title": "Start",
+      "fontawesome_icon": "toggle-on",
+      "description": "Get started",
+      "ui_schema": {
+        "inputs": [],
+        "outputs": {
+          "values": []
+        }
+      }
+    },
+    {
+      "id": "abort_stop",
+      "allowed_role": "Maintainer",
+      "allowed_on_statuses": [
+        "Stopping"
+      ],
+      "endpoint": "standard_ingress",
+      "path": "/api/v1/abort-stop",
+      "method": "POST",
+      "title": "Abort Stop",
+      "fontawesome_icon": "toggle-on",
+      "description": "This will abort stopping and return to Started state",
+      "ui_schema": {
+        "inputs": [],
+        "outputs": {
+          "values": []
+        }
+      }
+    },
+    {
+      "id": "stop",
+      "allowed_role": "Maintainer",
+      "allowed_on_statuses": [
+        "Started"
+      ],
+      "endpoint": "standard_ingress",
+      "path": "/api/v1/stop",
+      "method": "POST",
+      "title": "Stop",
+      "fontawesome_icon": "toggle-off",
+      "description": "This action will stop",
+      "ui_schema": {
+        "inputs": [],
+        "outputs": {
+          "values": []
+        }
+      }
+    },
+    {
+      "id": "emergency_stop",
+      "allowed_role": "Maintainer",
+      "allowed_on_statuses": [
+        "Started",
+        "Stopping"
+      ],
+      "endpoint": "standard_ingress",
+      "path": "/api/v1/emergency-stop",
+      "method": "POST",
+      "title": "Emergency Stop",
+      "fontawesome_icon": "hand-paper",
+      "description": "Stop immediately even if already stopping",
+      "ui_schema": {
+        "inputs": [
+          {
+            "id": "reason",
+            "type": "text",
+            "label": "Reason"
+          }
+        ],
+        "outputs": {
+          "values": [
+            {
+              "path": [
+                "reason"
+              ],
+              "value": {
+                "FieldValue": {
+                  "input": "reason"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
