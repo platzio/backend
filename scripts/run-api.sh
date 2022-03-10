@@ -18,8 +18,8 @@ fi
 
 export RUST_BACKTRACE="1"
 export OIDC_SERVER_URL="https://accounts.google.com"
-export OIDC_CLIENT_ID="id"
-export OIDC_CLIENT_SECRET="secret"
+export OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-"id"}
+export OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-"secret"}
 
 echo "[${SCRIPT}] 🚀 Running API server"
 args=("$@")
