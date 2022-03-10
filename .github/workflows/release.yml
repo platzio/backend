@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v**
+
+jobs:
+  build:
+    name: 🚀 Build & Push to DockerHub
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛠 Checkout
+        uses: actions/checkout@v2
+
+      - name: 📦 Install Cargo
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: 📦 Cargo clippy + build
+        run: |
+          cargo clippy
+          cargo build
+
+      - name: 🚚 Move executables to dist/
+        run: |
+          mkdir ./dist
+          find target/debug/ -maxdepth 1 -type f -perm /a+x -exec mv -v {} ./dist/ \;
+
+      - name: 🏷 Get tag
+        id: tag
+        run: |
+          echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+
+      - name: 🐳 Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🐳 Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          build-args: BASE_IMAGE=platzio/base:v1
+          push: true
+          tags: platzio/backend:${{ steps.tag.outputs.tag }}
