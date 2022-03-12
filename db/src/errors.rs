@@ -32,6 +32,9 @@ pub enum DbError {
     #[error("Error parsing helm chart values schema: {0}")]
     HelmChartValuesSchemaParseError(serde_json::Error),
 
+    #[error("Error parsing helm chart resource types: {0}")]
+    HelmChartResourceTypesParseError(serde_json::Error),
+
     #[error("No such action ID: {0}")]
     HelmChartNoSuchAction(String),
 
@@ -46,6 +49,9 @@ pub enum DbError {
 
     #[error("Requested config_inputs from a task type that has no config inputs")]
     TaskHasNoConfig,
+
+    #[error("Error syncing deployment resource ({0}): {1}")]
+    DeploymentResourceSyncError(String, String),
 }
 
 pub type DbResult<T> = Result<T, DbError>;

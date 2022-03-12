@@ -47,3 +47,15 @@ impl Default for Features {
         Self::Value
     }
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ResourceType {
+    #[serde(rename = "ResourceType")]
+    Value,
+}
+
+impl Default for ResourceType {
+    fn default() -> Self {
+        Self::Value
+    }
+}

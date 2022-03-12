@@ -34,9 +34,11 @@ pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
 
     let chart_path = download_chart(&event).await?;
     let chart_ext = ChartExt::from_path(&chart_path).await?;
-    let (values_ui, actions_schema, features, error) = match chart_ext.to_values() {
-        Ok((values_ui, actions_schema, features)) => (values_ui, actions_schema, features, None),
-        Err(error) => (None, None, None, Some(error)),
+    let (values_ui, actions_schema, features, resource_types, error) = match chart_ext.to_values() {
+        Ok((values_ui, actions_schema, features, resource_types)) => {
+            (values_ui, actions_schema, features, resource_types, None)
+        }
+        Err(error) => (None, None, None, None, Some(error)),
     };
 
     let chart = NewHelmChart {
@@ -47,6 +49,7 @@ pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
         values_ui,
         actions_schema,
         features,
+        resource_types,
         error,
     }
     .insert()

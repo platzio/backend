@@ -3,6 +3,9 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
+mod ui_collection;
+pub use ui_collection::DbTableOrDeploymentResource;
+
 mod config;
 use crate::config::database_url;
 

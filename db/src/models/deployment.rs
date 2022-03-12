@@ -1,5 +1,5 @@
 use crate::pool;
-use crate::DbTable;
+use crate::DbTableOrDeploymentResource;
 use crate::DeploymentTask;
 use crate::HelmChart;
 use crate::K8sCluster;
@@ -10,9 +10,13 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_derive_more::DBEnum;
+use platz_chart_ext::actions::{
+    ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver,
+};
 use platz_chart_ext::UiSchema;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
+use url::Url;
 use uuid::Uuid;
 
 table! {
@@ -105,7 +109,7 @@ impl Deployment {
             .await?)
     }
 
-    async fn is_using(&self, table: DbTable, id: &str) -> DbResult<bool> {
+    async fn is_using(&self, collection: &DbTableOrDeploymentResource, id: &str) -> DbResult<bool> {
         let revision_id = match self.revision_id {
             Some(revision_id) => revision_id,
             None => return Ok(false),
@@ -126,14 +130,17 @@ impl Deployment {
             Err(DbError::TaskHasNoConfig) => return Ok(false),
             Err(err) => return Err(err),
         };
-        Ok(values_ui.is_collection_in_inputs(config, &table, id))
+        Ok(values_ui.is_collection_in_inputs(config, collection, id))
     }
 
-    pub async fn find_using(table: DbTable, id: Uuid) -> DbResult<Vec<Self>> {
+    pub async fn find_using(
+        collection: &DbTableOrDeploymentResource,
+        id: Uuid,
+    ) -> DbResult<Vec<Self>> {
         let id = id.to_string();
         let mut result = Vec::new();
         for deployment in Self::all().await?.into_iter() {
-            if deployment.is_using(table, &id).await? {
+            if deployment.is_using(collection, &id).await? {
                 result.push(deployment);
             }
         }
@@ -141,12 +148,12 @@ impl Deployment {
     }
 
     pub async fn reinstall_all_using(
-        table: DbTable,
+        collection: &DbTableOrDeploymentResource,
         id: Uuid,
         user: &User,
         reason: String,
     ) -> DbResult<()> {
-        for deployment in Deployment::find_using(table, id)
+        for deployment in Deployment::find_using(collection, id)
             .await?
             .into_iter()
             .filter(|deployment| deployment.enabled)
@@ -361,5 +368,19 @@ impl UpdateDeploymentReportedStatus {
                 .get_result_async(pool())
                 .await?,
         )
+    }
+}
+
+#[async_trait::async_trait]
+impl ChartExtActionTargetResolver for Deployment {
+    async fn resolve(&self, target: &ChartExtActionTarget) -> anyhow::Result<Url> {
+        let host = match target.endpoint {
+            ChartExtActionEndpoint::StandardIngress => self.standard_ingress_hostname().await?,
+        };
+        Ok(Url::parse(&format!(
+            "https://{}/{}",
+            host,
+            target.path.trim_start_matches('/'),
+        ))?)
     }
 }

@@ -3,7 +3,7 @@ use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use platz_db::{
     DbError, DbTable, Deployment, DeploymentTask, DeploymentTaskOperation, HelmChart, Json,
-    K8sResource, NewDeploymentTask,
+    K8sCluster, K8sResource, NewDeploymentTask,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -38,6 +38,15 @@ async fn create(cur_user: CurUser, task: web::Json<ApiNewDeploymentTask>) -> Api
     let task = task.into_inner();
 
     let deployment = Deployment::find(task.deployment_id).await?;
+
+    let cluster = K8sCluster::find(deployment.cluster_id).await?;
+    let env_id = match cluster.env_id {
+        Some(env_id) => env_id,
+        None => return Ok(HttpResponse::InternalServerError().json(json!({
+            "error": "Can't create a deployment task for a deployment in a cluster with no env_id",
+        }))),
+    };
+
     let task = NewDeploymentTask {
         deployment_id: task.deployment_id,
         user_id: cur_user.user().id,
@@ -54,7 +63,7 @@ async fn create(cur_user: CurUser, task: web::Json<ApiNewDeploymentTask>) -> Api
                     .find(&params.action_id)
                     .ok_or_else(|| DbError::HelmChartNoSuchAction(params.action_id.to_owned()))?;
                 match action_schema
-                    .generate_body::<DbTable>(params.body.clone())
+                    .generate_body::<DbTable>(env_id, params.body.clone())
                     .await
                 {
                     Ok(_) => HttpResponse::Created().json(task.insert().await?),

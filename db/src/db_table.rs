@@ -1,34 +1,24 @@
 use crate::DbError;
 use platz_chart_ext::{UiSchemaCollections, UiSchemaInputError};
 use serde::{Deserialize, Serialize};
-use strum::Display;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DbTable {
-    #[serde(rename = "k8s_clusters")]
-    K8sClusters,
-    #[serde(rename = "k8s_resources")]
-    K8sResources,
-    #[serde(rename = "helm_registries")]
-    HelmRegistries,
-    #[serde(rename = "helm_charts")]
-    HelmCharts,
-    #[serde(rename = "deployment_configs")]
     DeploymentConfigs,
-    #[serde(rename = "deployments")]
+    DeploymentResources,
+    DeploymentResourceTypes,
     Deployments,
-    #[serde(rename = "deployment_tasks")]
     DeploymentTasks,
-    #[serde(rename = "deployment_permissions")]
     DeploymentPermissions,
-    #[serde(rename = "secrets")]
-    Secrets,
-    #[serde(rename = "envs")]
     Envs,
-    #[serde(rename = "env_user_permissions")]
     EnvUserPermissions,
-    #[serde(rename = "users")]
+    HelmRegistries,
+    HelmCharts,
+    K8sClusters,
+    K8sResources,
+    Secrets,
     Users,
 }
 
@@ -38,16 +28,17 @@ impl UiSchemaCollections for DbTable {
 
     async fn resolve(
         &self,
+        env_id: Uuid,
         id: &str,
         property: &str,
-    ) -> Result<serde_json::Value, UiSchemaInputError<Self>> {
+    ) -> Result<serde_json::Value, UiSchemaInputError<Self::Error>> {
         let id = Uuid::parse_str(id)
             .map_err(|_| UiSchemaInputError::InvalidCollectionId(id.to_owned()))?;
         match self {
             Self::Deployments => {
-                let deployment = crate::models::Deployment::find(id)
-                    .await
-                    .map_err(UiSchemaInputError::CollectionError)?;
+                // TODO: Return Option from Deployment::find and convert to UiSchemaInputError::CollectionItemNotFound when None
+                let deployment = crate::models::Deployment::find(id).await?;
+                // TODO: Check deployment is in env_id
                 match property {
                     "id" => Ok(deployment.id.to_string().into()),
                     "created_at" => Ok(deployment.created_at.to_string().into()),
@@ -62,25 +53,44 @@ impl UiSchemaCollections for DbTable {
                 }
             }
             Self::Secrets => {
-                let secret = crate::models::Secret::find(id)
-                    .await
-                    .map_err(UiSchemaInputError::CollectionError)?;
-                match property {
-                    "id" => Ok(secret.id.to_string().into()),
-                    "created_at" => Ok(secret.created_at.to_string().into()),
-                    "updated_at" => Ok(secret.updated_at.to_string().into()),
-                    "env_id" => Ok(secret.env_id.to_string().into()),
-                    "collection" => Ok(secret.collection.into()),
-                    "name" => Ok(secret.name.into()),
-                    "contents" => Ok(secret.contents.into()),
-                    _ => Err(UiSchemaInputError::UnknownProperty(
-                        property.to_owned(),
+                // TODO: Return Option from Secret::find and convert to UiSchemaInputError::CollectionItemNotFound when None
+                let secret = crate::models::Secret::find(id).await?;
+                if secret.env_id == env_id {
+                    match property {
+                        "id" => Ok(secret.id.to_string().into()),
+                        "created_at" => Ok(secret.created_at.to_string().into()),
+                        "updated_at" => Ok(secret.updated_at.to_string().into()),
+                        "env_id" => Ok(secret.env_id.to_string().into()),
+                        "collection" => Ok(secret.collection.into()),
+                        "name" => Ok(secret.name.into()),
+                        "contents" => Ok(secret.contents.into()),
+                        _ => Err(UiSchemaInputError::UnknownProperty(
+                            property.to_owned(),
+                            self.to_string(),
+                        )),
+                    }
+                } else {
+                    Err(UiSchemaInputError::CollectionItemNotFound(
                         self.to_string(),
-                    )),
+                        id.to_string(),
+                    ))
                 }
             }
             _ => Err(UiSchemaInputError::UnsupportedCollection(self.to_string())),
         }
+    }
+}
+
+impl std::fmt::Display for DbTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            serde_json::to_value(self)
+                .expect("Could not serialize DbTable as Value")
+                .as_str()
+                .expect("Could not serialize DbTable as string")
+        )
     }
 }
 
@@ -89,11 +99,8 @@ mod tests {
     use super::DbTable;
 
     #[test]
-    fn test_db_table_serialize() {
+    fn test_db_table_to_string() {
         let table = DbTable::DeploymentPermissions;
-        assert_eq!(
-            serde_json::to_value(&table).unwrap().as_str().unwrap(),
-            "deployment_permissions"
-        );
+        assert_eq!(table.to_string(), "deployment_permissions");
     }
 }

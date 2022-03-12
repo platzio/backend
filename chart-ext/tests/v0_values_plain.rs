@@ -4,6 +4,7 @@ use anyhow::Result;
 use fake_db::TestDb;
 use platz_chart_ext::UiSchema;
 use serde_json::json;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test() -> Result<()> {
@@ -118,7 +119,10 @@ async fn test() -> Result<()> {
         "ignored_field": 5,
         "array_of_text": ["value"]
     });
-    let values: serde_json::Value = ui_schema.get_values::<TestDb>(&inputs).await?.into();
+    let values: serde_json::Value = ui_schema
+        .get_values::<TestDb>(Uuid::new_v4(), &inputs)
+        .await?
+        .into();
     let expected = json!({
         "config": {
             "required_bool": true,

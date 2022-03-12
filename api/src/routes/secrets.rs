@@ -2,7 +2,7 @@ use crate::auth::CurUser;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
-use platz_db::{DbTable, Deployment, NewSecret, Secret, UpdateSecret};
+use platz_db::{DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Secret, UpdateSecret};
 use uuid::Uuid;
 
 #[actix_web::get("")]
@@ -36,7 +36,7 @@ async fn update(
     let new = update.save(id).await?;
 
     Deployment::reinstall_all_using(
-        DbTable::Secrets,
+        &DbTableOrDeploymentResource::DbTable(DbTable::Secrets),
         id,
         cur_user.user(),
         format!("{} secret has been updated", new.collection),

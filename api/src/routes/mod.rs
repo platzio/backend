@@ -1,5 +1,7 @@
 mod auth;
 mod deployment_permissions;
+mod deployment_resource_types;
+mod deployment_resources;
 mod deployment_tasks;
 mod deployments;
 mod env_user_permissions;
@@ -17,6 +19,8 @@ pub fn config(cfg: &mut actix_web::web::ServiceConfig) {
     auth::config(cfg);
     deployments::config(cfg);
     deployment_permissions::config(cfg);
+    deployment_resource_types::config(cfg);
+    deployment_resources::config(cfg);
     deployment_tasks::config(cfg);
     envs::config(cfg);
     env_user_permissions::config(cfg);

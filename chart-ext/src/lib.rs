@@ -1,9 +1,11 @@
-mod actions;
+pub mod actions;
 mod collection;
 mod error;
-mod ext_type;
-mod features;
-mod values_ui;
+pub mod ext_type;
+pub mod features;
+pub mod resource_types;
+mod serde_utils;
+pub mod values_ui;
 mod versions;
 
 pub use actions::*;

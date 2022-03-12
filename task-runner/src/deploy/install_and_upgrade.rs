@@ -23,6 +23,7 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
         match run_helm("install", deployment, task).await {
             Ok(output) => {
                 deployment.set_revision(Some(task.id)).await?;
+                task.apply_deployment_resources().await?;
                 deployment
                     .set_status(DeploymentStatus::Running, None)
                     .await?;
@@ -47,6 +48,7 @@ impl RunnableDeploymentOperation for DeploymentUpgradeTask {
         match run_helm("upgrade --install", deployment, task).await {
             Ok(output) => {
                 deployment.set_revision(Some(task.id)).await?;
+                task.apply_deployment_resources().await?;
                 deployment
                     .set_status(DeploymentStatus::Running, None)
                     .await?;
@@ -68,14 +70,10 @@ impl RunnableDeploymentOperation for DeploymentReinstallTask {
         deployment
             .set_status(DeploymentStatus::Upgrading, None)
             .await?;
-        match run_helm(
-            "upgrade --install",
-            deployment,
-            &deployment.revision_task().await?,
-        )
-        .await
-        {
+        let revision_task = deployment.revision_task().await?;
+        match run_helm("upgrade --install", deployment, &revision_task).await {
             Ok(output) => {
+                revision_task.apply_deployment_resources().await?;
                 deployment
                     .set_status(DeploymentStatus::Running, None)
                     .await?;

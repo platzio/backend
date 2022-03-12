@@ -1,9 +1,7 @@
-use crate::UiSchemaCollections;
-
 #[derive(Debug, thiserror::Error)]
-pub enum UiSchemaInputError<C>
+pub enum UiSchemaInputError<CollectionError>
 where
-    C: UiSchemaCollections,
+    CollectionError: std::fmt::Display,
 {
     #[error("An input is missing while being referenced in an output field: {0}")]
     MissingInputValue(String),
@@ -19,6 +17,9 @@ where
 
     #[error("Could not find a collection named {0}: {1}")]
     InvalidCollectionName(String, serde_json::Error),
+
+    #[error("Could not find a {0} collection item with ID: {1}")]
+    CollectionItemNotFound(String, String),
 
     #[error("The {0} input field was expected to be a string")]
     InputNotString(String),
@@ -36,5 +37,5 @@ where
     UnknownProperty(String, String),
 
     #[error("Error while resolving collection property: {0}")]
-    CollectionError(C::Error),
+    CollectionError(#[from] CollectionError),
 }

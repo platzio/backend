@@ -2,7 +2,7 @@ pub mod v0;
 pub mod v1;
 
 use serde::{Deserialize, Serialize};
-pub use v0::ChartExtActionEndpoint;
+pub use v0::{ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]

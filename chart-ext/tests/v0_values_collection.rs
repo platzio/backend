@@ -6,6 +6,7 @@ use fake_db::TestDb;
 use platz_chart_ext::UiSchema;
 use serde_json::json;
 use utils::load_chart;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_single_collection() -> Result<()> {
@@ -15,7 +16,10 @@ async fn test_single_collection() -> Result<()> {
     let inputs = json!({
         "a": "3",
     });
-    let values: serde_json::Value = values_ui.get_values::<TestDb>(&inputs).await?.into();
+    let values: serde_json::Value = values_ui
+        .get_values::<TestDb>(Uuid::new_v4(), &inputs)
+        .await?
+        .into();
     let expected = json!({
         "config": {
             "a": {
@@ -36,7 +40,10 @@ async fn test_array_of_collection() -> Result<()> {
     let inputs = json!({
         "a": ["3", "4"],
     });
-    let values: serde_json::Value = values_ui.get_values::<TestDb>(&inputs).await?.into();
+    let values: serde_json::Value = values_ui
+        .get_values::<TestDb>(Uuid::new_v4(), &inputs)
+        .await?
+        .into();
     let expected = json!({
         "config": {
             "a": {

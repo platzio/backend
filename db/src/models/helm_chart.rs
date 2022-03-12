@@ -5,6 +5,7 @@ use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+use platz_chart_ext::resource_types::ChartExtResourceTypes;
 use platz_chart_ext::{ChartExtActions, ChartExtFeatures};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -20,6 +21,7 @@ table! {
         values_ui -> Nullable<Jsonb>,
         actions_schema -> Nullable<Jsonb>,
         features -> Nullable<Jsonb>,
+        resource_types -> Nullable<Jsonb>,
         error -> Nullable<Varchar>,
     }
 }
@@ -35,6 +37,7 @@ pub struct HelmChart {
     pub values_ui: Option<serde_json::Value>,
     pub actions_schema: Option<serde_json::Value>,
     pub features: Option<serde_json::Value>,
+    pub resource_types: Option<serde_json::Value>,
     pub error: Option<String>,
 }
 
@@ -76,6 +79,14 @@ impl HelmChart {
                 .map_err(DbError::HelmChartFeaturesParsingError)?,
         })
     }
+
+    pub fn resource_types(&self) -> DbResult<ChartExtResourceTypes> {
+        Ok(match self.features.as_ref() {
+            None => Default::default(),
+            Some(value) => serde_json::from_value(value.clone())
+                .map_err(DbError::HelmChartFeaturesParsingError)?,
+        })
+    }
 }
 
 #[derive(Insertable, Deserialize)]
@@ -88,6 +99,7 @@ pub struct NewHelmChart {
     pub values_ui: Option<serde_json::Value>,
     pub actions_schema: Option<serde_json::Value>,
     pub features: Option<serde_json::Value>,
+    pub resource_types: Option<serde_json::Value>,
     pub error: Option<String>,
 }
 

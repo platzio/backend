@@ -2,6 +2,8 @@ use crate::json_diff::{json_diff, JsonDiff};
 use crate::pool;
 use crate::Deployment;
 use crate::HelmChart;
+use crate::K8sCluster;
+use crate::NewDeploymentResourceType;
 use crate::User;
 use crate::{DbError, DbResult};
 use async_diesel::*;
@@ -10,6 +12,7 @@ use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_derive_more::DBEnum;
 pub use diesel_json::Json;
+use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use uuid::Uuid;
@@ -134,6 +137,28 @@ impl DeploymentTask {
             }
         };
         HelmChart::find(helm_chart_id).await
+    }
+
+    pub async fn apply_deployment_resources(&self) -> DbResult<()> {
+        let deployment = Deployment::find(self.deployment_id).await?;
+        let cluster = K8sCluster::find(deployment.cluster_id).await?;
+        let env_id = cluster
+            .env_id
+            .expect("Trying to apply deployment resources when a cluster has no env_id");
+        let chart = self.helm_chart().await?;
+        let types = chart.resource_types()?;
+        for typ in types.inner.into_iter() {
+            let ChartExtResourceType::V1(typ) = typ;
+            NewDeploymentResourceType {
+                env_id: if typ.spec.global { None } else { Some(env_id) },
+                deployment_kind: deployment.kind.clone(),
+                key: typ.key,
+                spec: serde_json::to_value(typ.spec).unwrap(),
+            }
+            .save()
+            .await?;
+        }
+        Ok(())
     }
 
     pub fn get_config(&self) -> DbResult<&serde_json::Value> {

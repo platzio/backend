@@ -1,7 +1,7 @@
 use super::AuthError;
 use actix_web::{dev::Payload, FromRequest, HttpRequest};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use futures_util::future::{BoxFuture, FutureExt, TryFutureExt};
+use futures::future::{BoxFuture, FutureExt, TryFutureExt};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use platz_db::{Setting, User};
 use rand::random;

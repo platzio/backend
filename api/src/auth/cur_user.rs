@@ -1,6 +1,6 @@
 use super::{AccessToken, AuthError};
 use actix_web::{dev::Payload, FromRequest, HttpRequest};
-use futures_util::future::{err, ok, BoxFuture, FutureExt, TryFutureExt};
+use futures::future::{err, ok, BoxFuture, FutureExt, TryFutureExt};
 use platz_db::User;
 use serde::Serialize;
 

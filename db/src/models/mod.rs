@@ -1,5 +1,7 @@
 mod deployment;
 mod deployment_permission;
+mod deployment_resource;
+mod deployment_resource_type;
 mod deployment_task;
 mod env;
 mod env_user_permission;
@@ -13,6 +15,8 @@ mod user;
 
 pub use deployment::*;
 pub use deployment_permission::*;
+pub use deployment_resource::*;
+pub use deployment_resource_type::*;
 pub use deployment_task::*;
 pub use env::*;
 pub use env_user_permission::*;

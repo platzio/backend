@@ -9,12 +9,17 @@ use std::collections::BTreeMap;
 use uuid::Uuid;
 
 pub async fn apply_secrets(
+    env_id: Uuid,
     ui_schema: &UiSchema,
     deployment: &Deployment,
     task: &DeploymentTask,
 ) -> Result<()> {
     let inputs = task.get_config()?;
-    for secret in ui_schema.get_secrets::<DbTable>(inputs).await?.into_iter() {
+    for secret in ui_schema
+        .get_secrets::<DbTable>(env_id, inputs)
+        .await?
+        .into_iter()
+    {
         apply_secret(
             deployment.cluster_id,
             &deployment.namespace_name(),

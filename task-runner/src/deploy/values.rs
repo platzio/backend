@@ -156,9 +156,9 @@ pub async fn create_values_and_secrets(
 
     if let Some(ui_schema) = ui_schema {
         let inputs = task.get_config()?;
-        let mut more_values = ui_schema.get_values::<DbTable>(inputs).await?;
+        let mut more_values = ui_schema.get_values::<DbTable>(env.id, inputs).await?;
         values.as_object_mut().unwrap().append(&mut more_values);
-        apply_secrets(&ui_schema, deployment, task).await?;
+        apply_secrets(env.id, &ui_schema, deployment, task).await?;
     } else {
         values
             .as_object_mut()

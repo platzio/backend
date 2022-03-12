@@ -4,8 +4,8 @@ use crate::{auth::CurUser, permissions::verify_deployment_maintainer};
 use actix_web::{web, HttpResponse};
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
-    DbTable, Deployment, DeploymentKind, DeploymentStatus, DeploymentTask, HelmChart,
-    NewDeployment, UpdateDeployment,
+    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentKind, DeploymentStatus,
+    DeploymentTask, HelmChart, NewDeployment, UpdateDeployment,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -116,11 +116,14 @@ async fn update(
     }
 
     if old_deployment.enabled && updates.enabled == Some(false) {
-        let dependents: Vec<_> = Deployment::find_using(DbTable::Deployments, old_deployment.id)
-            .await?
-            .into_iter()
-            .filter(|d| d.enabled)
-            .collect();
+        let dependents: Vec<_> = Deployment::find_using(
+            &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),
+            old_deployment.id,
+        )
+        .await?
+        .into_iter()
+        .filter(|d| d.enabled)
+        .collect();
         if !dependents.is_empty() {
             return Ok(HttpResponse::Conflict().json(json!({
                         "message": using_error("This deployment can't be disabled because other deployments depend on it", dependents),
@@ -155,7 +158,7 @@ async fn update(
 
         if reinstall_dependencies {
             Deployment::reinstall_all_using(
-                DbTable::Deployments,
+                &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),
                 new_deployment.id,
                 user,
                 format!("The {} deployment has been updated", old_deployment.name),
@@ -174,7 +177,11 @@ async fn delete(cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
     let deployment = Deployment::find(id.into_inner()).await?;
     verify_deployment_owner(deployment.cluster_id, &deployment.kind, cur_user.user().id).await?;
 
-    let dependents = Deployment::find_using(DbTable::Deployments, deployment.id).await?;
+    let dependents = Deployment::find_using(
+        &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),
+        deployment.id,
+    )
+    .await?;
     if !dependents.is_empty() {
         return Ok(HttpResponse::Conflict().json(json!({
             "message": using_error("This deployment can't be deleted because other deployments depend on it", dependents),

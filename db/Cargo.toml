@@ -23,6 +23,7 @@ serde_with = "1.10.0"
 strum = {version = "0.24.0", features = ["derive"]}
 thiserror = "1.0.29"
 tokio = {version = "1", features = ["full"]}
+url = "2.2.2"
 uuid = {version = "0.8", features = ["serde", "v4"]}
 
 [dependencies.diesel]

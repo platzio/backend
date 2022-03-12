@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -25,7 +26,7 @@ impl UiSchema {
         let collection_name_value = serde_json::to_value(collection).unwrap();
         let collection_name = collection_name_value.as_str().unwrap();
         let schema_inputs = match self {
-            Self::V1(v1) => &v1.inputs,
+            Self::V1(v1) => &v1.inner.inputs,
             Self::V0(v0) => &v0.inputs,
         };
         schema_inputs.iter().any(|input| {
@@ -41,19 +42,20 @@ impl UiSchema {
 
     pub async fn get_values<C>(
         &self,
+        env_id: Uuid,
         inputs: &serde_json::Value,
-    ) -> Result<Map, UiSchemaInputError<C>>
+    ) -> Result<Map, UiSchemaInputError<C::Error>>
     where
         C: UiSchemaCollections,
     {
         let (schema_inputs, schema_outputs) = match self {
-            Self::V1(v1) => (&v1.inputs, &v1.outputs),
+            Self::V1(v1) => (&v1.inner.inputs, &v1.inner.outputs),
             Self::V0(v0) => (&v0.inputs, &v0.outputs),
         };
         let mut values = Map::new();
         for output in schema_outputs.values.iter() {
             output
-                .resolve_into(schema_inputs, inputs, &mut values)
+                .resolve_into::<C>(env_id, schema_inputs, inputs, &mut values)
                 .await?;
         }
         Ok(values)
@@ -61,20 +63,23 @@ impl UiSchema {
 
     pub async fn get_secrets<C>(
         &self,
+        env_id: Uuid,
         inputs: &serde_json::Value,
-    ) -> Result<Vec<RenderedSecret>, UiSchemaInputError<C>>
+    ) -> Result<Vec<RenderedSecret>, UiSchemaInputError<C::Error>>
     where
         C: UiSchemaCollections,
     {
         let mut result: Vec<RenderedSecret> = Vec::new();
         let (schema_inputs, schema_outputs) = match self {
-            Self::V1(v1) => (&v1.inputs, &v1.outputs),
+            Self::V1(v1) => (&v1.inner.inputs, &v1.inner.outputs),
             Self::V0(v0) => (&v0.inputs, &v0.outputs),
         };
         for (secret_name, attrs_schema) in schema_outputs.secrets.iter() {
             let mut attrs: BTreeMap<String, String> = Default::default();
             for (key, attr_schema) in attrs_schema.iter() {
-                let value = attr_schema.resolve::<C>(schema_inputs, inputs).await?;
+                let value = attr_schema
+                    .resolve::<C>(env_id, schema_inputs, inputs)
+                    .await?;
                 attrs.insert(
                     key.clone(),
                     value
@@ -95,6 +100,7 @@ impl UiSchema {
 #[serde(deny_unknown_fields)]
 pub struct UiSchemaV0 {
     pub inputs: Vec<UiSchemaInput>,
+    #[serde(default)]
     pub outputs: UiSchemaOutputs,
 }
 
@@ -103,8 +109,8 @@ pub struct UiSchemaV0 {
 pub struct UiSchemaV1 {
     pub api_version: crate::versions::V1,
     pub kind: crate::versions::ValuesUi,
-    pub inputs: Vec<UiSchemaInput>,
-    pub outputs: UiSchemaOutputs,
+    #[serde(flatten)]
+    pub inner: UiSchemaV0,
 }
 
 #[derive(
@@ -182,26 +188,27 @@ pub struct FieldValuePair {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UiSchemaInput {
     pub id: String,
     #[serde(flatten)]
     pub input_type: UiSchemaInputType, // Parsed from actual fields: type, item_type and collection, see SerializedUiSchemaInputType
     #[serde(default)]
     pub required: bool,
-
-    // All these stuff are not for the backend, but can be serialized
+    #[serde(default)]
+    pub sensitive: bool,
     label: String,
-    #[serde(default, rename = "helpText")]
+    #[serde(default)]
     help_text: Option<String>,
-    #[serde(default, rename = "initialValue")]
+    #[serde(default)]
     initial_value: Option<serde_json::Value>,
-    #[serde(default, rename = "showIfAll")]
+    #[serde(default)]
     show_if_all: Option<Vec<FieldValuePair>>,
 }
 
 pub type UiSchemaOutputSecrets = HashMap<String, HashMap<String, UiSchemaInputRef>>;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct UiSchemaOutputs {
     pub values: Vec<UiSchemaOutputValue>,
     #[serde(default)]
@@ -229,7 +236,7 @@ impl UiSchemaInputRef {
     fn get_input_schema<'a, C>(
         input_schema: &'a [UiSchemaInput],
         id: &str,
-    ) -> Result<&'a UiSchemaInput, UiSchemaInputError<C>>
+    ) -> Result<&'a UiSchemaInput, UiSchemaInputError<C::Error>>
     where
         C: UiSchemaCollections,
     {
@@ -243,7 +250,7 @@ impl UiSchemaInputRef {
         schema: &UiSchemaInput,
         inputs: &serde_json::Value,
         id: &str,
-    ) -> Result<serde_json::Value, UiSchemaInputError<C>>
+    ) -> Result<serde_json::Value, UiSchemaInputError<C::Error>>
     where
         C: UiSchemaCollections,
     {
@@ -269,20 +276,21 @@ impl UiSchemaInputRef {
 
     pub async fn resolve<C>(
         &self,
+        env_id: Uuid,
         input_schema: &[UiSchemaInput],
         inputs: &serde_json::Value,
-    ) -> Result<serde_json::Value, UiSchemaInputError<C>>
+    ) -> Result<serde_json::Value, UiSchemaInputError<C::Error>>
     where
         C: UiSchemaCollections,
     {
         match self {
-            Self::FieldValue(fv) => Self::get_input(
-                Self::get_input_schema(input_schema, &fv.input)?,
+            Self::FieldValue(fv) => Self::get_input::<C>(
+                Self::get_input_schema::<C>(input_schema, &fv.input)?,
                 inputs,
                 &fv.input,
             ),
             Self::FieldProperty(fp) => {
-                let schema = Self::get_input_schema(input_schema, &fp.input)?;
+                let schema = Self::get_input_schema::<C>(input_schema, &fp.input)?;
                 match &schema.input_type.single_type {
                     UiSchemaInputSingleType::CollectionSelect { collection } => {
                         let collection_value = serde_json::to_value(collection).unwrap();
@@ -293,7 +301,7 @@ impl UiSchemaInputRef {
                                     err,
                                 )
                             })?;
-                        let id_value = Self::get_input(schema, inputs, &fp.input)?;
+                        let id_value = Self::get_input::<C>(schema, inputs, &fp.input)?;
                         if schema.input_type.is_array {
                             let id_value_arr = id_value.as_array().ok_or_else(|| {
                                 UiSchemaInputError::InputNotStringArray(fp.input.clone())
@@ -305,7 +313,8 @@ impl UiSchemaInputRef {
                                 let id = id_value.as_str().ok_or_else(|| {
                                     UiSchemaInputError::InputNotStringArray(fp.input.clone())
                                 })?;
-                                let resolved_value = collections.resolve(id, &fp.property).await?;
+                                let resolved_value =
+                                    collections.resolve(env_id, id, &fp.property).await?;
                                 resolved_arr.push(resolved_value);
                             }
                             Ok(serde_json::to_value(resolved_arr).unwrap())
@@ -313,7 +322,7 @@ impl UiSchemaInputRef {
                             let id = id_value.as_str().ok_or_else(|| {
                                 UiSchemaInputError::InputNotString(fp.input.clone())
                             })?;
-                            collections.resolve(id, &fp.property).await
+                            collections.resolve(env_id, id, &fp.property).await
                         }
                     }
                     _ => Err(UiSchemaInputError::InputNotACollection(fp.input.clone())),
@@ -350,14 +359,15 @@ pub fn insert_into_map(map: &mut Map, path: &[String], value: serde_json::Value)
 impl UiSchemaOutputValue {
     pub async fn resolve_into<C>(
         &self,
+        env_id: Uuid,
         input_schema: &[UiSchemaInput],
         inputs: &serde_json::Value,
         outputs: &mut Map,
-    ) -> Result<(), UiSchemaInputError<C>>
+    ) -> Result<(), UiSchemaInputError<C::Error>>
     where
         C: UiSchemaCollections,
     {
-        match self.value.resolve(input_schema, inputs).await {
+        match self.value.resolve::<C>(env_id, input_schema, inputs).await {
             Ok(value) => {
                 insert_into_map(outputs, &self.path, value);
                 Ok(())
