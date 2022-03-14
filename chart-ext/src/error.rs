@@ -16,7 +16,7 @@ where
     InputNotACollection(String),
 
     #[error("Could not find a collection named {0}: {1}")]
-    InvalidCollectionName(String, serde_json::Error),
+    InvalidCollectionName(serde_json::Value, serde_json::Error),
 
     #[error("Could not find a {0} collection item with ID: {1}")]
     CollectionItemNotFound(String, String),

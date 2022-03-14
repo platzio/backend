@@ -23,20 +23,17 @@ impl UiSchema {
     where
         C: UiSchemaCollections,
     {
-        let collection_name_value = serde_json::to_value(collection).unwrap();
-        let collection_name = collection_name_value.as_str().unwrap();
+        let collection_value = serde_json::to_value(collection).unwrap();
         let schema_inputs = match self {
             Self::V1(v1) => &v1.inner.inputs,
             Self::V0(v0) => &v0.inputs,
         };
         schema_inputs.iter().any(|input| {
             let used_collection = match &input.input_type.single_type {
-                UiSchemaInputSingleType::CollectionSelect { collection } => {
-                    Some(collection.as_str())
-                }
+                UiSchemaInputSingleType::CollectionSelect { collection } => Some(collection),
                 _ => None,
             };
-            used_collection == Some(collection_name) && inputs[&input.id] == id
+            used_collection == Some(&collection_value) && inputs[&input.id] == id
         })
     }
 
@@ -124,7 +121,7 @@ pub enum UiSchemaInputSingleType {
     #[serde(rename = "number")]
     Number,
     CollectionSelect {
-        collection: String,
+        collection: serde_json::Value,
     },
     RadioSelect,
     DaysAndHour,
@@ -143,7 +140,7 @@ struct SerializedUiSchemaInputType {
     r#type: String,
     #[serde(rename = "itemType")]
     item_type: Option<String>,
-    collection: Option<String>,
+    collection: Option<serde_json::Value>,
 }
 
 impl TryFrom<SerializedUiSchemaInputType> for UiSchemaInputType {
@@ -293,9 +290,8 @@ impl UiSchemaInputRef {
                 let schema = Self::get_input_schema::<C>(input_schema, &fp.input)?;
                 match &schema.input_type.single_type {
                     UiSchemaInputSingleType::CollectionSelect { collection } => {
-                        let collection_value = serde_json::to_value(collection).unwrap();
-                        let collections: C =
-                            serde_json::from_value(collection_value).map_err(|err| {
+                        let collections: C = serde_json::from_value(collection.to_owned())
+                            .map_err(|err| {
                                 UiSchemaInputError::InvalidCollectionName(
                                     collection.to_owned(),
                                     err,

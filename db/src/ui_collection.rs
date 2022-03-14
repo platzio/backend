@@ -65,13 +65,30 @@ impl std::fmt::Display for DbTableOrDeploymentResource {
 mod tests {
     use super::DbTableOrDeploymentResource;
     use crate::DbTable;
-    use serde_json::{from_value, json};
+    use serde_json::{from_value, json, to_value};
 
     #[test]
     fn test() {
         assert_eq!(
             from_value::<DbTableOrDeploymentResource>(json!("deployments")).unwrap(),
             DbTableOrDeploymentResource::DbTable(DbTable::Deployments)
+        );
+
+        assert_eq!(
+            to_value(DbTableOrDeploymentResource::DbTable(DbTable::Users)).unwrap(),
+            json!("users")
+        );
+
+        assert_eq!(
+            from_value::<DbTableOrDeploymentResource>(json!({
+                "deployment": "ShopManager",
+                "type": "shop",
+            }))
+            .unwrap(),
+            DbTableOrDeploymentResource::DeploymentResourceType {
+                deployment: "ShopManager".to_owned(),
+                r#type: "shop".to_owned(),
+            }
         );
     }
 }
