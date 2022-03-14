@@ -4,6 +4,7 @@ members = [
   "chart-discovery",
   "chart-ext",
   "db",
+  "resource-sync",
   "rusoto-utils",
   "status-updates",
   "task-runner",

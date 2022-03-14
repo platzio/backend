@@ -6,9 +6,11 @@ use crate::DeploymentResourceType;
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
+use diesel_derive_more::DBEnum;
 use log::*;
 use platz_chart_ext::ChartExtActionTarget;
 use serde::{Deserialize, Serialize};
+use strum::{Display, EnumString};
 use uuid::Uuid;
 
 table! {
@@ -20,7 +22,32 @@ table! {
         name -> Varchar,
         exists -> Bool,
         props -> Jsonb,
+        sync_status -> Varchar,
+        sync_reason -> Nullable<Varchar>,
     }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    EnumString,
+    Display,
+    AsExpression,
+    FromSqlRow,
+    DBEnum,
+)]
+#[sql_type = "diesel::sql_types::Text"]
+pub enum SyncStatus {
+    Creating,
+    Updating,
+    Deleting,
+    Ready,
+    Error,
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize)]
@@ -32,6 +59,8 @@ pub struct DeploymentResource {
     pub name: String,
     pub exists: bool,
     pub props: serde_json::Value,
+    pub sync_status: SyncStatus,
+    pub sync_reason: Option<String>,
 }
 
 impl DeploymentResource {
@@ -68,27 +97,29 @@ impl DeploymentResource {
         Ok(self)
     }
 
-    pub async fn sync_to(&self, target: &ChartExtActionTarget) -> DbResult<()> {
+    pub async fn sync_to(&self, target: &ChartExtActionTarget) -> DbResult<String> {
         let deployment = match self.deployment_id {
             None => {
                 warn!(
                     "Not syncing deployment resource {} because its deployment_id is None",
                     self.id
                 );
-                return Ok(());
+                return Ok("".to_owned());
             }
             Some(deployment_id) => Deployment::find(deployment_id).await?,
         };
-        target.call(&deployment, self).await.map_err(|err| {
-            DbError::DeploymentResourceSyncError(self.name.clone(), err.to_string())
-        })?;
-        Ok(())
+        target
+            .call(&deployment, self)
+            .await
+            .map_err(|err| DbError::DeploymentResourceSyncError(self.name.clone(), err.to_string()))
     }
 
     pub async fn delete(&self) -> DbResult<()> {
-        diesel::delete(deployment_resources::table.find(self.id))
-            .execute_async(pool())
-            .await?;
+        UpdateDeploymentResourceExists {
+            exists: Some(false),
+        }
+        .save(self.id)
+        .await?;
         Ok(())
     }
 }
@@ -102,6 +133,7 @@ pub struct NewDeploymentResource {
     pub deployment_id: Uuid,
     pub name: String,
     pub props: serde_json::Value,
+    pub sync_status: Option<SyncStatus>,
 }
 
 impl NewDeploymentResource {
@@ -121,6 +153,41 @@ pub struct UpdateDeploymentResource {
 }
 
 impl UpdateDeploymentResource {
+    pub async fn save(self, id: Uuid) -> DbResult<DeploymentResource> {
+        Ok(
+            diesel::update(deployment_resources::table.filter(deployment_resources::id.eq(id)))
+                .set(self)
+                .get_result_async(pool())
+                .await?,
+        )
+    }
+}
+
+#[derive(Debug, AsChangeset, Deserialize)]
+#[table_name = "deployment_resources"]
+pub struct UpdateDeploymentResourceExists {
+    pub exists: Option<bool>,
+}
+
+impl UpdateDeploymentResourceExists {
+    pub async fn save(self, id: Uuid) -> DbResult<DeploymentResource> {
+        Ok(
+            diesel::update(deployment_resources::table.filter(deployment_resources::id.eq(id)))
+                .set(self)
+                .get_result_async(pool())
+                .await?,
+        )
+    }
+}
+
+#[derive(Debug, AsChangeset, Deserialize)]
+#[table_name = "deployment_resources"]
+pub struct UpdateDeploymentResourceSyncStatus {
+    pub sync_status: Option<SyncStatus>,
+    pub sync_reason: Option<Option<String>>,
+}
+
+impl UpdateDeploymentResourceSyncStatus {
     pub async fn save(self, id: Uuid) -> DbResult<DeploymentResource> {
         Ok(
             diesel::update(deployment_resources::table.filter(deployment_resources::id.eq(id)))

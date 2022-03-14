@@ -50,7 +50,7 @@ mod tests {
     fn test1() {
         let value = json!({
             "a": "hi",
-            "b": 3 as u64,
+            "b": 3,
         });
 
         let test: Test = serde_json::from_value(value).unwrap();
@@ -71,11 +71,11 @@ mod tests {
         let value = json!([
             {
                 "a": "hi",
-                "b": 3 as u64,
+                "b": 3,
             },
             {
                 "a": "hello",
-                "b": 9 as u64,
+                "b": 9,
             }
         ]);
 

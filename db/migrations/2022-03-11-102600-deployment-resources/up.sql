@@ -23,7 +23,9 @@ create table deployment_resources(
   deployment_id uuid references deployments(id) on delete set null,
   name varchar not null constraint not_empty check(length(name) > 0),
   exists boolean default true,
-  props jsonb not null default '{}'::jsonb
+  props jsonb not null default '{}'::jsonb,
+  sync_status varchar not null default 'Creating',
+  sync_reason varchar default null
 );
 
 create trigger notify_changes after insert or update or delete on deployment_resources

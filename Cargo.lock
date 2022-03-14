@@ -2301,6 +2301,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "platz-resource-sync"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "env_logger",
+ "itertools",
+ "log",
+ "platz-chart-ext",
+ "platz-db",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "structopt",
+ "tokio",
+]
+
+[[package]]
 name = "platz-sdk"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

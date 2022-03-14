@@ -52,7 +52,7 @@ impl ChartExtActionTarget {
         R: ChartExtActionTargetResolver,
         T: Serialize,
     {
-        let url = resolver.resolve(&self).await?;
+        let url = resolver.resolve(self).await?;
         let method = match self.method {
             ChartExtActionMethod::Get => reqwest::Method::GET,
             ChartExtActionMethod::Post => reqwest::Method::POST,

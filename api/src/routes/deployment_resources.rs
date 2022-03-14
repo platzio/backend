@@ -3,9 +3,10 @@ use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use futures::future::try_join_all;
 use platz_db::{
-    Deployment, DeploymentResource, DeploymentResourceType, NewDeploymentResource,
-    UpdateDeploymentResource,
+    Deployment, DeploymentResource, DeploymentResourceType, NewDeploymentResource, SyncStatus,
+    UpdateDeploymentResource, UpdateDeploymentResourceSyncStatus,
 };
+use serde_json::json;
 use uuid::Uuid;
 
 #[actix_web::get("")]
@@ -29,13 +30,8 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
 #[actix_web::post("")]
 async fn create(_cur_user: CurUser, new_resource: web::Json<NewDeploymentResource>) -> ApiResult {
     let new_resource = new_resource.into_inner();
-    let resource_type = DeploymentResourceType::find(new_resource.type_id).await?;
-    let resource_spec = resource_type.spec()?;
     // TODO: Check allowed_role
     let resource = new_resource.insert().await?;
-    if let Some(target) = resource_spec.lifecycle.create.target.as_ref() {
-        resource.sync_to(target).await?;
-    }
     Ok(HttpResponse::Created().json(resource))
 }
 
@@ -68,9 +64,13 @@ async fn update(
     };
 
     let new_resource = update.save(id).await?;
-    if let Some(target) = resource_spec.lifecycle.update.target.as_ref() {
-        new_resource.sync_to(target).await?;
+
+    UpdateDeploymentResourceSyncStatus {
+        sync_status: Some(SyncStatus::Updating),
+        sync_reason: Some(None),
     }
+    .save(new_resource.id)
+    .await?;
 
     if let Some(reason) = reason {
         Deployment::reinstall_all_using(
@@ -95,13 +95,21 @@ async fn update(
 #[actix_web::delete("/{id}")]
 async fn delete(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
     let resource = DeploymentResource::find(id.into_inner()).await?;
-    let resource_type = DeploymentResourceType::find(resource.type_id).await?;
-    let resource_spec = resource_type.spec()?;
-    // TODO: Check allowed_role
-    if let Some(target) = resource_spec.lifecycle.delete.target.as_ref() {
-        resource.sync_to(target).await?;
+    if !resource.exists {
+        return Ok(HttpResponse::Conflict().json(json!({
+            "message": "Trying to delete an already delete resource"
+        })));
     }
-    resource.delete().await?;
+
+    // TODO: Check allowed_role
+
+    UpdateDeploymentResourceSyncStatus {
+        sync_status: Some(SyncStatus::Deleting),
+        sync_reason: Some(None),
+    }
+    .save(resource.id)
+    .await?;
+
     Ok(HttpResponse::NoContent().finish())
 }
 
