@@ -39,13 +39,17 @@ impl UiSchemaCollections for DbTableOrDeploymentResource {
         let resource = DeploymentResource::find_of_type(resource_type.id, id)
             .await
             .map_err(UiSchemaInputError::CollectionError)?;
-        resource
-            .props
-            .get(property)
-            .map(ToOwned::to_owned)
-            .ok_or_else(|| {
-                UiSchemaInputError::CollectionItemNotFound(self.to_string(), id.to_string())
-            })
+        match property {
+            "id" => Ok(id.to_string().into()),
+            "name" => Ok(resource.name.into()),
+            _ => resource
+                .props
+                .get(property)
+                .map(ToOwned::to_owned)
+                .ok_or_else(|| {
+                    UiSchemaInputError::UnknownProperty(property.to_owned(), self.to_string())
+                }),
+        }
     }
 }
 
