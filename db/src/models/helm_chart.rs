@@ -84,7 +84,7 @@ impl HelmChart {
         Ok(match self.features.as_ref() {
             None => Default::default(),
             Some(value) => serde_json::from_value(value.clone())
-                .map_err(DbError::HelmChartFeaturesParsingError)?,
+                .map_err(DbError::HelmChartResourceTypesParseError)?,
         })
     }
 }

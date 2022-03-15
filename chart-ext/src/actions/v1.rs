@@ -1,12 +1,10 @@
 use super::v0;
 
-use crate::serde_utils::one_or_many;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(transparent)]
 pub struct ChartExtActions {
-    #[serde(deserialize_with = "one_or_many")]
     pub actions: Vec<ChartExtAction>,
 }
 

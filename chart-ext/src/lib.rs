@@ -4,7 +4,6 @@ mod error;
 pub mod ext_type;
 pub mod features;
 pub mod resource_types;
-mod serde_utils;
 pub mod values_ui;
 mod versions;
 
