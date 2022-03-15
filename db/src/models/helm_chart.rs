@@ -5,7 +5,9 @@ use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+pub use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceTypes;
+use platz_chart_ext::UiSchema;
 use platz_chart_ext::{ChartExtActions, ChartExtFeatures};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -34,10 +36,10 @@ pub struct HelmChart {
     pub image_digest: String,
     pub image_tag: String,
     pub available: bool,
-    pub values_ui: Option<serde_json::Value>,
-    pub actions_schema: Option<serde_json::Value>,
-    pub features: Option<serde_json::Value>,
-    pub resource_types: Option<serde_json::Value>,
+    pub values_ui: Option<Json<UiSchema>>,
+    pub actions_schema: Option<Json<ChartExtActions>>,
+    pub features: Option<Json<ChartExtFeatures>>,
+    pub resource_types: Option<Json<ChartExtResourceTypes>>,
     pub error: Option<String>,
 }
 
@@ -62,12 +64,16 @@ impl HelmChart {
             .optional()?)
     }
 
-    pub fn actions_schema(&self) -> DbResult<ChartExtActions> {
+    pub fn values_ui(&self) -> Option<&UiSchema> {
+        match self.values_ui.as_ref() {
+            Some(Json(values_ui)) => Some(values_ui),
+            None => None,
+        }
+    }
+
+    pub fn actions_schema(&self) -> DbResult<&ChartExtActions> {
         match self.actions_schema.as_ref() {
-            Some(value) => match serde_json::from_value::<ChartExtActions>(value.clone()) {
-                Ok(schema) => Ok(schema),
-                Err(err) => Err(DbError::HelmChartActionsSchemaParseError(err)),
-            },
+            Some(Json(actions)) => Ok(actions),
             None => Err(DbError::HelmChartNoActionsSchema),
         }
     }
@@ -75,16 +81,14 @@ impl HelmChart {
     pub fn features(&self) -> DbResult<ChartExtFeatures> {
         Ok(match self.features.as_ref() {
             None => Default::default(),
-            Some(value) => serde_json::from_value(value.clone())
-                .map_err(DbError::HelmChartFeaturesParsingError)?,
+            Some(Json(features)) => features.to_owned(),
         })
     }
 
     pub fn resource_types(&self) -> DbResult<ChartExtResourceTypes> {
-        Ok(match self.features.as_ref() {
+        Ok(match self.resource_types.as_ref() {
             None => Default::default(),
-            Some(value) => serde_json::from_value(value.clone())
-                .map_err(DbError::HelmChartResourceTypesParseError)?,
+            Some(Json(resource_types)) => resource_types.to_owned(),
         })
     }
 }
@@ -96,10 +100,10 @@ pub struct NewHelmChart {
     pub helm_registry_id: Uuid,
     pub image_digest: String,
     pub image_tag: String,
-    pub values_ui: Option<serde_json::Value>,
-    pub actions_schema: Option<serde_json::Value>,
-    pub features: Option<serde_json::Value>,
-    pub resource_types: Option<serde_json::Value>,
+    pub values_ui: Option<Json<UiSchema>>,
+    pub actions_schema: Option<Json<ChartExtActions>>,
+    pub features: Option<Json<ChartExtFeatures>>,
+    pub resource_types: Option<Json<ChartExtResourceTypes>>,
     pub error: Option<String>,
 }
 

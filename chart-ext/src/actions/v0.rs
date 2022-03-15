@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ChartExtActions {
     pub schema_version: u64,
     pub actions: Vec<ChartExtAction>,
@@ -17,19 +17,19 @@ impl ChartExtActions {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UserDeploymentRole {
     Owner,
     Maintainer,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ChartExtActionEndpoint {
     #[serde(rename = "standard_ingress")]
     StandardIngress,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum ChartExtActionMethod {
     Get,
@@ -39,7 +39,7 @@ pub enum ChartExtActionMethod {
     Delete,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ChartExtActionTarget {
     pub endpoint: ChartExtActionEndpoint,
     pub path: String,
@@ -77,7 +77,7 @@ pub trait ChartExtActionTargetResolver {
     async fn resolve(&self, target: &ChartExtActionTarget) -> anyhow::Result<Url>;
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ChartExtAction {
     pub id: String,
     pub allowed_role: UserDeploymentRole,

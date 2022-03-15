@@ -30,6 +30,8 @@ use lazy_static::lazy_static;
 use log::*;
 use tokio::task;
 
+pub use diesel_json;
+
 type PoolManager = ConnectionManager<PgConnection>;
 
 pub type DbPool = Pool<PoolManager>;

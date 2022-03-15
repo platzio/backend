@@ -33,5 +33,13 @@ async fn test() -> Result<()> {
         }
     });
     assert_eq!(values, expected);
+
+    chart_ext.actions.expect("No actions");
+
+    chart_ext.features.expect("No features");
+
+    let resource_types = chart_ext.resource_types.expect("No resource types");
+    assert_eq!(resource_types.inner.len(), 1);
+
     Ok(())
 }

@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum UiSchema {
     V1(UiSchemaV1),
@@ -93,7 +93,7 @@ impl UiSchema {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct UiSchemaV0 {
     pub inputs: Vec<UiSchemaInput>,
@@ -101,7 +101,7 @@ pub struct UiSchemaV0 {
     pub outputs: UiSchemaOutputs,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UiSchemaV1 {
     pub api_version: crate::versions::V1,
@@ -136,7 +136,7 @@ pub struct UiSchemaInputType {
     pub is_array: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct SerializedUiSchemaInputType {
     r#type: String,
     #[serde(rename = "itemType")]
@@ -204,13 +204,13 @@ impl From<UiSchemaInputType> for SerializedUiSchemaInputType {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FieldValuePair {
     field: String,
     value: serde_json::Value,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UiSchemaInput {
     pub id: String,
@@ -231,25 +231,25 @@ pub struct UiSchemaInput {
 
 pub type UiSchemaOutputSecrets = HashMap<String, HashMap<String, UiSchemaInputRef>>;
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UiSchemaOutputs {
     pub values: Vec<UiSchemaOutputValue>,
     #[serde(default)]
     pub secrets: UiSchemaOutputSecrets,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InputFieldValue {
     pub input: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InputFieldProperty {
     pub input: String,
     pub property: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum UiSchemaInputRef {
     FieldValue(InputFieldValue),
     FieldProperty(InputFieldProperty),
@@ -356,7 +356,7 @@ impl UiSchemaInputRef {
 
 type Map = serde_json::Map<String, serde_json::Value>;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UiSchemaOutputValue {
     pub path: Vec<String>,
     pub value: UiSchemaInputRef,

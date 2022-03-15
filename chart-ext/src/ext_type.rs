@@ -36,41 +36,6 @@ impl ChartExt {
             Err(ChartExtError::IoError(err)) => Err(err),
         }
     }
-
-    #[allow(clippy::type_complexity)]
-    pub fn to_values(
-        self,
-    ) -> Result<
-        (
-            Option<serde_json::Value>,
-            Option<serde_json::Value>,
-            Option<serde_json::Value>,
-            Option<serde_json::Value>,
-        ),
-        String,
-    > {
-        match self.error {
-            None => Ok((
-                self.values_ui
-                    .map(serde_json::to_value)
-                    .transpose()
-                    .map_err(|err| format!("Error converting values_ui to JSON: {}", err))?,
-                self.actions
-                    .map(serde_json::to_value)
-                    .transpose()
-                    .map_err(|err| format!("Error converting actions to JSON: {}", err))?,
-                self.features
-                    .map(serde_json::to_value)
-                    .transpose()
-                    .map_err(|err| format!("Error converting features to JSON: {}", err))?,
-                self.resource_types
-                    .map(serde_json::to_value)
-                    .transpose()
-                    .map_err(|err| format!("Error converting resource types to JSON: {}", err))?,
-            )),
-            Some(error) => Err(error),
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

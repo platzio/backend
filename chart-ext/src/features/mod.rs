@@ -4,7 +4,7 @@ pub mod v1;
 use serde::{Deserialize, Serialize};
 pub use v0::ChartExtCardinality;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ChartExtFeatures {
     V1(v1::ChartExtFeatures),

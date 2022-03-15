@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum V1 {
     #[serde(rename = "platz.io/v1beta1")]
     Value,
@@ -12,7 +12,7 @@ impl Default for V1 {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ValuesUi {
     #[serde(rename = "ValuesUi")]
     Value,
@@ -24,7 +24,7 @@ impl Default for ValuesUi {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Action {
     #[serde(rename = "Action")]
     Value,
@@ -36,7 +36,7 @@ impl Default for Action {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Features {
     #[serde(rename = "Features")]
     Value,
@@ -48,7 +48,7 @@ impl Default for Features {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ResourceType {
     #[serde(rename = "ResourceType")]
     Value,

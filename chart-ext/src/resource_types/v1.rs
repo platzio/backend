@@ -2,7 +2,7 @@ use crate::actions::v0::{ChartExtActionTarget, UserDeploymentRole};
 use crate::values_ui::UiSchemaV0;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChartExtResourceType {
     pub api_version: crate::versions::V1,
@@ -11,7 +11,7 @@ pub struct ChartExtResourceType {
     pub spec: ChartExtResourceTypeSpec,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ChartExtResourceTypeSpec {
     pub name_singular: String,
     pub name_plural: String,
@@ -23,7 +23,7 @@ pub struct ChartExtResourceTypeSpec {
     pub lifecycle: ChartExtResourceLifecycle,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ChartExtResourceLifecycle {
     #[serde(default)]
     pub create: ResourceLifecycle,
@@ -33,7 +33,7 @@ pub struct ChartExtResourceLifecycle {
     pub delete: ResourceLifecycle,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ResourceLifecycle {
     pub allowed_role: Option<UserDeploymentRole>,
     pub target: Option<ChartExtActionTarget>,

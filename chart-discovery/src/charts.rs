@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use log::*;
 use platz_chart_ext::ChartExt;
-use platz_db::{HelmChart, NewHelmChart, UpdateHelmChart};
+use platz_db::{diesel_json, HelmChart, NewHelmChart, UpdateHelmChart};
 use rusoto_ecr::EcrClient;
 use std::path::PathBuf;
 use tokio::process::Command;
@@ -34,23 +34,17 @@ pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
 
     let chart_path = download_chart(&event).await?;
     let chart_ext = ChartExt::from_path(&chart_path).await?;
-    let (values_ui, actions_schema, features, resource_types, error) = match chart_ext.to_values() {
-        Ok((values_ui, actions_schema, features, resource_types)) => {
-            (values_ui, actions_schema, features, resource_types, None)
-        }
-        Err(error) => (None, None, None, None, Some(error)),
-    };
 
     let chart = NewHelmChart {
         created_at,
         helm_registry_id: helm_registry.id,
         image_digest: event.detail.image_digest,
         image_tag: event.detail.image_tag,
-        values_ui,
-        actions_schema,
-        features,
-        resource_types,
-        error,
+        values_ui: chart_ext.values_ui.map(diesel_json::Json),
+        actions_schema: chart_ext.actions.map(diesel_json::Json),
+        features: chart_ext.features.map(diesel_json::Json),
+        resource_types: chart_ext.resource_types.map(diesel_json::Json),
+        error: chart_ext.error,
     }
     .insert()
     .await?;
