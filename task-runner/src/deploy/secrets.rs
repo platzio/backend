@@ -4,7 +4,7 @@ use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, Patch, PatchParams};
 use platz_chart_ext::UiSchema;
-use platz_db::{DbTable, Deployment, DeploymentTask};
+use platz_db::{DbTableOrDeploymentResource, Deployment, DeploymentTask};
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
@@ -16,7 +16,7 @@ pub async fn apply_secrets(
 ) -> Result<()> {
     let inputs = task.get_config()?;
     for secret in ui_schema
-        .get_secrets::<DbTable>(env_id, inputs)
+        .get_secrets::<DbTableOrDeploymentResource>(env_id, inputs)
         .await?
         .into_iter()
     {

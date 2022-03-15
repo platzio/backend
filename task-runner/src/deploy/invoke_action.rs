@@ -2,7 +2,8 @@ use super::RunnableDeploymentOperation;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use platz_db::{
-    DbError, DbTable, Deployment, DeploymentInvokeActionTask, DeploymentTask, K8sCluster,
+    DbError, DbTableOrDeploymentResource, Deployment, DeploymentInvokeActionTask, DeploymentTask,
+    K8sCluster,
 };
 
 #[async_trait]
@@ -19,7 +20,7 @@ impl RunnableDeploymentOperation for DeploymentInvokeActionTask {
             .ok_or_else(|| DbError::HelmChartNoSuchAction(self.action_id.to_owned()))?;
 
         let body = action_schema
-            .generate_body::<DbTable>(env_id, self.body.clone())
+            .generate_body::<DbTableOrDeploymentResource>(env_id, self.body.clone())
             .await?;
 
         action_schema.target.call(deployment, body).await

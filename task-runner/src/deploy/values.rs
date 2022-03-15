@@ -3,7 +3,7 @@ use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use platz_chart_ext::{insert_into_map, UiSchema};
-use platz_db::{DbTable, Deployment, DeploymentTask, Env, K8sCluster};
+use platz_db::{DbTableOrDeploymentResource, Deployment, DeploymentTask, Env, K8sCluster};
 use serde::Serialize;
 use std::env;
 use url::Url;
@@ -156,7 +156,9 @@ pub async fn create_values_and_secrets(
 
     if let Some(ui_schema) = ui_schema {
         let inputs = task.get_config()?;
-        let mut more_values = ui_schema.get_values::<DbTable>(env.id, inputs).await?;
+        let mut more_values = ui_schema
+            .get_values::<DbTableOrDeploymentResource>(env.id, inputs)
+            .await?;
         values.as_object_mut().unwrap().append(&mut more_values);
         apply_secrets(env.id, &ui_schema, deployment, task).await?;
     } else {
