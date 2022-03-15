@@ -36,7 +36,7 @@ async fn update(
     let new = update.save(id).await?;
 
     Deployment::reinstall_all_using(
-        &DbTableOrDeploymentResource::DbTable(DbTable::Secrets),
+        &DbTableOrDeploymentResource::from(DbTable::Secrets),
         id,
         cur_user.user(),
         format!("{} secret has been updated", new.collection),
