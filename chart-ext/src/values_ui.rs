@@ -111,7 +111,7 @@ pub struct UiSchemaV1 {
 }
 
 #[derive(
-    Debug, Deserialize, Serialize, strum_macros::EnumString, strum_macros::EnumDiscriminants,
+    Clone, Debug, Deserialize, Serialize, strum_macros::EnumString, strum_macros::EnumDiscriminants,
 )]
 #[strum_discriminants(derive(strum_macros::EnumString, strum_macros::Display))]
 #[strum_discriminants(strum(ascii_case_insensitive))]
@@ -128,8 +128,9 @@ pub enum UiSchemaInputSingleType {
     Checkbox,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(try_from = "SerializedUiSchemaInputType")]
+#[serde(into = "SerializedUiSchemaInputType")]
 pub struct UiSchemaInputType {
     pub single_type: UiSchemaInputSingleType,
     pub is_array: bool,
@@ -175,6 +176,31 @@ impl TryFrom<SerializedUiSchemaInputType> for UiSchemaInputType {
             single_type,
             is_array,
         })
+    }
+}
+
+impl From<UiSchemaInputType> for SerializedUiSchemaInputType {
+    fn from(input_type: UiSchemaInputType) -> Self {
+        let (r#type, collection) = match input_type.single_type {
+            UiSchemaInputSingleType::Text => ("text".to_owned(), None),
+            UiSchemaInputSingleType::Number => ("number".to_owned(), None),
+            UiSchemaInputSingleType::CollectionSelect { collection } => {
+                ("CollectionSelect".to_owned(), Some(collection))
+            }
+            UiSchemaInputSingleType::RadioSelect => ("RadioSelect".to_owned(), None),
+            UiSchemaInputSingleType::DaysAndHour => ("DaysAndHour".to_owned(), None),
+            UiSchemaInputSingleType::Checkbox => ("Checkbox".to_owned(), None),
+        };
+        let (r#type, item_type) = if input_type.is_array {
+            ("array".to_owned(), Some(r#type))
+        } else {
+            (r#type, None)
+        };
+        Self {
+            r#type,
+            item_type,
+            collection,
+        }
     }
 }
 
