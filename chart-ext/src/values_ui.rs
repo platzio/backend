@@ -1,5 +1,6 @@
 use crate::UiSchemaCollections;
 use crate::UiSchemaInputError;
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -216,17 +217,43 @@ pub struct UiSchemaInput {
     pub id: String,
     #[serde(flatten)]
     pub input_type: UiSchemaInputType, // Parsed from actual fields: type, item_type and collection, see SerializedUiSchemaInputType
+    label: String,
+    #[serde(default)]
+    initial_value: Option<serde_json::Value>,
+    #[serde(default)]
+    help_text: Option<String>,
     #[serde(default)]
     pub required: bool,
     #[serde(default)]
     pub sensitive: bool,
-    label: String,
     #[serde(default)]
-    help_text: Option<String>,
-    #[serde(default)]
-    initial_value: Option<serde_json::Value>,
+    pub options: Option<Vec<UiSchemaInputFieldOption>>,
     #[serde(default)]
     show_if_all: Option<Vec<FieldValuePair>>,
+    #[serde(default)]
+    filters: Option<Vec<UiSchemaInputFieldValue>>,
+    #[serde(default)]
+    minimum: Option<Decimal>,
+    #[serde(default)]
+    maximum: Option<Decimal>,
+    #[serde(default)]
+    step: Option<Decimal>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UiSchemaInputFieldOption {
+    pub value: serde_json::Value,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub help_text: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UiSchemaInputFieldValue {
+    pub field: String,
+    pub value: serde_json::Value,
 }
 
 pub type UiSchemaOutputSecrets = HashMap<String, HashMap<String, UiSchemaInputRef>>;
