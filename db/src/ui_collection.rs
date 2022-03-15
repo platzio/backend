@@ -6,20 +6,9 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum DbTableOrDeploymentResource {
+    DbTable(DbTable),
     DeploymentResourceType { deployment: String, r#type: String },
-    CollectionName(String),
-}
-
-impl From<DbTable> for DbTableOrDeploymentResource {
-    fn from(db_table: DbTable) -> Self {
-        Self::CollectionName(
-            serde_json::to_value(db_table)
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_owned(),
-        )
-    }
+    LegacyCollectionName(String),
 }
 
 #[async_trait::async_trait]
@@ -33,19 +22,17 @@ impl UiSchemaCollections for DbTableOrDeploymentResource {
         property: &str,
     ) -> Result<serde_json::Value, UiSchemaInputError<Self::Error>> {
         let resource_type = match self {
+            Self::DbTable(db_table) => return db_table.resolve(env_id, id, property).await,
             Self::DeploymentResourceType { deployment, r#type } => {
                 DeploymentResourceType::find_by_kind_and_key(env_id, deployment, r#type)
                     .await
                     .map_err(UiSchemaInputError::CollectionError)?
             }
-            Self::CollectionName(name) => match serde_json::from_str::<DbTable>(name) {
-                Ok(db_table) => {
-                    return db_table.resolve(env_id, id, property).await;
-                }
-                Err(_) => DeploymentResourceType::find_all_by_key(env_id, name)
+            Self::LegacyCollectionName(name) => {
+                DeploymentResourceType::find_all_by_key(env_id, name)
                     .await
-                    .map_err(UiSchemaInputError::CollectionError)?,
-            },
+                    .map_err(UiSchemaInputError::CollectionError)?
+            }
         };
         let id = Uuid::parse_str(id)
             .map_err(|_| UiSchemaInputError::InvalidCollectionId(id.to_owned()))?;
@@ -65,10 +52,11 @@ impl UiSchemaCollections for DbTableOrDeploymentResource {
 impl std::fmt::Display for DbTableOrDeploymentResource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::DbTable(db_table) => db_table.fmt(f),
             Self::DeploymentResourceType { deployment, r#type } => {
                 write!(f, "{}/{}", deployment, r#type)
             }
-            Self::CollectionName(name) => write!(f, "{}", name),
+            Self::LegacyCollectionName(name) => write!(f, "{}", name),
         }
     }
 }
@@ -76,20 +64,18 @@ impl std::fmt::Display for DbTableOrDeploymentResource {
 #[cfg(test)]
 mod tests {
     use super::DbTableOrDeploymentResource;
+    use crate::DbTable;
     use serde_json::{from_value, json, to_value};
 
     #[test]
     fn test() {
         assert_eq!(
             from_value::<DbTableOrDeploymentResource>(json!("deployments")).unwrap(),
-            DbTableOrDeploymentResource::CollectionName("deployments".to_owned())
+            DbTableOrDeploymentResource::DbTable(DbTable::Deployments)
         );
 
         assert_eq!(
-            to_value(DbTableOrDeploymentResource::CollectionName(
-                "users".to_owned()
-            ))
-            .unwrap(),
+            to_value(DbTableOrDeploymentResource::DbTable(DbTable::Users)).unwrap(),
             json!("users")
         );
 

@@ -86,7 +86,7 @@ impl DeploymentResourceType {
     }
 
     pub fn as_legacy_db_collection(&self) -> DbTableOrDeploymentResource {
-        DbTableOrDeploymentResource::CollectionName(self.key.clone())
+        DbTableOrDeploymentResource::LegacyCollectionName(self.key.clone())
     }
 }
 

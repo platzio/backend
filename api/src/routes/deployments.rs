@@ -117,7 +117,7 @@ async fn update(
 
     if old_deployment.enabled && updates.enabled == Some(false) {
         let dependents: Vec<_> = Deployment::find_using(
-            &DbTableOrDeploymentResource::from(DbTable::Deployments),
+            &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),
             old_deployment.id,
         )
         .await?
@@ -158,7 +158,7 @@ async fn update(
 
         if reinstall_dependencies {
             Deployment::reinstall_all_using(
-                &DbTableOrDeploymentResource::from(DbTable::Deployments),
+                &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),
                 new_deployment.id,
                 user,
                 format!("The {} deployment has been updated", old_deployment.name),
@@ -178,7 +178,7 @@ async fn delete(cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
     verify_deployment_owner(deployment.cluster_id, &deployment.kind, cur_user.user().id).await?;
 
     let dependents = Deployment::find_using(
-        &DbTableOrDeploymentResource::from(DbTable::Deployments),
+        &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),
         deployment.id,
     )
     .await?;
