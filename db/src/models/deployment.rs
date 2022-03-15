@@ -122,7 +122,8 @@ impl Deployment {
         };
         let values_ui: UiSchema = match chart.values_ui {
             None => return Ok(false),
-            Some(diesel_json::Json(values_ui)) => values_ui,
+            Some(values_ui) => serde_json::from_value(values_ui)
+                .map_err(DbError::HelmChartValuesSchemaParseError)?,
         };
         let config = match task.get_config() {
             Ok(config) => config,

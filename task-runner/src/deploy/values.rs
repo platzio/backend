@@ -2,7 +2,7 @@ use super::secrets::apply_secrets;
 use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
-use platz_chart_ext::insert_into_map;
+use platz_chart_ext::{insert_into_map, UiSchema};
 use platz_db::{DbTable, Deployment, DeploymentTask, Env, K8sCluster};
 use serde::Serialize;
 use std::env;
@@ -107,7 +107,11 @@ pub async fn create_values_and_secrets(
     )
     .await?;
     let chart = task.helm_chart().await?;
-    let ui_schema = chart.values_ui();
+    let ui_schema: Option<UiSchema> = chart
+        .values_ui
+        .clone()
+        .map(serde_json::from_value)
+        .transpose()?;
     let features = chart
         .features()
         .map_err(|err| anyhow!("Error parsing chart features: {}", err))?;
@@ -154,7 +158,7 @@ pub async fn create_values_and_secrets(
         let inputs = task.get_config()?;
         let mut more_values = ui_schema.get_values::<DbTable>(env.id, inputs).await?;
         values.as_object_mut().unwrap().append(&mut more_values);
-        apply_secrets(env.id, ui_schema, deployment, task).await?;
+        apply_secrets(env.id, &ui_schema, deployment, task).await?;
     } else {
         values
             .as_object_mut()
