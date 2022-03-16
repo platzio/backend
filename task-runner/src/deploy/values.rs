@@ -32,6 +32,7 @@ struct PlatzInfo {
     cluster_name: String,
     deployment_id: Uuid,
     deployment_name: String,
+    deployment_kind: String,
     revision_id: Uuid,
     own_url: Url,
 }
@@ -121,6 +122,7 @@ pub async fn create_values_and_secrets(
         cluster_name: cluster.name()?.to_owned(),
         deployment_id: deployment.id,
         deployment_name: deployment.name.to_owned(),
+        deployment_kind: deployment.kind.to_owned(),
         revision_id: task.id,
         own_url: OWN_URL.to_owned(),
     };
