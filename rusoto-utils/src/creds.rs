@@ -1,15 +1,12 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_trait::async_trait;
 use log::*;
-use rusoto_core::region::Region;
 use rusoto_core::{Client, HttpClient};
 use rusoto_credential::{
     AutoRefreshingProvider, AwsCredentials, CredentialsError, DefaultCredentialsProvider,
     ProvideAwsCredentials,
 };
-use rusoto_sts::{
-    AssumeRoleRequest, Sts, StsAssumeRoleSessionCredentialsProvider, StsClient, WebIdentityProvider,
-};
+use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient, WebIdentityProvider};
 use std::env;
 
 /// Create a rusoto_core::Client with a credentials provider that
@@ -23,36 +20,6 @@ pub fn rusoto_client(session_name: String) -> Result<Client> {
     let provider = rusoto_credentials_provider(session_name)?;
     let request_dispatcher = HttpClient::new()?;
     Ok(Client::new_with(provider, request_dispatcher))
-}
-
-pub async fn rusoto_client_with_assumed_role(
-    region: Region,
-    role_arn: String,
-    session_name: String,
-) -> Result<Client> {
-    let client = rusoto_client(session_name.clone())?;
-    let sts = StsClient::new_with_client(client, region);
-    let assumed_role = sts
-        .assume_role(AssumeRoleRequest {
-            role_arn,
-            role_session_name: session_name,
-            ..Default::default()
-        })
-        .await?;
-    let credentials = assumed_role
-        .credentials
-        .ok_or_else(|| anyhow!("assume_role returned no credentials"))?;
-    let static_provider = rusoto_credential::StaticProvider::new(
-        credentials.access_key_id,
-        credentials.secret_access_key,
-        Some(credentials.session_token),
-        None,
-    );
-    let request_dispatcher = HttpClient::new()?;
-    Ok(rusoto_core::Client::new_with(
-        static_provider,
-        request_dispatcher,
-    ))
 }
 
 pub enum CustomCredentialsProvider {
