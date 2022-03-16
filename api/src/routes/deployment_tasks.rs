@@ -2,8 +2,8 @@ use crate::auth::CurUser;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use platz_db::{
-    DbError, DbTable, Deployment, DeploymentTask, DeploymentTaskOperation, HelmChart, Json,
-    K8sCluster, K8sResource, NewDeploymentTask,
+    DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskOperation,
+    HelmChart, Json, K8sCluster, K8sResource, NewDeploymentTask,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -63,7 +63,7 @@ async fn create(cur_user: CurUser, task: web::Json<ApiNewDeploymentTask>) -> Api
                     .find(&params.action_id)
                     .ok_or_else(|| DbError::HelmChartNoSuchAction(params.action_id.to_owned()))?;
                 match action_schema
-                    .generate_body::<DbTable>(env_id, params.body.clone())
+                    .generate_body::<DbTableOrDeploymentResource>(env_id, params.body.clone())
                     .await
                 {
                     Ok(_) => HttpResponse::Created().json(task.insert().await?),
