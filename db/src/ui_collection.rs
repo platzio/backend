@@ -24,12 +24,16 @@ impl UiSchemaCollections for DbTableOrDeploymentResource {
         let resource_type = match self {
             Self::DbTable(db_table) => return db_table.resolve(env_id, id, property).await,
             Self::DeploymentResourceType { deployment, r#type } => {
-                DeploymentResourceType::find_by_kind_and_key(env_id, deployment, r#type)
-                    .await
-                    .map_err(UiSchemaInputError::CollectionError)?
+                DeploymentResourceType::find_by_env_kind_and_key(
+                    env_id,
+                    deployment.to_owned(),
+                    r#type.to_owned(),
+                )
+                .await
+                .map_err(UiSchemaInputError::CollectionError)?
             }
             Self::LegacyCollectionName(name) => {
-                DeploymentResourceType::find_all_by_key(env_id, name)
+                DeploymentResourceType::find_all_by_key(env_id, name.to_owned())
                     .await
                     .map_err(UiSchemaInputError::CollectionError)?
             }

@@ -42,16 +42,8 @@ impl DeploymentResourceType {
             .await?)
     }
 
-    pub async fn find_by_kind_and_key(
-        env_id: Uuid,
-        deployment_kind: &str,
-        key: &str,
-    ) -> DbResult<Self> {
-        let key = key.to_owned();
-        let deployment_kind = deployment_kind.to_owned();
+    pub async fn find_by_env(env_id: Uuid) -> DbResult<Self> {
         Ok(deployment_resource_types::table
-            .filter(deployment_resource_types::key.eq(key))
-            .filter(deployment_resource_types::deployment_kind.eq(deployment_kind))
             .filter(
                 deployment_resource_types::env_id
                     .eq(env_id)
@@ -61,8 +53,32 @@ impl DeploymentResourceType {
             .await?)
     }
 
-    pub async fn find_all_by_key(env_id: Uuid, key: &str) -> DbResult<Self> {
-        let key = key.to_owned();
+    pub async fn find_by_env_kind_and_key(
+        env_id: Uuid,
+        deployment_kind: String,
+        key: String,
+    ) -> DbResult<Self> {
+        Ok(deployment_resource_types::table
+            .filter(deployment_resource_types::deployment_kind.eq(deployment_kind))
+            .filter(deployment_resource_types::key.eq(key))
+            .filter(
+                deployment_resource_types::env_id
+                    .eq(env_id)
+                    .or(deployment_resource_types::env_id.is_null()),
+            )
+            .get_result_async(pool())
+            .await?)
+    }
+
+    pub async fn find_by_kind_and_key(deployment_kind: String, key: String) -> DbResult<Self> {
+        Ok(deployment_resource_types::table
+            .filter(deployment_resource_types::deployment_kind.eq(deployment_kind))
+            .filter(deployment_resource_types::key.eq(key))
+            .get_result_async(pool())
+            .await?)
+    }
+
+    pub async fn find_all_by_key(env_id: Uuid, key: String) -> DbResult<Self> {
         Ok(deployment_resource_types::table
             .filter(deployment_resource_types::key.eq(key))
             .filter(
