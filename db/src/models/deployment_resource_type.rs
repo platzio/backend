@@ -117,16 +117,8 @@ pub struct NewDeploymentResourceType {
 
 impl NewDeploymentResourceType {
     pub async fn save(self) -> DbResult<DeploymentResourceType> {
-        let spec = self.spec.clone();
         Ok(diesel::insert_into(deployment_resource_types::table)
             .values(self)
-            .on_conflict((
-                deployment_resource_types::env_id,
-                deployment_resource_types::deployment_kind,
-                deployment_resource_types::key,
-            ))
-            .do_update()
-            .set(deployment_resource_types::spec.eq(spec))
             .get_result_async(pool())
             .await?)
     }
