@@ -116,10 +116,11 @@ pub struct NewDeploymentResourceType {
 }
 
 impl NewDeploymentResourceType {
-    pub async fn save(self) -> DbResult<DeploymentResourceType> {
-        Ok(diesel::insert_into(deployment_resource_types::table)
+    pub async fn save(self) -> DbResult<()> {
+        diesel::insert_into(deployment_resource_types::table)
             .values(self)
-            .get_result_async(pool())
-            .await?)
+            .execute_async(pool())
+            .await?;
+        Ok(())
     }
 }
