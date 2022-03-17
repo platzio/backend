@@ -152,11 +152,38 @@ pub struct UpdateDeploymentResource {
     pub props: Option<serde_json::Value>,
 }
 
+// 🙏 https://github.com/serde-rs/json/issues/377#issuecomment-341490464
+
+fn merge(a: &mut serde_json::Value, b: &serde_json::Value) {
+    match (a, b) {
+        (&mut serde_json::Value::Object(ref mut a), &serde_json::Value::Object(ref b)) => {
+            for (k, v) in b {
+                merge(a.entry(k.clone()).or_insert(serde_json::Value::Null), v);
+            }
+        }
+        (a, b) => {
+            *a = b.clone();
+        }
+    }
+}
+
 impl UpdateDeploymentResource {
     pub async fn save(self, id: Uuid) -> DbResult<DeploymentResource> {
+        let props = match self.props {
+            None => None,
+            Some(updates) => {
+                let current = DeploymentResource::find(id).await?;
+                let mut props = current.props;
+                merge(&mut props, &updates);
+                Some(props)
+            }
+        };
         Ok(
             diesel::update(deployment_resources::table.filter(deployment_resources::id.eq(id)))
-                .set(self)
+                .set((
+                    self.name.map(|name| deployment_resources::name.eq(name)),
+                    props.map(|props| deployment_resources::props.eq(props)),
+                ))
                 .get_result_async(pool())
                 .await?,
         )
