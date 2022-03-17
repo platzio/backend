@@ -33,7 +33,7 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
 }
 
 #[actix_web::post("")]
-async fn create(_cur_user: CurUser, new_resource: web::Json<NewDeploymentResource>) -> ApiResult {
+async fn create(new_resource: web::Json<NewDeploymentResource>) -> ApiResult {
     let new_resource = new_resource.into_inner();
     // TODO: Check allowed_role
     let resource = new_resource.insert().await?;
