@@ -25,12 +25,9 @@ pub struct ChartExtResourceTypeSpec {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ChartExtResourceLifecycle {
-    #[serde(default)]
-    pub create: ResourceLifecycle,
-    #[serde(default)]
-    pub update: ResourceLifecycle,
-    #[serde(default)]
-    pub delete: ResourceLifecycle,
+    pub create: Option<ResourceLifecycle>,
+    pub update: Option<ResourceLifecycle>,
+    pub delete: Option<ResourceLifecycle>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

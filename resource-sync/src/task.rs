@@ -40,15 +40,15 @@ async fn sync_resource(resource: DeploymentResource) -> Result<()> {
     match resource.sync_status {
         SyncStatus::Creating => {
             info!("Creating {} ({})", resource.id, resource.name);
-            call_lifecycle_target(&resource, |lifecycle| &lifecycle.create).await?;
+            call_lifecycle_target(&resource, |lifecycle| lifecycle.create.as_ref()).await?;
         }
         SyncStatus::Updating => {
             info!("Updating {} ({})", resource.id, resource.name);
-            call_lifecycle_target(&resource, |lifecycle| &lifecycle.update).await?;
+            call_lifecycle_target(&resource, |lifecycle| lifecycle.update.as_ref()).await?;
         }
         SyncStatus::Deleting => {
             info!("Deleting {} ({})", resource.id, resource.name);
-            if call_lifecycle_target(&resource, |lifecycle| &lifecycle.delete).await? {
+            if call_lifecycle_target(&resource, |lifecycle| lifecycle.delete.as_ref()).await? {
                 resource.delete().await?;
             }
         }
@@ -64,12 +64,15 @@ async fn call_lifecycle_target<F>(
     get_lifecycle_action: F,
 ) -> Result<bool>
 where
-    F: FnOnce(&ChartExtResourceLifecycle) -> &ResourceLifecycle,
+    F: FnOnce(&ChartExtResourceLifecycle) -> Option<&ResourceLifecycle>,
 {
     let resource_type = DeploymentResourceType::find(resource.type_id).await?;
     let resource_spec = resource_type.spec()?;
     let lifecycle = get_lifecycle_action(&resource_spec.lifecycle);
-    match lifecycle.target.as_ref() {
+    match lifecycle
+        .and_then(|lifecycle| lifecycle.target.as_ref())
+        .as_ref()
+    {
         None => Ok(true),
         Some(target) => match resource.sync_to(target).await {
             Ok(result) => {
