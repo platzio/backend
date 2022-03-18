@@ -6,15 +6,24 @@ use platz_db::{
     Deployment, DeploymentResource, DeploymentResourceType, NewDeploymentResource, SyncStatus,
     UpdateDeploymentResource, UpdateDeploymentResourceSyncStatus,
 };
+use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
+#[derive(Debug, Deserialize)]
+struct GetAllQuery {
+    type_id: Option<Uuid>,
+}
+
 #[actix_web::get("")]
-async fn get_all() -> ApiResult {
+async fn get_all(query: web::Query<GetAllQuery>) -> ApiResult {
+    let resources = match query.type_id {
+        None => DeploymentResource::all().await?,
+        Some(type_id) => DeploymentResource::find_by_type(type_id).await?,
+    };
     Ok(HttpResponse::Ok().json(
         try_join_all(
-            DeploymentResource::all()
-                .await?
+            resources
                 .into_iter()
                 .map(|resource| resource.without_sensitive_props()),
         )

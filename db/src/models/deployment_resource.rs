@@ -77,6 +77,13 @@ impl DeploymentResource {
             .await?)
     }
 
+    pub async fn find_by_type(type_id: Uuid) -> DbResult<Vec<Self>> {
+        Ok(deployment_resources::table
+            .filter(deployment_resources::type_id.eq(type_id))
+            .get_results_async(pool())
+            .await?)
+    }
+
     pub async fn find_of_type(type_id: Uuid, id: Uuid) -> DbResult<Self> {
         Ok(deployment_resources::table
             .filter(deployment_resources::type_id.eq(type_id))
