@@ -2,7 +2,9 @@ use super::AuthError;
 use actix_web::{dev::Payload, FromRequest, HttpRequest};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future::{BoxFuture, FutureExt, TryFutureExt};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use jsonwebtoken::{
+    decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
+};
 use platz_db::{Setting, User};
 use rand::random;
 use serde::{Deserialize, Serialize};
@@ -60,12 +62,11 @@ impl From<&User> for AccessToken {
 }
 
 async fn validate_token(bearer: BearerAuth) -> Result<TokenData<AccessToken>, AuthError> {
-    let validation = Validation {
-        validate_exp: true,
-        validate_nbf: true,
-        leeway: 5,
-        ..Default::default()
-    };
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.set_required_spec_claims(&["exp", "nbf"]);
+    validation.validate_exp = true;
+    validation.validate_nbf = true;
+    validation.leeway = 5;
     let jwt_secret = get_jwt_secret().await?;
     decode::<AccessToken>(
         bearer.token(),
