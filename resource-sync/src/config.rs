@@ -1,19 +1,19 @@
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
+#[derive(Debug, Parser)]
 pub struct Config {
     /// Turn debug logs on
-    #[structopt(long)]
+    #[clap(long)]
     debug: bool,
 
     /// Turn debug logs for all crates (not recommended)
-    #[structopt(long)]
+    #[clap(long)]
     all_debug: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Self::from_args()
+        Self::parse()
     }
 }
 

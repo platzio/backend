@@ -1,10 +1,10 @@
 use actix_web::middleware::Logger;
 use actix_web::{error::InternalError, web, App, HttpResponse, HttpServer};
 use anyhow::Result;
+use clap::Parser;
 use log::*;
 use platz_db::init_db;
 use serde_json::json;
-use structopt::StructOpt;
 use url::Url;
 
 mod auth;
@@ -13,26 +13,26 @@ mod result;
 mod routes;
 mod serde_utils;
 
-#[derive(StructOpt, Clone, Debug)]
+#[derive(Clone, Debug, Parser)]
 struct Config {
     /// Turn debug logs on
-    #[structopt(long)]
+    #[clap(long)]
     debug: bool,
 
     /// Turn debug logs for all crates (not recommended)
-    #[structopt(long)]
+    #[clap(long)]
     all_debug: bool,
 
-    #[structopt(long, env = "API_PORT", default_value = "3000")]
+    #[clap(long, env = "API_PORT", default_value = "3000")]
     api_port: u16,
 
-    #[structopt(long, env = "OIDC_SERVER_URL")]
+    #[clap(long, env = "OIDC_SERVER_URL")]
     oidc_server_url: Url,
 
-    #[structopt(long, env = "OIDC_CLIENT_ID")]
+    #[clap(long, env = "OIDC_CLIENT_ID")]
     oidc_client_id: String,
 
-    #[structopt(long, env = "OIDC_CLIENT_SECRET", hide_env_values = true)]
+    #[clap(long, env = "OIDC_CLIENT_SECRET", hide_env_values = true)]
     oidc_client_secret: String,
 }
 
@@ -88,7 +88,7 @@ async fn _main(config: Config) -> Result<()> {
 
 #[actix_web::main]
 async fn main() {
-    let config = Config::from_args();
+    let config = Config::parse();
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
         .filter(None, config.all_log_level())

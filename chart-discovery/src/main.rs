@@ -1,23 +1,23 @@
 use anyhow::Result;
+use clap::Parser;
 use log::*;
-use structopt::StructOpt;
 use tokio::time;
 
 mod charts;
 mod ecr_events;
 mod registries;
 
-#[derive(StructOpt, Debug)]
+#[derive(Debug, Parser)]
 pub struct Config {
     /// Turn debug logs on
-    #[structopt(long)]
+    #[clap(long)]
     debug: bool,
 
     /// Turn debug logs for all crates (not recommended)
-    #[structopt(long)]
+    #[clap(long)]
     all_debug: bool,
 
-    #[structopt(flatten)]
+    #[clap(flatten)]
     ecr_events: ecr_events::Config,
 }
 
@@ -39,7 +39,7 @@ impl Config {
 
 #[tokio::main]
 async fn main() {
-    let config = Config::from_args();
+    let config = Config::parse();
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
         .filter(None, config.all_log_level())

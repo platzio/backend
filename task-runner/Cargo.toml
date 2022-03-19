@@ -9,6 +9,7 @@ async-trait = "0.1.48"
 aws-arn = "0.2.0"
 base64 = "0.13.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
+clap = {version = "3.1.6", features = ["derive", "env"]}
 env_logger = "0.9.0"
 futures = "0.3.13"
 http = "0.2.6"
@@ -26,7 +27,6 @@ rusoto_eks = {version = "0.47.0", default-features = false, features = ["rustls"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 serde_yaml = "0.8.17"
-structopt = "0.3.22"
 thiserror = "1.0.30"
 tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.6.5"}

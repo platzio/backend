@@ -13,15 +13,15 @@ use rusoto_utils::regions::Region;
 use rusoto_utils::sqs::handle_sqs_messages;
 use serde::Deserialize;
 use std::str::FromStr;
-use structopt::StructOpt;
+use clap::Parser;
 use uuid::Uuid;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 pub struct Config {
-    #[structopt(long, env = "PLATZ_ECR_EVENTS_QUEUE")]
+    #[clap(long, env = "PLATZ_ECR_EVENTS_QUEUE")]
     ecr_events_queue: String,
 
-    #[structopt(long, env = "PLATZ_ECR_EVENTS_REGION")]
+    #[clap(long, env = "PLATZ_ECR_EVENTS_REGION")]
     ecr_events_region: Region,
 }
 

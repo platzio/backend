@@ -1,36 +1,36 @@
+use clap::Parser;
 use lazy_static::lazy_static;
-use structopt::StructOpt;
 
 lazy_static! {
     pub static ref CONFIG: Config = Default::default();
 }
 
-#[derive(StructOpt, Debug)]
+#[derive(Debug, Parser)]
 pub struct Config {
     /// Turn debug logs on
-    #[structopt(long)]
+    #[clap(long)]
     debug: bool,
 
     /// Turn debug logs for all crates (not recommended)
-    #[structopt(long)]
+    #[clap(long)]
     all_debug: bool,
 
-    #[structopt(long, env = "PLATZ_SELF_NAMESPACE")]
+    #[clap(long, env = "PLATZ_SELF_NAMESPACE")]
     self_namespace: String,
 
-    #[structopt(long, env = "PLATZ_SELF_SERVICE_ACCOUNT_NAME")]
+    #[clap(long, env = "PLATZ_SELF_SERVICE_ACCOUNT_NAME")]
     self_service_account_name: String,
 
-    #[structopt(long, env = "K8S_REFRESH_INTERVAL", default_value = "1h")]
+    #[clap(long, env = "K8S_REFRESH_INTERVAL", default_value = "1h")]
     k8s_refresh_interval: humantime::Duration,
 
-    #[structopt(long, env = "PLATZ_HELM_IMAGE")]
+    #[clap(long, env = "PLATZ_HELM_IMAGE")]
     helm_image: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Self::from_args()
+        Self::parse()
     }
 }
 
