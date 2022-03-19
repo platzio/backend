@@ -1,6 +1,6 @@
 use crate::auth::{AccessToken, CurUser, OAuth2Response, OidcLogin};
 use crate::result::ApiResult;
-use actix_web::{dev::ConnectionInfo, web, HttpResponse};
+use actix_web::{dev::ConnectionInfo, web, HttpRequest, HttpResponse};
 use serde::Serialize;
 use serde_json::json;
 use url::Url;
@@ -39,7 +39,7 @@ async fn google_login_info(conn: ConnectionInfo, oidc_login: web::Data<OidcLogin
 
 #[actix_web::post("google/callback")]
 async fn google_login_callback(
-    req: web::HttpRequest,
+    req: HttpRequest,
     oidc_login: web::Data<OidcLogin>,
     oauth2_response: web::Json<OAuth2Response>,
 ) -> ApiResult {
