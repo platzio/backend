@@ -2326,14 +2326,19 @@ dependencies = [
 
 [[package]]
 name = "platz-sdk"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d81c2501968bc059cfa8885d93f8bcf8d721b8db7d86773ed6a1c681dd633b6"
+checksum = "088bb256298eaee0fe7b1273225eedd148a933f688e5a899aaf4d945d8eccc2e"
 dependencies = [
+ "anyhow",
+ "chrono",
+ "reqwest",
  "rust_decimal",
  "serde",
  "serde_json",
  "strum",
+ "url",
+ "uuid",
 ]
 
 [[package]]

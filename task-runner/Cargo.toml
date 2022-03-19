@@ -21,7 +21,7 @@ kube-runtime = {version = "0.68.0"}
 lazy_static = "1"
 log = "0.4.14"
 maplit = "1"
-platz-sdk = "0.1.0"
+platz-sdk = "0.2.0"
 rusoto_core = {version = "0.47.0", default-features = false, features = ["rustls"]}
 rusoto_eks = {version = "0.47.0", default-features = false, features = ["rustls"]}
 serde = {version = "1", features = ["derive"]}
