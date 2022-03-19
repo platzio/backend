@@ -16,8 +16,8 @@ http = "0.2.6"
 humantime = '2.1.0'
 itertools = "0.10.0"
 k8s-openapi = {version = "0.14.0", default-features = false, features = ["v1_21"]}
-kube = {version = "0.68.0", features = ["gzip", "ws"]}
-kube-runtime = {version = "0.68.0"}
+kube = {version = "0.69.1", features = ["gzip", "ws"]}
+kube-runtime = {version = "0.69.1"}
 lazy_static = "1"
 log = "0.4.14"
 maplit = "1"
