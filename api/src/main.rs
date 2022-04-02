@@ -52,6 +52,10 @@ impl Config {
     }
 }
 
+async fn status() -> crate::result::ApiResult {
+    Ok(HttpResponse::Ok().json("ok"))
+}
+
 async fn serve(config: Config) -> Result<()> {
     let api_port = config.api_port;
     let oidc_login = web::Data::new(
@@ -75,6 +79,7 @@ async fn serve(config: Config) -> Result<()> {
             .wrap(Logger::default())
             .app_data(json_cfg)
             .app_data(oidc_login.clone())
+            .route("/status", web::get().to(status))
             .service(web::scope("/api/v1").configure(routes::config))
     });
 
