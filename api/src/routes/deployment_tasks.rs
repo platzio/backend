@@ -14,7 +14,6 @@ struct Query {
     deployment_id: Option<Uuid>,
 }
 
-#[actix_web::get("")]
 async fn get_all(query: web::Query<Query>) -> ApiResult {
     Ok(HttpResponse::Ok().json(match query.deployment_id {
         Some(deployment_id) => DeploymentTask::find_by_deployment_id(deployment_id).await?,
@@ -22,7 +21,6 @@ async fn get_all(query: web::Query<Query>) -> ApiResult {
     }))
 }
 
-#[actix_web::get("/{id}")]
 async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentTask::find(id.into_inner()).await?))
 }
@@ -33,7 +31,6 @@ pub struct ApiNewDeploymentTask {
     pub operation: DeploymentTaskOperation,
 }
 
-#[actix_web::post("")]
 async fn create(cur_user: CurUser, task: web::Json<ApiNewDeploymentTask>) -> ApiResult {
     let task = task.into_inner();
 
@@ -105,10 +102,7 @@ async fn create(cur_user: CurUser, task: web::Json<ApiNewDeploymentTask>) -> Api
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/deployment-tasks")
-            .service(get_all)
-            .service(get)
-            .service(create),
-    );
+    cfg.route("", web::get().to(get_all));
+    cfg.route("/{id}", web::get().to(get));
+    cfg.route("", web::post().to(create));
 }

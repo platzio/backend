@@ -52,11 +52,10 @@ impl StreamHandler<Result<DbEvent, BroadcastStreamRecvError>> for DbEventsWs {
     }
 }
 
-#[actix_web::get("")]
 async fn connect_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
     ws::start(DbEventsWs::default(), &req, stream)
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/api/v1/ws").service(connect_ws));
+    cfg.route("", web::get().to(connect_ws));
 }

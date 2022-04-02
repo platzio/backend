@@ -14,7 +14,6 @@ fn callback_url(conn: &ConnectionInfo) -> Url {
     .expect("Failed creating callback URL")
 }
 
-#[actix_web::get("me")]
 async fn me(cur_user: CurUser) -> ApiResult {
     Ok(HttpResponse::Ok().json(cur_user))
 }
@@ -24,7 +23,6 @@ struct GoogleLoginInfo {
     redirect_url: Url,
 }
 
-#[actix_web::get("google")]
 async fn google_login_info(conn: ConnectionInfo, oidc_login: web::Data<OidcLogin>) -> ApiResult {
     Ok(oidc_login
         .get_redirect_url(callback_url(&conn))
@@ -37,7 +35,6 @@ async fn google_login_info(conn: ConnectionInfo, oidc_login: web::Data<OidcLogin
         }))
 }
 
-#[actix_web::post("google/callback")]
 async fn google_login_callback(
     req: HttpRequest,
     oidc_login: web::Data<OidcLogin>,
@@ -57,10 +54,7 @@ async fn google_login_callback(
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/auth")
-            .service(me)
-            .service(google_login_info)
-            .service(google_login_callback),
-    );
+    cfg.route("/me", web::get().to(me));
+    cfg.route("/google", web::get().to(google_login_info));
+    cfg.route("/google/callback", web::post().to(google_login_callback));
 }

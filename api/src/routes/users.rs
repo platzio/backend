@@ -6,17 +6,14 @@ use platz_db::{UpdateUser, User};
 use serde_json::json;
 use uuid::Uuid;
 
-#[actix_web::get("")]
 async fn get_all() -> ApiResult {
     Ok(HttpResponse::Ok().json(User::all().await?))
 }
 
-#[actix_web::get("{id}")]
 async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(User::find(id.into_inner()).await?))
 }
 
-#[actix_web::put("/{id}")]
 async fn update(
     cur_user: CurUser,
     id: web::Path<Uuid>,
@@ -34,10 +31,7 @@ async fn update(
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/users")
-            .service(get_all)
-            .service(get)
-            .service(update),
-    );
+    cfg.route("", web::get().to(get_all));
+    cfg.route("/{id}", web::get().to(get));
+    cfg.route("/{id}", web::put().to(update));
 }

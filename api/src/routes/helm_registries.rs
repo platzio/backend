@@ -5,17 +5,14 @@ use actix_web::{web, HttpResponse};
 use platz_db::{HelmRegistry, UpdateHelmRegistry};
 use uuid::Uuid;
 
-#[actix_web::get("")]
 async fn get_all() -> ApiResult {
     Ok(HttpResponse::Ok().json(HelmRegistry::all().await?))
 }
 
-#[actix_web::get("/{id}")]
 async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(HelmRegistry::find(id.into_inner()).await?))
 }
 
-#[actix_web::put("/{id}")]
 async fn update(
     cur_user: CurUser,
     id: web::Path<Uuid>,
@@ -28,10 +25,7 @@ async fn update(
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/helm-registries")
-            .service(get_all)
-            .service(get)
-            .service(update),
-    );
+    cfg.route("", web::get().to(get_all));
+    cfg.route("/{id}", web::get().to(get));
+    cfg.route("/{id}", web::put().to(update));
 }

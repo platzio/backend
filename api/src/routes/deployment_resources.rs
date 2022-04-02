@@ -15,7 +15,6 @@ struct GetAllQuery {
     type_id: Option<Uuid>,
 }
 
-#[actix_web::get("")]
 async fn get_all(query: web::Query<GetAllQuery>) -> ApiResult {
     let resources = match query.type_id {
         None => DeploymentResource::all().await?,
@@ -31,7 +30,6 @@ async fn get_all(query: web::Query<GetAllQuery>) -> ApiResult {
     ))
 }
 
-#[actix_web::get("/{id}")]
 async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(
         DeploymentResource::find(id.into_inner())
@@ -41,7 +39,6 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
     ))
 }
 
-#[actix_web::post("")]
 async fn create(new_resource: web::Json<NewDeploymentResource>) -> ApiResult {
     let new_resource = new_resource.into_inner();
     // TODO: Check allowed_role
@@ -49,7 +46,6 @@ async fn create(new_resource: web::Json<NewDeploymentResource>) -> ApiResult {
     Ok(HttpResponse::Created().json(resource))
 }
 
-#[actix_web::put("/{id}")]
 async fn update(
     cur_user: CurUser,
     id: web::Path<Uuid>,
@@ -106,7 +102,6 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_resource))
 }
 
-#[actix_web::delete("/{id}")]
 async fn delete(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
     let resource = DeploymentResource::find(id.into_inner()).await?;
     if !resource.exists {
@@ -128,12 +123,9 @@ async fn delete(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/deployment-resources")
-            .service(get_all)
-            .service(get)
-            .service(create)
-            .service(update)
-            .service(delete),
-    );
+    cfg.route("", web::get().to(get_all));
+    cfg.route("/{id}", web::get().to(get));
+    cfg.route("", web::post().to(create));
+    cfg.route("/{id}", web::put().to(update));
+    cfg.route("/{id}", web::delete().to(delete));
 }

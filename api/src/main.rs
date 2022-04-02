@@ -75,7 +75,7 @@ async fn serve(config: Config) -> Result<()> {
             .wrap(Logger::default())
             .app_data(json_cfg)
             .app_data(oidc_login.clone())
-            .configure(routes::config)
+            .service(web::scope("/api/v1").configure(routes::config))
     });
 
     Ok(server.bind(&format!("0.0.0.0:{}", api_port))?.run().await?)

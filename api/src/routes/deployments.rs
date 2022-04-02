@@ -19,7 +19,6 @@ struct Query {
     cluster_id: Option<Uuid>,
 }
 
-#[actix_web::get("")]
 async fn get_all(query: web::Query<Query>) -> ApiResult {
     let deployments = match query.kind.as_ref() {
         None => Deployment::all().await?,
@@ -42,12 +41,10 @@ async fn get_all(query: web::Query<Query>) -> ApiResult {
     Ok(HttpResponse::Ok().json(deployments))
 }
 
-#[actix_web::get("/{id}")]
 async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Deployment::find(id.into_inner()).await?))
 }
 
-#[actix_web::post("")]
 async fn create(cur_user: CurUser, new_deployment: web::Json<NewDeployment>) -> ApiResult {
     let new_deployment = new_deployment.into_inner();
     verify_deployment_owner(
@@ -92,7 +89,6 @@ fn using_error(prefix: &str, deployments: Vec<Deployment>) -> String {
     )
 }
 
-#[actix_web::put("/{id}")]
 async fn update(
     cur_user: CurUser,
     id: web::Path<Uuid>,
@@ -172,7 +168,6 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_deployment))
 }
 
-#[actix_web::delete("/{id}")]
 async fn delete(cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
     let deployment = Deployment::find(id.into_inner()).await?;
     verify_deployment_owner(deployment.cluster_id, &deployment.kind, cur_user.user().id).await?;
@@ -198,12 +193,9 @@ async fn delete(cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/deployments")
-            .service(get_all)
-            .service(get)
-            .service(create)
-            .service(update)
-            .service(delete),
-    );
+    cfg.route("", web::get().to(get_all));
+    cfg.route("/{id}", web::get().to(get));
+    cfg.route("", web::post().to(create));
+    cfg.route("/{id}", web::put().to(update));
+    cfg.route("/{id}", web::delete().to(delete));
 }

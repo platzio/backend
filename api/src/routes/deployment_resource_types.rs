@@ -12,7 +12,6 @@ struct GetAllQuery {
     key: Option<String>,
 }
 
-#[actix_web::get("")]
 async fn get_all(query: web::Query<GetAllQuery>) -> ApiResult {
     Ok(match query.into_inner() {
         GetAllQuery {
@@ -44,15 +43,11 @@ async fn get_all(query: web::Query<GetAllQuery>) -> ApiResult {
     })
 }
 
-#[actix_web::get("/{id}")]
 async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentResourceType::find(id.into_inner()).await?))
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/deployment-resource-types")
-            .service(get_all)
-            .service(get),
-    );
+    cfg.route("", web::get().to(get_all));
+    cfg.route("/{id}", web::get().to(get));
 }

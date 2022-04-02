@@ -6,17 +6,14 @@ use itertools::Itertools;
 use platz_db::{Deployment, Env, EnvUserRole, NewEnv, NewEnvUserPermission, UpdateEnv};
 use uuid::Uuid;
 
-#[actix_web::get("")]
 async fn get_all() -> ApiResult {
     Ok(HttpResponse::Ok().json(Env::all().await?))
 }
 
-#[actix_web::get("{id}")]
 async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Env::find(id.into_inner()).await?))
 }
 
-#[actix_web::post("")]
 async fn create(cur_user: CurUser, new_env: web::Json<NewEnv>) -> ApiResult {
     verify_site_admin(cur_user.user().id).await?;
     let env = new_env.into_inner().save().await?;
@@ -30,7 +27,6 @@ async fn create(cur_user: CurUser, new_env: web::Json<NewEnv>) -> ApiResult {
     Ok(HttpResponse::Created().json(env))
 }
 
-#[actix_web::put("/{id}")]
 async fn update(cur_user: CurUser, id: web::Path<Uuid>, update: web::Json<UpdateEnv>) -> ApiResult {
     let id = id.into_inner();
     verify_site_admin(cur_user.user().id).await?;
@@ -53,11 +49,8 @@ async fn update(cur_user: CurUser, id: web::Path<Uuid>, update: web::Json<Update
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/v1/envs")
-            .service(get_all)
-            .service(get)
-            .service(create)
-            .service(update),
-    );
+    cfg.route("", web::get().to(get_all));
+    cfg.route("/{id}", web::get().to(get));
+    cfg.route("", web::post().to(create));
+    cfg.route("/{id}", web::put().to(update));
 }
