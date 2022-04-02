@@ -1,4 +1,4 @@
-use crate::auth::CurUser;
+use crate::auth::CurIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -15,13 +15,13 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
 }
 
 async fn update(
-    cur_user: CurUser,
+    cur_identity: CurIdentity,
     id: web::Path<Uuid>,
     update: web::Json<UpdateUser>,
 ) -> ApiResult {
-    verify_site_admin(cur_user.user().id).await?;
+    verify_site_admin(cur_identity.user().id).await?;
     let id = id.into_inner();
-    if cur_user.user().id == id {
+    if cur_identity.user().id == id {
         Ok(HttpResponse::Forbidden().json(json!({
             "message": "You can't update your own user"
         })))

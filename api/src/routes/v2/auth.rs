@@ -1,4 +1,4 @@
-use crate::auth::{AccessToken, CurUser, OAuth2Response, OidcLogin};
+use crate::auth::{AccessToken, CurIdentity, OAuth2Response, OidcLogin};
 use crate::result::ApiResult;
 use actix_web::{dev::ConnectionInfo, web, HttpRequest, HttpResponse};
 use serde::Serialize;
@@ -14,8 +14,8 @@ fn callback_url(conn: &ConnectionInfo) -> Url {
     .expect("Failed creating callback URL")
 }
 
-async fn me(cur_user: CurUser) -> ApiResult {
-    Ok(HttpResponse::Ok().json(cur_user))
+async fn me(cur_identity: CurIdentity) -> ApiResult {
+    Ok(HttpResponse::Ok().json(cur_identity))
 }
 
 #[derive(Serialize)]

@@ -5,11 +5,11 @@ use platz_db::User;
 use serde::Serialize;
 
 #[derive(Serialize)]
-pub struct CurUser {
+pub struct CurIdentity {
     user: User,
 }
 
-impl CurUser {
+impl CurIdentity {
     fn new(user: User) -> Self {
         Self { user }
     }
@@ -19,7 +19,7 @@ impl CurUser {
     }
 }
 
-impl FromRequest for CurUser {
+impl FromRequest for CurIdentity {
     type Error = AuthError;
     type Future = BoxFuture<'static, Result<Self, Self::Error>>;
 

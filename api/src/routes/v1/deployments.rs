@@ -1,6 +1,6 @@
 use crate::permissions::verify_deployment_owner;
 use crate::result::ApiResult;
-use crate::{auth::CurUser, permissions::verify_deployment_maintainer};
+use crate::{auth::CurIdentity, permissions::verify_deployment_maintainer};
 use actix_web::{web, HttpResponse};
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
@@ -45,12 +45,12 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Deployment::find(id.into_inner()).await?))
 }
 
-async fn create(cur_user: CurUser, new_deployment: web::Json<NewDeployment>) -> ApiResult {
+async fn create(cur_identity: CurIdentity, new_deployment: web::Json<NewDeployment>) -> ApiResult {
     let new_deployment = new_deployment.into_inner();
     verify_deployment_owner(
         new_deployment.cluster_id,
         &new_deployment.kind,
-        cur_user.user().id,
+        cur_identity.user().id,
     )
     .await?;
 
@@ -73,7 +73,7 @@ async fn create(cur_user: CurUser, new_deployment: web::Json<NewDeployment>) -> 
     }
 
     let deployment = new_deployment.insert().await?;
-    DeploymentTask::create_install_task(&deployment, cur_user.user()).await?;
+    DeploymentTask::create_install_task(&deployment, cur_identity.user()).await?;
     Ok(HttpResponse::Created().json(deployment))
 }
 
@@ -90,7 +90,7 @@ fn using_error(prefix: &str, deployments: Vec<Deployment>) -> String {
 }
 
 async fn update(
-    cur_user: CurUser,
+    cur_identity: CurIdentity,
     id: web::Path<Uuid>,
     data: web::Json<UpdateDeployment>,
 ) -> ApiResult {
@@ -100,14 +100,18 @@ async fn update(
     verify_deployment_maintainer(
         old_deployment.cluster_id,
         &old_deployment.kind,
-        cur_user.user().id,
+        cur_identity.user().id,
     )
     .await?;
 
     if let Some(new_cluster_id) = updates.cluster_id {
         if new_cluster_id != old_deployment.cluster_id {
-            verify_deployment_maintainer(new_cluster_id, &old_deployment.kind, cur_user.user().id)
-                .await?;
+            verify_deployment_maintainer(
+                new_cluster_id,
+                &old_deployment.kind,
+                cur_identity.user().id,
+            )
+            .await?;
         }
     }
 
@@ -128,7 +132,7 @@ async fn update(
     }
 
     let new_deployment = updates.save(old_deployment.id).await?;
-    let user = cur_user.user();
+    let user = cur_identity.user();
     let chart = HelmChart::find(new_deployment.helm_chart_id).await?;
     let features = chart.features()?;
 
@@ -168,9 +172,14 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_deployment))
 }
 
-async fn delete(cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
+async fn delete(cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
     let deployment = Deployment::find(id.into_inner()).await?;
-    verify_deployment_owner(deployment.cluster_id, &deployment.kind, cur_user.user().id).await?;
+    verify_deployment_owner(
+        deployment.cluster_id,
+        &deployment.kind,
+        cur_identity.user().id,
+    )
+    .await?;
 
     let dependents = Deployment::find_using(
         &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),
@@ -187,7 +196,7 @@ async fn delete(cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
         .set_status(DeploymentStatus::Deleting, None)
         .await?;
 
-    DeploymentTask::create_uninstall_task(&deployment, cur_user.user()).await?;
+    DeploymentTask::create_uninstall_task(&deployment, cur_identity.user()).await?;
 
     Ok(HttpResponse::NoContent().finish())
 }

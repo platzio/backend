@@ -1,4 +1,4 @@
-use crate::auth::CurUser;
+use crate::auth::CurIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use futures::future::try_join_all;
@@ -47,7 +47,7 @@ async fn create(new_resource: web::Json<NewDeploymentResource>) -> ApiResult {
 }
 
 async fn update(
-    cur_user: CurUser,
+    cur_identity: CurIdentity,
     id: web::Path<Uuid>,
     update: web::Json<UpdateDeploymentResource>,
 ) -> ApiResult {
@@ -86,14 +86,14 @@ async fn update(
         Deployment::reinstall_all_using(
             &resource_type.as_db_collection(),
             id,
-            cur_user.user(),
+            cur_identity.user(),
             reason.clone(),
         )
         .await?;
         Deployment::reinstall_all_using(
             &resource_type.as_legacy_db_collection(),
             id,
-            cur_user.user(),
+            cur_identity.user(),
             reason,
         )
         .await?;
@@ -102,7 +102,7 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_resource))
 }
 
-async fn delete(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
+async fn delete(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
     let resource = DeploymentResource::find(id.into_inner()).await?;
     if !resource.exists {
         return Ok(HttpResponse::Conflict().json(json!({

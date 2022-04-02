@@ -1,4 +1,4 @@
-use crate::auth::CurUser;
+use crate::auth::CurIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use futures::future::try_join_all;
@@ -15,7 +15,7 @@ struct GetAllQuery {
     type_id: Option<Uuid>,
 }
 
-async fn get_all(_cur_user: CurUser, query: web::Query<GetAllQuery>) -> ApiResult {
+async fn get_all(_cur_identity: CurIdentity, query: web::Query<GetAllQuery>) -> ApiResult {
     let resources = match query.type_id {
         None => DeploymentResource::all().await?,
         Some(type_id) => DeploymentResource::find_by_type(type_id).await?,
@@ -30,7 +30,7 @@ async fn get_all(_cur_user: CurUser, query: web::Query<GetAllQuery>) -> ApiResul
     ))
 }
 
-async fn get(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
+async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(
         DeploymentResource::find(id.into_inner())
             .await?
@@ -39,7 +39,10 @@ async fn get(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
     ))
 }
 
-async fn create(_cur_user: CurUser, new_resource: web::Json<NewDeploymentResource>) -> ApiResult {
+async fn create(
+    _cur_identity: CurIdentity,
+    new_resource: web::Json<NewDeploymentResource>,
+) -> ApiResult {
     let new_resource = new_resource.into_inner();
     // TODO: Check allowed_role
     let resource = new_resource.insert().await?;
@@ -47,7 +50,7 @@ async fn create(_cur_user: CurUser, new_resource: web::Json<NewDeploymentResourc
 }
 
 async fn update(
-    cur_user: CurUser,
+    cur_identity: CurIdentity,
     id: web::Path<Uuid>,
     update: web::Json<UpdateDeploymentResource>,
 ) -> ApiResult {
@@ -86,14 +89,14 @@ async fn update(
         Deployment::reinstall_all_using(
             &resource_type.as_db_collection(),
             id,
-            cur_user.user(),
+            cur_identity.user(),
             reason.clone(),
         )
         .await?;
         Deployment::reinstall_all_using(
             &resource_type.as_legacy_db_collection(),
             id,
-            cur_user.user(),
+            cur_identity.user(),
             reason,
         )
         .await?;
@@ -102,7 +105,7 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_resource))
 }
 
-async fn delete(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
+async fn delete(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
     let resource = DeploymentResource::find(id.into_inner()).await?;
     if !resource.exists {
         return Ok(HttpResponse::Conflict().json(json!({

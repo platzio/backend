@@ -1,4 +1,4 @@
-use crate::auth::CurUser;
+use crate::auth::CurIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -14,17 +14,17 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
 }
 
 async fn create(
-    cur_user: CurUser,
+    cur_identity: CurIdentity,
     new_permission: web::Json<NewDeploymentPermission>,
 ) -> ApiResult {
     let new_permission = new_permission.into_inner();
-    verify_env_admin(new_permission.env_id, cur_user.user().id).await?;
+    verify_env_admin(new_permission.env_id, cur_identity.user().id).await?;
     Ok(HttpResponse::Created().json(new_permission.insert().await?))
 }
 
-async fn delete(cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
+async fn delete(cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
     let permission = DeploymentPermission::find(id.into_inner()).await?;
-    verify_env_admin(permission.env_id, cur_user.user().id).await?;
+    verify_env_admin(permission.env_id, cur_identity.user().id).await?;
     permission.delete().await?;
     Ok(HttpResponse::NoContent().finish())
 }

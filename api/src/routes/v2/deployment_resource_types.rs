@@ -1,4 +1,4 @@
-use crate::auth::CurUser;
+use crate::auth::CurIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use platz_db::DeploymentResourceType;
@@ -13,7 +13,7 @@ struct GetAllQuery {
     key: Option<String>,
 }
 
-async fn get_all(_cur_user: CurUser, query: web::Query<GetAllQuery>) -> ApiResult {
+async fn get_all(_cur_identity: CurIdentity, query: web::Query<GetAllQuery>) -> ApiResult {
     Ok(match query.into_inner() {
         GetAllQuery {
             env_id: Some(env_id),
@@ -44,7 +44,7 @@ async fn get_all(_cur_user: CurUser, query: web::Query<GetAllQuery>) -> ApiResul
     })
 }
 
-async fn get(_cur_user: CurUser, id: web::Path<Uuid>) -> ApiResult {
+async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentResourceType::find(id.into_inner()).await?))
 }
 

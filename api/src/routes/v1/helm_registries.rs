@@ -1,4 +1,4 @@
-use crate::auth::CurUser;
+use crate::auth::CurIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -14,11 +14,11 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
 }
 
 async fn update(
-    cur_user: CurUser,
+    cur_identity: CurIdentity,
     id: web::Path<Uuid>,
     data: web::Json<UpdateHelmRegistry>,
 ) -> ApiResult {
-    verify_site_admin(cur_user.user().id).await?;
+    verify_site_admin(cur_identity.user().id).await?;
     let id = id.into_inner();
     let data = data.into_inner();
     Ok(HttpResponse::Ok().json(data.save(id).await?))

@@ -1,4 +1,4 @@
-use crate::auth::CurUser;
+use crate::auth::CurIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -14,12 +14,12 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Env::find(id.into_inner()).await?))
 }
 
-async fn create(cur_user: CurUser, new_env: web::Json<NewEnv>) -> ApiResult {
-    verify_site_admin(cur_user.user().id).await?;
+async fn create(cur_identity: CurIdentity, new_env: web::Json<NewEnv>) -> ApiResult {
+    verify_site_admin(cur_identity.user().id).await?;
     let env = new_env.into_inner().save().await?;
     NewEnvUserPermission {
         env_id: env.id,
-        user_id: cur_user.user().id,
+        user_id: cur_identity.user().id,
         role: EnvUserRole::Admin,
     }
     .insert()
@@ -27,9 +27,13 @@ async fn create(cur_user: CurUser, new_env: web::Json<NewEnv>) -> ApiResult {
     Ok(HttpResponse::Created().json(env))
 }
 
-async fn update(cur_user: CurUser, id: web::Path<Uuid>, update: web::Json<UpdateEnv>) -> ApiResult {
+async fn update(
+    cur_identity: CurIdentity,
+    id: web::Path<Uuid>,
+    update: web::Json<UpdateEnv>,
+) -> ApiResult {
     let id = id.into_inner();
-    verify_site_admin(cur_user.user().id).await?;
+    verify_site_admin(cur_identity.user().id).await?;
 
     if update.node_selector.is_some() || update.tolerations.is_some() {
         let reason = format!(
@@ -42,7 +46,7 @@ async fn update(cur_user: CurUser, id: web::Path<Uuid>, update: web::Json<Update
             .flatten()
             .join(", ")
         );
-        Deployment::reinstall_all_for_env(id, cur_user.user(), reason).await?;
+        Deployment::reinstall_all_for_env(id, cur_identity.user(), reason).await?;
     }
 
     Ok(HttpResponse::Ok().json(update.into_inner().save(id).await?))
