@@ -81,6 +81,7 @@ async fn serve(config: Config) -> Result<()> {
             .app_data(oidc_login.clone())
             .route("/status", web::get().to(status))
             .service(web::scope("/api/v1").configure(routes::v1::config))
+            .service(web::scope("/api/v2").configure(routes::v2::config))
     });
 
     Ok(server.bind(&format!("0.0.0.0:{}", api_port))?.run().await?)
