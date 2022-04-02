@@ -80,7 +80,7 @@ async fn serve(config: Config) -> Result<()> {
             .app_data(json_cfg)
             .app_data(oidc_login.clone())
             .route("/status", web::get().to(status))
-            .service(web::scope("/api/v1").configure(routes::config))
+            .service(web::scope("/api/v1").configure(routes::v1::config))
     });
 
     Ok(server.bind(&format!("0.0.0.0:{}", api_port))?.run().await?)
