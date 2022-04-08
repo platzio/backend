@@ -13,7 +13,7 @@ use uuid::Uuid;
 const JWT_SECRET_BYTES: usize = 24;
 
 async fn get_jwt_secret() -> Result<Vec<u8>, AuthError> {
-    Ok(base64::decode(
+    base64::decode(
         Setting::get_or_set_default("jwt_secret", || {
             base64::encode(random::<[u8; JWT_SECRET_BYTES]>())
         })
@@ -21,7 +21,7 @@ async fn get_jwt_secret() -> Result<Vec<u8>, AuthError> {
         .value
         .as_str(),
     )
-    .map_err(|_| AuthError::JwtSecretDecodingError)?)
+    .map_err(|_| AuthError::JwtSecretDecodingError)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -39,12 +39,12 @@ impl AccessToken {
 
     pub async fn encode(&self) -> Result<String, AuthError> {
         let jwt_secret = get_jwt_secret().await?;
-        Ok(encode(
+        encode(
             &Header::default(),
             &self,
             &EncodingKey::from_secret(&jwt_secret),
         )
-        .map_err(AuthError::JwtEncodeError)?)
+        .map_err(AuthError::JwtEncodeError)
     }
 }
 

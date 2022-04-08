@@ -116,7 +116,7 @@ impl DeploymentTask {
             (DeploymentTaskStatus::Failed, _) => (None, None, Some(now)),
             (DeploymentTaskStatus::Done, _) => (None, None, Some(now)),
         };
-        Ok(UpdateDeploymentTask {
+        UpdateDeploymentTask {
             first_attempted_at,
             started_at,
             finished_at,
@@ -124,7 +124,7 @@ impl DeploymentTask {
             reason: Some(reason),
         }
         .save(self.id)
-        .await?)
+        .await
     }
 
     pub async fn helm_chart(&self) -> DbResult<HelmChart> {

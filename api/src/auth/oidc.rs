@@ -29,14 +29,14 @@ impl OidcLogin {
     }
 
     async fn client(&self, callback_url: Url) -> Result<DiscoveredClient, AuthError> {
-        Ok(DiscoveredClient::discover(
+        DiscoveredClient::discover(
             self.client_id.clone(),
             self.client_secret.clone(),
             Some(callback_url.to_string()),
             self.server.clone(),
         )
         .await
-        .map_err(AuthError::OidcDiscoveryError)?)
+        .map_err(AuthError::OidcDiscoveryError)
     }
 
     pub async fn get_redirect_url(&self, callback_url: Url) -> Result<Url, AuthError> {

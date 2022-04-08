@@ -89,7 +89,7 @@ async fn serve(config: Config) -> Result<()> {
 
 async fn _main(config: Config) -> Result<()> {
     init_db(true).await?;
-    Ok(serve(config).await?)
+    serve(config).await
 }
 
 #[actix_web::main]

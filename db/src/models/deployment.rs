@@ -249,13 +249,13 @@ impl Deployment {
         status: DeploymentStatus,
         reason: Option<String>,
     ) -> DbResult<Self> {
-        Ok(UpdateDeploymentStatus {
+        UpdateDeploymentStatus {
             status: Some(status),
             reason: Some(reason),
             revision_id: None,
         }
         .save(self.id)
-        .await?)
+        .await
     }
 
     pub async fn set_status_and_revision(
@@ -264,23 +264,23 @@ impl Deployment {
         reason: Option<String>,
         revision_id: Uuid,
     ) -> DbResult<Self> {
-        Ok(UpdateDeploymentStatus {
+        UpdateDeploymentStatus {
             status: Some(status),
             reason: Some(reason),
             revision_id: Some(Some(revision_id)),
         }
         .save(self.id)
-        .await?)
+        .await
     }
 
     pub async fn set_revision(&self, revision_id: Option<Uuid>) -> DbResult<Self> {
-        Ok(UpdateDeploymentStatus {
+        UpdateDeploymentStatus {
             status: None,
             reason: None,
             revision_id: Some(revision_id),
         }
         .save(self.id)
-        .await?)
+        .await
     }
 
     pub async fn delete(&self) -> DbResult<()> {

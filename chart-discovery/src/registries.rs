@@ -25,7 +25,7 @@ pub async fn find_and_save_ecr_repo(region: Region, repo_name: &str) -> Result<H
             .ok_or_else(|| anyhow!("ECR repo not found: {}", repo_name))?,
     };
 
-    Ok(save_ecr_repo_in_db(repo).await?)
+    save_ecr_repo_in_db(repo).await
 }
 
 async fn save_ecr_repo_in_db(repo: Repository) -> Result<HelmRegistry> {
