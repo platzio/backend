@@ -37,7 +37,7 @@ impl UiSchemaCollections for DbTable {
         match self {
             Self::Deployments => {
                 // TODO: Return Option from Deployment::find and convert to UiSchemaInputError::CollectionItemNotFound when None
-                let deployment = crate::models::Deployment::find(id).await?;
+                let deployment = crate::schema::Deployment::find(id).await?;
                 // TODO: Check deployment is in env_id
                 match property {
                     "id" => Ok(deployment.id.to_string().into()),
@@ -54,7 +54,7 @@ impl UiSchemaCollections for DbTable {
             }
             Self::Secrets => {
                 // TODO: Return Option from Secret::find and convert to UiSchemaInputError::CollectionItemNotFound when None
-                let secret = crate::models::Secret::find(id).await?;
+                let secret = crate::schema::Secret::find(id).await?;
                 if secret.env_id == env_id {
                     match property {
                         "id" => Ok(secret.id.to_string().into()),

@@ -15,8 +15,8 @@ pub use db_table::*;
 mod errors;
 pub use errors::*;
 
-mod models;
-pub use models::*;
+mod schema;
+pub use schema::*;
 
 mod events;
 pub use events::*;
