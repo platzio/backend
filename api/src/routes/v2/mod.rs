@@ -1,4 +1,4 @@
-mod auth;
+pub mod auth;
 mod deployment_permissions;
 mod deployment_resource_types;
 mod deployment_resources;
