@@ -2,11 +2,14 @@ use crate::auth::CurIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
-use platz_db::{DeploymentPermission, NewDeploymentPermission};
+use platz_db::{DeploymentPermission, DeploymentPermissionFilters, NewDeploymentPermission};
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity) -> ApiResult {
-    Ok(HttpResponse::Ok().json(DeploymentPermission::all().await?))
+async fn get_all(
+    _cur_identity: CurIdentity,
+    filters: web::Query<DeploymentPermissionFilters>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok().json(DeploymentPermission::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
