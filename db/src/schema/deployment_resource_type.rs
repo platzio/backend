@@ -1,8 +1,9 @@
-use crate::{pool, DbTableOrDeploymentResource};
+use crate::{pool, DbTableOrDeploymentResource, Paginated, DEFAULT_PAGE_SIZE};
 use crate::{DbError, DbResult};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
+use diesel_filter::{DieselFilter, Paginate};
 use platz_chart_ext::resource_types::v1::ChartExtResourceTypeSpec;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -18,12 +19,17 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[table_name = "deployment_resource_types"]
+#[pagination]
 pub struct DeploymentResourceType {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
+    #[filter]
     pub env_id: Option<Uuid>,
+    #[filter(insensitive)]
     pub deployment_kind: String,
+    #[filter]
     pub key: String,
     pub spec: serde_json::Value,
 }
@@ -33,6 +39,26 @@ impl DeploymentResourceType {
         Ok(deployment_resource_types::table
             .get_results_async(pool())
             .await?)
+    }
+
+    pub async fn all_filtered(filters: DeploymentResourceTypeFilters) -> DbResult<Paginated<Self>> {
+        let conn = pool().get()?;
+        let page = filters.page.unwrap_or(1);
+        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let (items, num_total) = tokio::task::spawn_blocking(move || {
+            Self::filter(&filters)
+                .paginate(Some(page))
+                .per_page(Some(per_page))
+                .load_and_count::<Self>(&conn)
+        })
+        .await
+        .unwrap()?;
+        Ok(Paginated {
+            page,
+            per_page,
+            num_total,
+            items,
+        })
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {

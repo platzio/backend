@@ -2,23 +2,18 @@ use crate::auth::CurIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use platz_db::{
-    DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskOperation,
-    HelmChart, Json, K8sCluster, K8sResource, NewDeploymentTask,
+    DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskFilters,
+    DeploymentTaskOperation, HelmChart, Json, K8sCluster, K8sResource, NewDeploymentTask,
 };
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
-struct Query {
-    deployment_id: Option<Uuid>,
-}
-
-async fn get_all(_cur_identity: CurIdentity, query: web::Query<Query>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(match query.deployment_id {
-        Some(deployment_id) => DeploymentTask::find_by_deployment_id(deployment_id).await?,
-        None => DeploymentTask::all().await?,
-    }))
+async fn get_all(
+    _cur_identity: CurIdentity,
+    filters: web::Query<DeploymentTaskFilters>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok().json(DeploymentTask::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

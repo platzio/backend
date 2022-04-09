@@ -1,9 +1,9 @@
-use crate::pool;
-use crate::DbResult;
+use crate::{pool, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+use diesel_filter::{DieselFilter, Paginate};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -20,13 +20,18 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Insertable, Serialize)]
+#[derive(Debug, Identifiable, Queryable, Insertable, Serialize, DieselFilter)]
+#[table_name = "k8s_resources"]
+#[pagination]
 pub struct K8sResource {
     pub id: Uuid,
     pub last_updated_at: DateTime<Utc>,
+    #[filter]
     pub deployment_id: Uuid,
+    #[filter(insensitive)]
     pub kind: String,
     pub api_version: String,
+    #[filter(insensitive)]
     pub name: String,
     pub status_color: Vec<String>,
     pub metadata: serde_json::Value,
@@ -35,6 +40,26 @@ pub struct K8sResource {
 impl K8sResource {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(k8s_resources::table.get_results_async(pool()).await?)
+    }
+
+    pub async fn all_filtered(filters: K8sResourceFilters) -> DbResult<Paginated<Self>> {
+        let conn = pool().get()?;
+        let page = filters.page.unwrap_or(1);
+        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let (items, num_total) = tokio::task::spawn_blocking(move || {
+            Self::filter(&filters)
+                .paginate(Some(page))
+                .per_page(Some(per_page))
+                .load_and_count::<Self>(&conn)
+        })
+        .await
+        .unwrap()?;
+        Ok(Paginated {
+            page,
+            per_page,
+            num_total,
+            items,
+        })
     }
 
     pub async fn find(id: Uuid) -> DbResult<Option<Self>> {

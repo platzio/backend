@@ -32,6 +32,9 @@ use tokio::task;
 
 pub use diesel_json;
 
+mod pagination;
+pub use pagination::{Paginated, DEFAULT_PAGE_SIZE};
+
 type PoolManager = ConnectionManager<PgConnection>;
 
 pub type DbPool = Pool<PoolManager>;

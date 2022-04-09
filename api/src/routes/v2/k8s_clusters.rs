@@ -2,12 +2,12 @@ use crate::auth::CurIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
-use platz_db::{Deployment, K8sCluster, UpdateK8sCluster};
+use platz_db::{Deployment, K8sCluster, K8sClusterFilters, UpdateK8sCluster};
 use serde_json::json;
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity) -> ApiResult {
-    Ok(HttpResponse::Ok().json(K8sCluster::all().await?))
+async fn get_all(_cur_identity: CurIdentity, filters: web::Query<K8sClusterFilters>) -> ApiResult {
+    Ok(HttpResponse::Ok().json(K8sCluster::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

@@ -3,31 +3,26 @@ use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use futures::future::try_join_all;
 use platz_db::{
-    Deployment, DeploymentResource, DeploymentResourceType, NewDeploymentResource, SyncStatus,
-    UpdateDeploymentResource, UpdateDeploymentResourceSyncStatus,
+    Deployment, DeploymentResource, DeploymentResourceFilters, DeploymentResourceType,
+    NewDeploymentResource, SyncStatus, UpdateDeploymentResource,
+    UpdateDeploymentResourceSyncStatus,
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
-struct GetAllQuery {
-    type_id: Option<Uuid>,
-}
-
-async fn get_all(_cur_identity: CurIdentity, query: web::Query<GetAllQuery>) -> ApiResult {
-    let resources = match query.type_id {
-        None => DeploymentResource::all().await?,
-        Some(type_id) => DeploymentResource::find_by_type(type_id).await?,
-    };
-    Ok(HttpResponse::Ok().json(
-        try_join_all(
-            resources
-                .into_iter()
-                .map(|resource| resource.without_sensitive_props()),
-        )
-        .await?,
-    ))
+async fn get_all(
+    _cur_identity: CurIdentity,
+    filters: web::Query<DeploymentResourceFilters>,
+) -> ApiResult {
+    let mut result = DeploymentResource::all_filtered(filters.into_inner()).await?;
+    result.items = try_join_all(
+        result
+            .items
+            .into_iter()
+            .map(|resource| resource.without_sensitive_props()),
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(result))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

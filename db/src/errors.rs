@@ -3,7 +3,13 @@ use crate::events::DbEvent;
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
     #[error("Diesel database error: {0}")]
-    DieselError(#[from] async_diesel::AsyncError),
+    AsyncDieselError(#[from] async_diesel::AsyncError),
+
+    #[error("Diesel database error: {0}")]
+    DieselError(#[from] diesel::result::Error),
+
+    #[error("Database pool error: {0}")]
+    R2d2Error(#[from] r2d2::Error),
 
     #[error("Postgres database error: {0}")]
     PostgresError(#[from] postgres::Error),

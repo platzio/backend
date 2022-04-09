@@ -967,6 +967,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel_filter"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "039328ba71392c0788ec4c736f06feb25dc0e255c8d78d5495203cce0a3b1c53"
+dependencies = [
+ "diesel",
+ "diesel_filter_query",
+ "serde",
+]
+
+[[package]]
+name = "diesel_filter_query"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d71533e9e055b099c1adfee0a412f284b3e85fb292eb8fa7b37475f56a460495"
+dependencies = [
+ "proc-macro2 1.0.36",
+ "quote 1.0.17",
+ "syn 1.0.90",
+]
+
+[[package]]
 name = "diesel_json"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2296,6 +2318,7 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-derive-more",
+ "diesel_filter",
  "diesel_json",
  "diesel_migrations",
  "itertools",
@@ -2304,6 +2327,7 @@ dependencies = [
  "maplit",
  "platz-chart-ext",
  "postgres",
+ "r2d2",
  "rust_decimal",
  "serde",
  "serde_json",

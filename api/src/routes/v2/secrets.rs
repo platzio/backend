@@ -2,11 +2,14 @@ use crate::auth::CurIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
-use platz_db::{DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Secret, UpdateSecret};
+use platz_db::{
+    DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Secret, SecretFilters,
+    UpdateSecret,
+};
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Secret::all().await?))
+async fn get_all(_cur_identity: CurIdentity, filters: web::Query<SecretFilters>) -> ApiResult {
+    Ok(HttpResponse::Ok().json(Secret::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

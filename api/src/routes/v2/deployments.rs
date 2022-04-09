@@ -4,41 +4,14 @@ use crate::{auth::CurIdentity, permissions::verify_deployment_maintainer};
 use actix_web::{web, HttpResponse};
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentKind, DeploymentStatus,
+    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentFilters, DeploymentStatus,
     DeploymentTask, HelmChart, NewDeployment, UpdateDeployment,
 };
-use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
-struct Query {
-    #[serde(default, deserialize_with = "crate::serde_utils::bool_from_str")]
-    all: bool,
-    kind: Option<DeploymentKind>,
-    cluster_id: Option<Uuid>,
-}
-
-async fn get_all(_cur_identity: CurIdentity, query: web::Query<Query>) -> ApiResult {
-    let deployments = match query.kind.as_ref() {
-        None => Deployment::all().await?,
-        Some(kind) => Deployment::find_by_kind(kind.to_owned()).await?,
-    };
-    let deployments = match query.all {
-        false => deployments
-            .into_iter()
-            .filter(|deployment| deployment.enabled)
-            .collect(),
-        true => deployments,
-    };
-    let deployments = match query.cluster_id {
-        None => deployments,
-        Some(cluster_id) => deployments
-            .into_iter()
-            .filter(|deployment| deployment.cluster_id == cluster_id)
-            .collect(),
-    };
-    Ok(HttpResponse::Ok().json(deployments))
+async fn get_all(_cur_identity: CurIdentity, filters: web::Query<DeploymentFilters>) -> ApiResult {
+    Ok(HttpResponse::Ok().json(Deployment::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

@@ -1,10 +1,9 @@
-use crate::pool;
-use crate::DbError;
-use crate::DbResult;
+use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+use diesel_filter::{DieselFilter, Paginate};
 pub use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceTypes;
 use platz_chart_ext::{ChartExtActions, ChartExtFeatures, UiSchema};
@@ -27,10 +26,13 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[table_name = "helm_charts"]
+#[pagination]
 pub struct HelmChart {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
+    #[filter]
     pub helm_registry_id: Uuid,
     pub image_digest: String,
     pub image_tag: String,
@@ -45,6 +47,26 @@ pub struct HelmChart {
 impl HelmChart {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(helm_charts::table.get_results_async(pool()).await?)
+    }
+
+    pub async fn all_filtered(filters: HelmChartFilters) -> DbResult<Paginated<Self>> {
+        let conn = pool().get()?;
+        let page = filters.page.unwrap_or(1);
+        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let (items, num_total) = tokio::task::spawn_blocking(move || {
+            Self::filter(&filters)
+                .paginate(Some(page))
+                .per_page(Some(per_page))
+                .load_and_count::<Self>(&conn)
+        })
+        .await
+        .unwrap()?;
+        Ok(Paginated {
+            page,
+            per_page,
+            num_total,
+            items,
+        })
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {

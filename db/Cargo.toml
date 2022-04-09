@@ -16,6 +16,7 @@ lazy_static = "1"
 log = "0.4.14"
 maplit = "1"
 postgres = "0.19.0"
+r2d2 = "0.8.9"
 rust_decimal = {version = "1.14.0", features = ["db-diesel-postgres"]}
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
@@ -36,6 +37,16 @@ features = [
   "uuidv07",
 ]
 version = "1.4"
+
+[dependencies.diesel_filter]
+features = [
+  "actix",
+  "diesel",
+  "serde",
+  "serialize",
+  "pagination",
+]
+version = "0.1.2"
 
 [dependencies.platz-chart-ext]
 path = "../chart-ext"

@@ -1,16 +1,16 @@
 use crate::json_diff::{json_diff, JsonDiff};
-use crate::pool;
 use crate::Deployment;
 use crate::HelmChart;
 use crate::K8sCluster;
 use crate::NewDeploymentResourceType;
 use crate::User;
-use crate::{DbError, DbResult};
+use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_derive_more::DBEnum;
+use diesel_filter::{DieselFilter, Paginate};
 pub use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
@@ -60,13 +60,16 @@ impl Default for DeploymentTaskStatus {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[table_name = "deployment_tasks"]
+#[pagination]
 pub struct DeploymentTask {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
     pub first_attempted_at: Option<DateTime<Utc>>,
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
+    #[filter]
     pub deployment_id: Uuid,
     pub user_id: Uuid,
     pub operation: Json<DeploymentTaskOperation>,
@@ -77,6 +80,26 @@ pub struct DeploymentTask {
 impl DeploymentTask {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployment_tasks::table.get_results_async(pool()).await?)
+    }
+
+    pub async fn all_filtered(filters: DeploymentTaskFilters) -> DbResult<Paginated<Self>> {
+        let conn = pool().get()?;
+        let page = filters.page.unwrap_or(1);
+        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let (items, num_total) = tokio::task::spawn_blocking(move || {
+            Self::filter(&filters)
+                .paginate(Some(page))
+                .per_page(Some(per_page))
+                .load_and_count::<Self>(&conn)
+        })
+        .await
+        .unwrap()?;
+        Ok(Paginated {
+            page,
+            per_page,
+            num_total,
+            items,
+        })
     }
 
     pub async fn find_by_deployment_id(deployment_id: Uuid) -> DbResult<Vec<Self>> {

@@ -3,11 +3,11 @@ use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use itertools::Itertools;
-use platz_db::{Deployment, Env, EnvUserRole, NewEnv, NewEnvUserPermission, UpdateEnv};
+use platz_db::{Deployment, Env, EnvFilters, EnvUserRole, NewEnv, NewEnvUserPermission, UpdateEnv};
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Env::all().await?))
+async fn get_all(_cur_identity: CurIdentity, filters: web::Query<EnvFilters>) -> ApiResult {
+    Ok(HttpResponse::Ok().json(Env::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

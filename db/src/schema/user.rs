@@ -1,9 +1,9 @@
-use crate::pool;
-use crate::DbResult;
+use crate::{pool, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -17,11 +17,15 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[table_name = "users"]
+#[pagination]
 pub struct User {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
+    #[filter(insensitive, substring)]
     pub display_name: String,
+    #[filter(insensitive, substring)]
     pub email: String,
     pub is_admin: bool,
 }
@@ -29,6 +33,26 @@ pub struct User {
 impl User {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(users::table.get_results_async(pool()).await?)
+    }
+
+    pub async fn all_filtered(filters: UserFilters) -> DbResult<Paginated<Self>> {
+        let conn = pool().get()?;
+        let page = filters.page.unwrap_or(1);
+        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let (items, num_total) = tokio::task::spawn_blocking(move || {
+            Self::filter(&filters)
+                .paginate(Some(page))
+                .per_page(Some(per_page))
+                .load_and_count::<Self>(&conn)
+        })
+        .await
+        .unwrap()?;
+        Ok(Paginated {
+            page,
+            per_page,
+            num_total,
+            items,
+        })
     }
 
     pub async fn find(id: Uuid) -> DbResult<Option<Self>> {

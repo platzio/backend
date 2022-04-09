@@ -2,12 +2,12 @@ use crate::auth::CurIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
-use platz_db::{UpdateUser, User};
+use platz_db::{UpdateUser, User, UserFilters};
 use serde_json::json;
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity) -> ApiResult {
-    Ok(HttpResponse::Ok().json(User::all().await?))
+async fn get_all(_cur_identity: CurIdentity, filters: web::Query<UserFilters>) -> ApiResult {
+    Ok(HttpResponse::Ok().json(User::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

@@ -2,11 +2,14 @@ use crate::auth::CurIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
-use platz_db::{HelmRegistry, UpdateHelmRegistry};
+use platz_db::{HelmRegistry, HelmRegistryFilters, UpdateHelmRegistry};
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity) -> ApiResult {
-    Ok(HttpResponse::Ok().json(HelmRegistry::all().await?))
+async fn get_all(
+    _cur_identity: CurIdentity,
+    filters: web::Query<HelmRegistryFilters>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok().json(HelmRegistry::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

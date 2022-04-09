@@ -1,12 +1,11 @@
-use crate::pool;
-use crate::DbError;
-use crate::DbResult;
 use crate::Deployment;
 use crate::DeploymentResourceType;
+use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_derive_more::DBEnum;
+use diesel_filter::{DieselFilter, Paginate};
 use log::*;
 use platz_chart_ext::ChartExtActionTarget;
 use serde::{Deserialize, Serialize};
@@ -50,10 +49,13 @@ pub enum SyncStatus {
     Error,
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[table_name = "deployment_resources"]
+#[pagination]
 pub struct DeploymentResource {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
+    #[filter]
     pub type_id: Uuid,
     pub deployment_id: Option<Uuid>,
     pub name: String,
@@ -68,6 +70,26 @@ impl DeploymentResource {
         Ok(deployment_resources::table
             .get_results_async(pool())
             .await?)
+    }
+
+    pub async fn all_filtered(filters: DeploymentResourceFilters) -> DbResult<Paginated<Self>> {
+        let conn = pool().get()?;
+        let page = filters.page.unwrap_or(1);
+        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let (items, num_total) = tokio::task::spawn_blocking(move || {
+            Self::filter(&filters)
+                .paginate(Some(page))
+                .per_page(Some(per_page))
+                .load_and_count::<Self>(&conn)
+        })
+        .await
+        .unwrap()?;
+        Ok(Paginated {
+            page,
+            per_page,
+            num_total,
+            items,
+        })
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {

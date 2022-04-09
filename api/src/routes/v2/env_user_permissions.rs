@@ -2,12 +2,15 @@ use crate::auth::CurIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
-use platz_db::{EnvUserPermission, NewEnvUserPermission};
+use platz_db::{EnvUserPermission, EnvUserPermissionFilters, NewEnvUserPermission};
 use serde_json::json;
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity) -> ApiResult {
-    Ok(HttpResponse::Ok().json(EnvUserPermission::all().await?))
+async fn get_all(
+    _cur_identity: CurIdentity,
+    filters: web::Query<EnvUserPermissionFilters>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok().json(EnvUserPermission::all_filtered(filters.into_inner()).await?))
 }
 
 async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {

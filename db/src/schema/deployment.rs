@@ -1,15 +1,15 @@
-use crate::pool;
 use crate::DbTableOrDeploymentResource;
 use crate::DeploymentTask;
 use crate::HelmChart;
 use crate::K8sCluster;
 use crate::User;
-use crate::{DbError, DbResult};
+use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_derive_more::DBEnum;
+use diesel_filter::{DieselFilter, Paginate};
 use platz_chart_ext::actions::{
     ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver,
 };
@@ -67,13 +67,19 @@ pub enum DeploymentStatus {
 
 pub type DeploymentKind = String;
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[table_name = "deployments"]
+#[pagination]
 pub struct Deployment {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
+    #[filter(insensitive, substring)]
     pub name: String,
+    #[filter(insensitive)]
     pub kind: DeploymentKind,
+    #[filter]
     pub cluster_id: Uuid,
+    #[filter]
     pub enabled: bool,
     pub status: DeploymentStatus,
     pub description_md: Option<String>,
@@ -88,6 +94,26 @@ pub struct Deployment {
 impl Deployment {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployments::table.get_results_async(pool()).await?)
+    }
+
+    pub async fn all_filtered(filters: DeploymentFilters) -> DbResult<Paginated<Self>> {
+        let conn = pool().get()?;
+        let page = filters.page.unwrap_or(1);
+        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let (items, num_total) = tokio::task::spawn_blocking(move || {
+            Self::filter(&filters)
+                .paginate(Some(page))
+                .per_page(Some(per_page))
+                .load_and_count::<Self>(&conn)
+        })
+        .await
+        .unwrap()?;
+        Ok(Paginated {
+            page,
+            per_page,
+            num_total,
+            items,
+        })
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {
