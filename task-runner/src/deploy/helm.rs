@@ -48,19 +48,16 @@ async fn helm_pod(
         "echo $KUBECONFIG_BASE64 | base64 --decode > /root/.kube/config",
         "chmod 400 /root/.kube/config",
         "aws ecr get-login-password --region $HELM_REGISTRY_REGION | helm registry login --username AWS --password-stdin $HELM_REGISTRY",
-        "helm chart pull $HELM_REGISTRY/$HELM_REPO:$HELM_CHART_TAG",
-        "mkdir ./charts",
-        "helm chart export $HELM_REGISTRY/$HELM_REPO:$HELM_CHART_TAG -d ./charts",
-        "chart_dir=$(ls -1 ./charts/)",
-        "echo $VALUES_BASE64 | base64 --decode > ./charts/values.yaml",
-        "echo $VALUES_OVERRIDE_BASE64 | base64 --decode > ./charts/values-override.yaml",
+        "helm pull {chart} --version $HELM_CHART_TAG",
+        "echo $VALUES_BASE64 | base64 --decode > {values_file}",
+        "echo $VALUES_OVERRIDE_BASE64 | base64 --decode > {values_override_file}",
         &format!(
             "helm --debug --kubeconfig=/root/.kube/config {command} {name} {chart} --namespace={name} -f {values_file} -f {values_override_file}",
             command=command,
             name=namespace_name,
-            chart="./charts/$chart_dir",
-            values_file="./charts/values.yaml",
-            values_override_file="./charts/values-override.yaml",
+            chart="oci://$HELM_REGISTRY/$HELM_REPO",
+            values_file="values.yaml",
+            values_override_file="values-override.yaml",
         ),
     ].join(" && ");
 
@@ -78,11 +75,6 @@ async fn helm_pod(
                 image_pull_policy: Some("Always".into()),
                 command: Some(vec!["/bin/bash".into(), "-cex".into(), script]),
                 env: Some(vec![
-                    EnvVar {
-                        name: "HELM_EXPERIMENTAL_OCI".into(),
-                        value: Some("1".into()),
-                        ..Default::default()
-                    },
                     EnvVar {
                         name: "KUBECONFIG_BASE64".into(),
                         value: Some(kubeconfig),

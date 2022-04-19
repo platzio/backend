@@ -61,14 +61,12 @@ async fn download_chart(event: &EcrEvent) -> Result<PathBuf> {
         "mkdir -p $TEMP_DOWNLOAD_PATH",
         "cd $TEMP_DOWNLOAD_PATH",
         "aws ecr get-login-password --region $HELM_REGISTRY_REGION | helm registry login --username AWS --password-stdin $HELM_REGISTRY",
-        "helm chart pull $HELM_REGISTRY/$HELM_REPO:$HELM_CHART_TAG",
-        "helm chart export $HELM_REGISTRY/$HELM_REPO:$HELM_CHART_TAG -d ./",
+        "helm pull oci://$HELM_REGISTRY/$HELM_REPO:$HELM_CHART_TAG -d ./",
     ].join(" && ");
 
     let output = Command::new("/usr/bin/bash")
         .arg("-euxc")
         .arg(&script)
-        .env("HELM_EXPERIMENTAL_OCI", "1")
         .env("TEMP_DOWNLOAD_PATH", TEMP_DOWNLOAD_PATH)
         .env("HELM_REGISTRY_REGION", &event.region)
         .env("HELM_REGISTRY", &event.helm_registry_domain_name())
