@@ -1,4 +1,4 @@
-pub mod v1;
+pub mod v1beta1;
 
 use serde::{Deserialize, Serialize};
 
@@ -11,5 +11,5 @@ pub struct ChartExtResourceTypes {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ChartExtResourceType {
-    V1(v1::ChartExtResourceType),
+    V1Beta1(v1beta1::ChartExtResourceType),
 }

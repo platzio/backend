@@ -171,7 +171,7 @@ impl DeploymentTask {
         let chart = self.helm_chart().await?;
         let types = chart.resource_types()?;
         for typ in types.inner.into_iter() {
-            let ChartExtResourceType::V1(typ) = typ;
+            let ChartExtResourceType::V1Beta1(typ) = typ;
             NewDeploymentResourceType {
                 env_id: if typ.spec.global { None } else { Some(env_id) },
                 deployment_kind: deployment.kind.clone(),

@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum V1 {
+pub enum V1Beta1 {
     #[serde(rename = "platz.io/v1beta1")]
     Value,
 }
 
-impl Default for V1 {
+impl Default for V1Beta1 {
     fn default() -> Self {
         Self::Value
     }

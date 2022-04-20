@@ -10,9 +10,9 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn test() -> Result<()> {
-    let chart_ext = load_chart("v1/chart1").await?;
+    let chart_ext = load_chart("v1beta1/chart1").await?;
     let values_ui = chart_ext.values_ui.expect("No values_ui");
-    assert!(matches!(values_ui, UiSchema::V1(_)));
+    assert!(matches!(values_ui, UiSchema::V1Beta1(_)));
     let inputs = json!({
         "required_bool": true,
         "required_num": 3,

@@ -20,7 +20,7 @@ impl ChartExtActions {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChartExtAction {
-    pub api_version: crate::versions::V1,
+    pub api_version: crate::versions::V1Beta1,
     pub kind: crate::versions::Action,
     pub spec: v0::ChartExtAction,
 }

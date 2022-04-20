@@ -10,7 +10,7 @@ use uuid::Uuid;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum UiSchema {
-    V1(UiSchemaV1),
+    V1Beta1(UiSchemaV1Beta1),
     V0(UiSchemaV0),
 }
 
@@ -26,7 +26,7 @@ impl UiSchema {
     {
         let collection_value = serde_json::to_value(collection).unwrap();
         let schema_inputs = match self {
-            Self::V1(v1) => &v1.inner.inputs,
+            Self::V1Beta1(v1) => &v1.inner.inputs,
             Self::V0(v0) => &v0.inputs,
         };
         schema_inputs.iter().any(|input| {
@@ -47,7 +47,7 @@ impl UiSchema {
         C: UiSchemaCollections,
     {
         let (schema_inputs, schema_outputs) = match self {
-            Self::V1(v1) => (&v1.inner.inputs, &v1.inner.outputs),
+            Self::V1Beta1(v1) => (&v1.inner.inputs, &v1.inner.outputs),
             Self::V0(v0) => (&v0.inputs, &v0.outputs),
         };
         let mut values = Map::new();
@@ -69,7 +69,7 @@ impl UiSchema {
     {
         let mut result: Vec<RenderedSecret> = Vec::new();
         let (schema_inputs, schema_outputs) = match self {
-            Self::V1(v1) => (&v1.inner.inputs, &v1.inner.outputs),
+            Self::V1Beta1(v1) => (&v1.inner.inputs, &v1.inner.outputs),
             Self::V0(v0) => (&v0.inputs, &v0.outputs),
         };
         for (secret_name, attrs_schema) in schema_outputs.secrets.iter() {
@@ -104,8 +104,8 @@ pub struct UiSchemaV0 {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UiSchemaV1 {
-    pub api_version: crate::versions::V1,
+pub struct UiSchemaV1Beta1 {
+    pub api_version: crate::versions::V1Beta1,
     pub kind: crate::versions::ValuesUi,
     #[serde(flatten)]
     pub inner: UiSchemaV0,

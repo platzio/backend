@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use log::*;
-use platz_chart_ext::resource_types::v1::{ChartExtResourceLifecycle, ResourceLifecycle};
+use platz_chart_ext::resource_types::v1beta1::{ChartExtResourceLifecycle, ResourceLifecycle};
 use platz_db::{
     db_events, DbEventOperation, DbTable, DeploymentResource, DeploymentResourceType, SyncStatus,
     UpdateDeploymentResourceSyncStatus,

@@ -6,7 +6,7 @@ use utils::load_chart;
 
 #[tokio::test]
 async fn test() -> Result<()> {
-    let chart_ext = load_chart("v1/chart2").await?;
+    let chart_ext = load_chart("v1beta1/chart2").await?;
     println!("{:?}", chart_ext);
     assert!(matches!(chart_ext.values_ui, None));
     Ok(())
