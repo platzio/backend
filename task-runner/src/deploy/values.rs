@@ -29,6 +29,8 @@ struct ChartValues {
 
 #[derive(Clone, Serialize)]
 struct PlatzInfo {
+    env_id: Uuid,
+    env_name: String,
     cluster_id: Uuid,
     cluster_name: String,
     deployment_id: Uuid,
@@ -119,6 +121,8 @@ pub async fn create_values_and_secrets(
         .map_err(|err| anyhow!("Error parsing chart features: {}", err))?;
 
     let platz_info = PlatzInfo {
+        env_id: env.id,
+        env_name: env.name,
         cluster_id: deployment.cluster_id,
         cluster_name: cluster.name()?.to_owned(),
         deployment_id: deployment.id,
