@@ -2,6 +2,7 @@ use super::secrets::apply_secrets;
 use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
+use log::*;
 use platz_chart_ext::{insert_into_map, UiSchema};
 use platz_db::{DbTableOrDeploymentResource, Deployment, DeploymentTask, Env, K8sCluster};
 use serde::Serialize;
@@ -45,11 +46,11 @@ struct Ingress {
 }
 
 impl Ingress {
-    fn new(host: String) -> Self {
+    fn new(host: String, secret_name: String) -> Self {
         Self {
             enabled: true,
             hosts: vec![IngressHost::new(host.clone())],
-            tls: vec![IngressTls::new(host)],
+            tls: vec![IngressTls::new(host, secret_name)],
         }
     }
 }
@@ -87,9 +88,9 @@ struct IngressTls {
 }
 
 impl IngressTls {
-    fn new(host: String) -> Self {
+    fn new(host: String, secret_name: String) -> Self {
         Self {
-            secret_name: "tls-wildcard".to_owned(),
+            secret_name,
             hosts: vec![host],
         }
     }
@@ -133,8 +134,13 @@ pub async fn create_values_and_secrets(
         node_selector: env.node_selector.clone(),
         tolerations: env.tolerations.clone(),
         ingress: if features.standard_ingress() {
-            let ingress_host = deployment.standard_ingress_hostname().await?;
-            Ingress::new(ingress_host)
+            if let Some(secret_name) = db_cluster.domain_tls_secret_name {
+                let ingress_host = deployment.standard_ingress_hostname().await?;
+                Ingress::new(ingress_host, secret_name.clone())
+            } else {
+                warn!("Deployment standard_ingress is enabled but domain_tls_secret_name is not configured for the cluster. Not creating ingress.");
+                Default::default()
+            }
         } else {
             Default::default()
         },
