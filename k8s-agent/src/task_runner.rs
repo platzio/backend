@@ -1,4 +1,4 @@
-use crate::deploy::RunnableDeploymentTask;
+use crate::{deploy::RunnableDeploymentTask, k8s::K8S_TRACKER};
 use anyhow::{anyhow, Result};
 use log::*;
 use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
@@ -34,8 +34,9 @@ fn is_new_task(event: &DbEvent) -> bool {
 }
 
 async fn run_pending_tasks() -> Result<()> {
-    info!("Running pending tasks");
-    while let Some(task) = DeploymentTask::next_pending().await? {
+    let cluster_ids = K8S_TRACKER.get_ids().await;
+    info!("Running pending tasks for {:?}", cluster_ids);
+    while let Some(task) = DeploymentTask::next_pending(&cluster_ids).await? {
         info!("Running task {}", task.id);
         task.run().await?;
     }

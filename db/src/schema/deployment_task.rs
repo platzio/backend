@@ -24,6 +24,7 @@ table! {
         first_attempted_at -> Nullable<Timestamptz>,
         started_at -> Nullable<Timestamptz>,
         finished_at -> Nullable<Timestamptz>,
+        cluster_id -> Uuid,
         deployment_id -> Uuid,
         user_id -> Uuid,
         operation -> Jsonb,
@@ -69,6 +70,8 @@ pub struct DeploymentTask {
     pub first_attempted_at: Option<DateTime<Utc>>,
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
+    #[filter]
+    pub cluster_id: Uuid,
     #[filter]
     pub deployment_id: Uuid,
     pub user_id: Uuid,
@@ -116,9 +119,10 @@ impl DeploymentTask {
             .await?)
     }
 
-    pub async fn next_pending() -> DbResult<Option<Self>> {
+    pub async fn next_pending(cluster_ids: &Vec<Uuid>) -> DbResult<Option<Self>> {
         Ok(deployment_tasks::table
             .filter(deployment_tasks::status.eq(DeploymentTaskStatus::Pending))
+            .filter(deployment_tasks::cluster_id.eq_any(cluster_ids.to_owned()))
             .order_by(deployment_tasks::created_at.asc())
             .get_result_async(pool())
             .await
@@ -203,6 +207,7 @@ impl DeploymentTask {
 #[derive(Insertable, Deserialize)]
 #[table_name = "deployment_tasks"]
 pub struct NewDeploymentTask {
+    pub cluster_id: Uuid,
     pub deployment_id: Uuid,
     pub user_id: Uuid,
     pub operation: Json<DeploymentTaskOperation>,
@@ -260,6 +265,7 @@ pub struct DeploymentInstallTask {
 impl DeploymentTask {
     pub async fn create_install_task(deployment: &Deployment, user: &User) -> DbResult<Self> {
         NewDeploymentTask {
+            cluster_id: deployment.cluster_id,
             deployment_id: deployment.id,
             user_id: user.id,
             operation: Json(DeploymentTaskOperation::Install(DeploymentInstallTask {
@@ -290,6 +296,7 @@ impl DeploymentTask {
         user: &User,
     ) -> DbResult<Self> {
         NewDeploymentTask {
+            cluster_id: new_deployment.cluster_id,
             deployment_id: new_deployment.id,
             user_id: user.id,
             operation: Json(DeploymentTaskOperation::Upgrade(DeploymentUpgradeTask {
@@ -318,6 +325,7 @@ impl DeploymentTask {
         reason: String,
     ) -> DbResult<Self> {
         NewDeploymentTask {
+            cluster_id: deployment.cluster_id,
             deployment_id: deployment.id,
             user_id: user.id,
             operation: Json(DeploymentTaskOperation::Reinstall(
@@ -347,7 +355,9 @@ impl DeploymentTask {
         user: &User,
     ) -> DbResult<Self> {
         NewDeploymentTask {
-            deployment_id: old_deployment.id,
+            // TODO: See https://github.com/platzio/backend/issues/20
+            cluster_id: new_deployment.cluster_id,
+            deployment_id: new_deployment.id,
             user_id: user.id,
             operation: Json(DeploymentTaskOperation::Recreate(DeploymentRecreaseTask {
                 old_cluster_id: old_deployment.cluster_id,
@@ -368,6 +378,7 @@ pub struct DeploymentUninstallTask {}
 impl DeploymentTask {
     pub async fn create_uninstall_task(deployment: &Deployment, user: &User) -> DbResult<Self> {
         NewDeploymentTask {
+            cluster_id: deployment.cluster_id,
             deployment_id: deployment.id,
             user_id: user.id,
             operation: Json(DeploymentTaskOperation::Uninstall(

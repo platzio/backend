@@ -45,6 +45,7 @@ async fn create(cur_identity: CurIdentity, task: web::Json<ApiNewDeploymentTask>
     };
 
     let task = NewDeploymentTask {
+        cluster_id: cluster.id,
         deployment_id: task.deployment_id,
         user_id: cur_identity.user().id,
         operation: Json(task.operation),

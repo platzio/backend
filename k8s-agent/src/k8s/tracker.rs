@@ -59,6 +59,10 @@ impl K8sTracker {
         self.inner.read().await.tx.subscribe()
     }
 
+    pub async fn get_ids(&self) -> Vec<Uuid> {
+        self.inner.read().await.clusters.keys().copied().collect()
+    }
+
     pub async fn get_cluster(&self, id: Uuid) -> Result<Arc<K8s>> {
         let reader = self.inner.read().await;
         match reader.clusters.get(&id) {
