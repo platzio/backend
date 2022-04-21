@@ -9,7 +9,6 @@ use log::*;
 
 pub async fn _main() -> Result<()> {
     platz_db::init_db(false).await?;
-    k8s::load_clusters().await?;
 
     tokio::select! {
         result = k8s::scan_for_new_clusters(CONFIG.k8s_refresh_interval()) => {

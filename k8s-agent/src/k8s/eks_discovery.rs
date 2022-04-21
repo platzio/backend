@@ -10,7 +10,16 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
 
-pub async fn load_clusters() -> Result<()> {
+pub async fn scan_for_new_clusters(every: Duration) -> Result<()> {
+    let mut interval = time::interval(every);
+
+    loop {
+        interval.tick().await;
+        load_clusters().await?;
+    }
+}
+
+async fn load_clusters() -> Result<()> {
     let tracker_tx = K8S_TRACKER.tx().await;
 
     for cluster in discover_clusters().await?.into_iter() {
@@ -19,15 +28,6 @@ pub async fn load_clusters() -> Result<()> {
     }
 
     Ok(())
-}
-
-pub async fn scan_for_new_clusters(every: Duration) -> Result<()> {
-    let mut interval = time::interval(every);
-
-    loop {
-        interval.tick().await;
-        load_clusters().await?;
-    }
 }
 
 async fn discover_clusters() -> Result<Vec<K8s>> {

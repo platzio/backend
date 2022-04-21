@@ -1,32 +1,39 @@
 use crate::{deploy::RunnableDeploymentTask, k8s::K8S_TRACKER};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use log::*;
 use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
-use tokio::sync::watch;
+use tokio::{select, sync::watch};
 
 pub async fn start() -> Result<()> {
-    let (tx, mut rx) = watch::channel(());
+    let (db_changes_tx, mut db_changes_rx) = watch::channel(());
+    let mut k8s_tracker_rx = K8S_TRACKER.rx().await;
 
-    tx.send(())?;
+    db_changes_tx.send(())?;
 
     tokio::spawn(async move {
         let mut db_rx = db_events();
         while let Ok(event) = db_rx.recv().await {
             debug!("Got {:?}", event);
             if is_new_task(&event) {
-                tx.send(()).unwrap();
+                db_changes_tx.send(()).unwrap();
             }
         }
     });
 
-    while rx.changed().await.is_ok() {
-        run_pending_tasks().await?;
-        info!("Waiting for tasks to run...");
+    loop {
+        info!("Waiting for next event...");
+        select! {
+            db_event = db_changes_rx.changed() => {
+                info!("Got DB event: {:?}", db_event);
+                db_event?;
+                run_pending_tasks().await?;
+            }
+            k8s_event = k8s_tracker_rx.recv() => {
+                info!("Got K8S_TRACKER event: {:?}", k8s_event);
+                run_pending_tasks().await?;
+            }
+        }
     }
-
-    Err(anyhow!(
-        "Deployer task finished, this isn't supposed to happen"
-    ))
 }
 
 fn is_new_task(event: &DbEvent) -> bool {
