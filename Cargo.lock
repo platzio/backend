@@ -2340,6 +2340,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "platz-k8s-agent"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "aws-arn",
+ "base64",
+ "chrono",
+ "clap",
+ "env_logger",
+ "futures",
+ "http",
+ "humantime",
+ "itertools",
+ "k8s-openapi",
+ "kube",
+ "kube-runtime",
+ "lazy_static",
+ "log",
+ "maplit",
+ "platz-chart-ext",
+ "platz-db",
+ "platz-sdk",
+ "rusoto-utils",
+ "rusoto_core",
+ "rusoto_eks",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror",
+ "tokio",
+ "tokio-util 0.7.1",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "platz-resource-sync"
 version = "0.1.0"
 dependencies = [
@@ -2390,43 +2427,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "platz-task-runner"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "aws-arn",
- "base64",
- "chrono",
- "clap",
- "env_logger",
- "futures",
- "http",
- "humantime",
- "itertools",
- "k8s-openapi",
- "kube",
- "kube-runtime",
- "lazy_static",
- "log",
- "maplit",
- "platz-chart-ext",
- "platz-db",
- "platz-sdk",
- "rusoto-utils",
- "rusoto_core",
- "rusoto_eks",
- "serde",
- "serde_json",
- "serde_yaml",
- "thiserror",
- "tokio",
- "tokio-util 0.7.1",
  "url",
  "uuid",
 ]

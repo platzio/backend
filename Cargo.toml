@@ -4,8 +4,8 @@ members = [
   "chart-discovery",
   "chart-ext",
   "db",
+  "k8s-agent",
   "resource-sync",
   "rusoto-utils",
   "status-updates",
-  "task-runner",
 ]

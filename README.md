@@ -4,7 +4,7 @@ This repo contains Platz's backend. It's written in Rust 🦀 and is broken down
 
 * `platz-api`
 * `platz-db`
-* `platz-task-runner`
+* `platz-k8s-agent`
 * `platz-chart-discovery`
 * `platz-status-updates`
 * `platz-chart-ext`
@@ -13,7 +13,7 @@ This repo contains Platz's backend. It's written in Rust 🦀 and is broken down
 
 Usually each crate is developed individually, since they each do very different things, and have different requirements.
 
-For example, `platz-api` needs information about OpenID Connect (OIDC) server and database connectivity, while `platz-task-runner` needs access to the Kubernetes clusters and to AWS EKS.
+For example, `platz-api` needs information about OpenID Connect (OIDC) server and database connectivity, while `platz-k8s-agent` needs access to the Kubernetes clusters and to AWS EKS.
 
 In general, you can develop the backend against the production database or using a local copy. The former is relevant when adding/fixing API endpoints, the latter is a better method for when adding new features or doing something risky.
 
@@ -52,11 +52,11 @@ The API is a worker that serves the API and handles user authentication.
 
 For authenticating users, it gets the OIDC information from AWS SSM parameters which should be passed as command line arguments.
 
-### `platz-task-runner`
+### `platz-k8s-agent`
 
 This worker tracks Kubernetes clusters, updates their status in the database, and keeps a fresh copy of credentials allowing other parts in the worker to communicate with Kubernetes clusters.
 
-Discovering and communicating Kubernetes clusters is based on permissions to AWS EKS. Platz automatically discovers EKS clusters from all regions in the same AWS account it's running in.
+Discovering and communicating with Kubernetes clusters is based on permissions to AWS EKS. This worker automatically discovers EKS clusters from all regions in the same AWS account it's running in.
 
 The first part that needs access to Kubernetes clusters is the `deploy` module. This module watches for pending deployment tasks and runs them one by one.
 
@@ -91,7 +91,7 @@ For each deployment, Platz queries the status endpoint and updates the deploymen
 
 ### `platz-chart-ext`
 
-This library implements the UI Schema data structures and contains the relevant code to convert user inputs, created by this schema's definitions, to outputs and secrets that can then be used by `platz-task-runner` when installing deployments.
+This library implements the UI Schema data structures and contains the relevant code to convert user inputs, created by this schema's definitions, to outputs and secrets that can then be used by `platz-k8s-agent` when installing deployments.
 
 ## Terraform
 
