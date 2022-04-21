@@ -1,0 +1,10 @@
+apiVersion: platz.io/v1beta2
+kind: Features
+spec:
+  ingress:
+    enabled: false
+    hostname_format: Name
+  status:
+    endpoint: standard_ingress
+    path: /api/v1/platz-status
+    refresh_interval_secs: 15

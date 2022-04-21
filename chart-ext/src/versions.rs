@@ -13,6 +13,18 @@ impl Default for V1Beta1 {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum V1Beta2 {
+    #[serde(rename = "platz.io/v1beta2")]
+    Value,
+}
+
+impl Default for V1Beta2 {
+    fn default() -> Self {
+        Self::Value
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ValuesUi {
     #[serde(rename = "ValuesUi")]
     Value,

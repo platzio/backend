@@ -1,0 +1,20 @@
+apiVersion: platz.io/v1beta2
+kind: Features
+spec:
+  ingress:
+    enabled: true
+  cardinality: OnePerCluster
+  node_selector_paths:
+    - - postgresql
+      - primary
+      - nodeSelector
+    - - postgresql
+      - readReplicas
+      - nodeSelector
+  tolerations_paths:
+    - - postgresql
+      - primary
+      - tolerations
+    - - postgresql
+      - readReplicas
+      - tolerations

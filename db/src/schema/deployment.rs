@@ -13,7 +13,7 @@ use diesel_filter::{DieselFilter, Paginate};
 use platz_chart_ext::actions::{
     ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver,
 };
-use platz_chart_ext::UiSchema;
+use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 use url::Url;
@@ -253,11 +253,17 @@ impl Deployment {
         }
     }
 
-    pub async fn standard_ingress_hostname(&self) -> DbResult<String> {
+    pub async fn ingress_hostname(
+        &self,
+        hostname_format: ChartExtIngressHostnameFormat,
+    ) -> DbResult<String> {
         let cluster = K8sCluster::find(self.cluster_id).await?;
         Ok(format!(
             "{}.{}",
-            self.namespace_name(),
+            match hostname_format {
+                ChartExtIngressHostnameFormat::Name => self.name.clone(),
+                ChartExtIngressHostnameFormat::KindAndName => self.namespace_name(),
+            },
             cluster.domain.ok_or(DbError::ClusterHasNoDomain)?
         ))
     }
@@ -268,6 +274,17 @@ impl Deployment {
 
     pub async fn current_helm_chart(&self) -> DbResult<HelmChart> {
         self.revision_task().await?.helm_chart().await
+    }
+
+    pub async fn current_ingress_hostname(&self) -> DbResult<String> {
+        self.ingress_hostname(
+            self.current_helm_chart()
+                .await?
+                .features()?
+                .ingress()
+                .hostname_format,
+        )
+        .await
     }
 
     pub async fn set_status(
@@ -401,7 +418,7 @@ impl UpdateDeploymentReportedStatus {
 impl ChartExtActionTargetResolver for Deployment {
     async fn resolve(&self, target: &ChartExtActionTarget) -> anyhow::Result<Url> {
         let host = match target.endpoint {
-            ChartExtActionEndpoint::StandardIngress => self.standard_ingress_hostname().await?,
+            ChartExtActionEndpoint::StandardIngress => self.current_ingress_hostname().await?,
         };
         Ok(Url::parse(&format!(
             "https://{}/{}",

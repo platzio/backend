@@ -1,0 +1,26 @@
+- apiVersion: platz.io/v1beta1
+  kind: ResourceType
+  key: shop
+  spec:
+    name_singular: Shop
+    name_plural: Shops
+    fontawesome_icon: shop
+    values_ui:
+      inputs:
+        - id: opening_times
+          type: DaysAndHour
+          label: Opening Times
+          required: true
+        - id: closing_times
+          type: DaysAndHour
+          label: Closing Times
+          required: true
+        - id: alarm_code
+          type: text
+          label: Alarm Code
+          required: true
+          sensitive: true
+    lifecycle:
+      create: {}
+      update: {}
+      delete: {}

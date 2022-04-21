@@ -137,16 +137,19 @@ pub async fn create_values_and_secrets(
         platz: platz_info,
         node_selector: env.node_selector.clone(),
         tolerations: env.tolerations.clone(),
-        ingress: if features.standard_ingress() {
-            if let Some(secret_name) = db_cluster.domain_tls_secret_name {
-                let ingress_host = deployment.standard_ingress_hostname().await?;
-                Ingress::new(ingress_host, secret_name.clone())
+        ingress: {
+            let ingress = features.ingress();
+            if ingress.enabled {
+                if let Some(secret_name) = db_cluster.domain_tls_secret_name {
+                    let ingress_host = deployment.ingress_hostname(ingress.hostname_format).await?;
+                    Ingress::new(ingress_host, secret_name.clone())
+                } else {
+                    warn!("Deployment standard_ingress is enabled but domain_tls_secret_name is not configured for the cluster. Not creating ingress.");
+                    Default::default()
+                }
             } else {
-                warn!("Deployment standard_ingress is enabled but domain_tls_secret_name is not configured for the cluster. Not creating ingress.");
                 Default::default()
             }
-        } else {
-            Default::default()
         },
     })?;
 

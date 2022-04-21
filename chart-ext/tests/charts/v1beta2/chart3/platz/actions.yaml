@@ -1,0 +1,30 @@
+- apiVersion: platz.io/v1beta1
+  kind: Action
+  spec:
+    id: check
+    allowed_role: Maintainer
+    endpoint: standard_ingress
+    path: /api/v1/check
+    method: POST
+    title: Run Rhecks
+    fontawesome_icon: check
+    description: Run checks on all shops
+    ui_schema:
+      inputs: []
+      outputs:
+        values: []
+- apiVersion: platz.io/v1beta1
+  kind: Action
+  spec:
+    id: check2
+    allowed_role: Maintainer
+    endpoint: standard_ingress
+    path: /api/v1/check2
+    method: POST
+    title: Run More Rhecks
+    fontawesome_icon: check
+    description: Run more checks on all shops
+    ui_schema:
+      inputs: []
+      outputs:
+        values: []

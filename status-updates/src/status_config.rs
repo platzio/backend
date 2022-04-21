@@ -29,7 +29,7 @@ impl StatusConfig {
         let url = Url::parse(&match status_feature.endpoint {
             ChartExtActionEndpoint::StandardIngress => format!(
                 "https://{}/{}",
-                deployment.standard_ingress_hostname().await?,
+                deployment.current_ingress_hostname().await?,
                 status_feature.path.trim_start_matches('/')
             ),
         })?;

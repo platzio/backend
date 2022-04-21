@@ -1,0 +1,62 @@
+apiVersion: blah
+kind: ValuesUi
+inputs:
+  - id: required_num
+    type: number
+    label: Required num
+    minimum: 0
+    required: true
+    initialValue: 600
+  - id: required_bool
+    type: Checkbox
+    label: Required bool
+    initialValue: true
+  - id: optional_bool
+    type: Checkbox
+    label: Optional bool
+    initialValue: false
+  - id: required_text
+    type: text
+    label: Required text
+    required: true
+    initialValue: blah
+  - id: array_of_text
+    type: array
+    itemType: text
+    label: Array of text
+  - id: optional_text
+    type: text
+    label: Required text
+outputs:
+  values:
+    - path:
+        - config
+        - required_num
+      value:
+        FieldValue:
+          input: required_num
+    - path:
+        - config
+        - required_bool
+      value:
+        FieldValue:
+          input: required_bool
+    - path:
+        - config
+        - required_text
+      value:
+        FieldValue:
+          input: required_text
+    - path:
+        - config
+        - array_of_text
+      value:
+        FieldValue:
+          input: array_of_text
+    - path:
+        - config
+        - optional_bool
+      value:
+        FieldValue:
+          input: optional_bool
+  secrets: {}
