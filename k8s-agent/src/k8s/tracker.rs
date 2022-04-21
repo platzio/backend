@@ -14,12 +14,9 @@ use platz_db::{DeploymentStatus, K8sResource, NewK8sCluster, UpdateK8sClusterSta
 use platz_sdk::deployment_status::StatusColor;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, watch, RwLock};
 use tokio::{select, task, time};
 use uuid::Uuid;
-
-pub type Sender = broadcast::Sender<Arc<K8s>>;
-pub type Receiver = broadcast::Receiver<Arc<K8s>>;
 
 #[derive(Clone)]
 pub struct K8sTracker {
@@ -27,7 +24,9 @@ pub struct K8sTracker {
 }
 
 struct Inner {
-    tx: Sender,
+    inbound_requests_tx: broadcast::Sender<Arc<K8s>>,
+    outbound_notifications_tx: watch::Sender<()>,
+    outbound_notifications_rx: watch::Receiver<()>,
     clusters: HashMap<Uuid, Arc<K8s>>,
     tasks: HashMap<Uuid, task::JoinHandle<()>>,
 }
@@ -38,10 +37,13 @@ lazy_static! {
 
 impl K8sTracker {
     pub fn new() -> Self {
-        let (tx, _) = broadcast::channel(64);
+        let (inbound_requests_tx, _) = broadcast::channel(64);
+        let (outbound_notifications_tx, outbound_notifications_rx) = watch::channel(());
         let this = Self {
             inner: Arc::new(RwLock::new(Inner {
-                tx,
+                inbound_requests_tx,
+                outbound_notifications_tx,
+                outbound_notifications_rx,
                 clusters: Default::default(),
                 tasks: Default::default(),
             })),
@@ -51,12 +53,12 @@ impl K8sTracker {
         this
     }
 
-    pub async fn tx(&self) -> Sender {
-        self.inner.read().await.tx.clone()
+    pub async fn inbound_requests_tx(&self) -> broadcast::Sender<Arc<K8s>> {
+        self.inner.read().await.inbound_requests_tx.clone()
     }
 
-    pub async fn rx(&self) -> Receiver {
-        self.inner.read().await.tx.subscribe()
+    pub async fn outbound_notifications_rx(&self) -> watch::Receiver<()> {
+        self.inner.read().await.outbound_notifications_rx.clone()
     }
 
     pub async fn get_ids(&self) -> Vec<Uuid> {
@@ -72,7 +74,7 @@ impl K8sTracker {
     }
 
     async fn run(&self) {
-        let mut rx = self.rx().await;
+        let mut rx = self.inner.read().await.inbound_requests_tx.subscribe();
         while let Ok(cluster) = rx.recv().await {
             let db_cluster = match NewK8sCluster::from(cluster.as_ref()).insert().await {
                 Ok(db_cluster) => {
@@ -89,6 +91,12 @@ impl K8sTracker {
             } else {
                 self.start_watching_cluster(db_cluster.id, cluster).await
             }
+            self.inner
+                .read()
+                .await
+                .outbound_notifications_tx
+                .send(())
+                .unwrap();
         }
     }
 

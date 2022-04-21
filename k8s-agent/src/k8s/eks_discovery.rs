@@ -20,7 +20,7 @@ pub async fn scan_for_new_clusters(every: Duration) -> Result<()> {
 }
 
 async fn load_clusters() -> Result<()> {
-    let tracker_tx = K8S_TRACKER.tx().await;
+    let tracker_tx = K8S_TRACKER.inbound_requests_tx().await;
 
     for cluster in discover_clusters().await?.into_iter() {
         info!("Found {}", cluster);
