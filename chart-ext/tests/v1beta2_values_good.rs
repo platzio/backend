@@ -53,7 +53,12 @@ async fn test1() -> Result<()> {
 async fn test2() -> Result<()> {
     let chart_ext = load_chart("v1beta2/chart3").await?;
     let values_ui = chart_ext.values_ui.expect("No values_ui");
-    assert!(matches!(values_ui, UiSchema::V1Beta1(_)));
+    match values_ui {
+        UiSchema::V0(_) => panic!("Expected UiSchema::V1Beta1"),
+        UiSchema::V1Beta1(schema) => {
+            assert_eq!(schema.inner.outputs.secrets.len(), 2);
+        }
+    }
 
     chart_ext.actions.expect("No actions");
 

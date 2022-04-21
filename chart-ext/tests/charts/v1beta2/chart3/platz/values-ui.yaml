@@ -59,4 +59,16 @@ outputs:
       value:
         FieldValue:
           input: optional_bool
-  secrets: {}
+  secrets:
+    secret1:
+      key1:
+        FieldValue:
+          input: required_num
+      key2:
+        FieldValue:
+          input: required_text
+    secret2:
+      key1:
+        FieldProperty:
+          input: required_secret
+          property: value
