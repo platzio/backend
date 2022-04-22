@@ -6,6 +6,7 @@ use platz_db::{
     DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Secret, SecretFilters,
     UpdateSecret,
 };
+use serde::Deserialize;
 use uuid::Uuid;
 
 async fn get_all(_cur_identity: CurIdentity, filters: web::Query<SecretFilters>) -> ApiResult {
@@ -22,13 +23,25 @@ async fn create(cur_identity: CurIdentity, new_secret: web::Json<NewSecret>) -> 
     Ok(HttpResponse::Created().json(new_secret.insert().await?))
 }
 
+#[derive(Deserialize)]
+struct UpdateSecretApi {
+    name: Option<String>,
+    contents: Option<String>,
+}
+
+impl From<UpdateSecretApi> for UpdateSecret {
+    fn from(api: UpdateSecretApi) -> Self {
+        Self::new(api.name, api.contents)
+    }
+}
+
 async fn update(
     cur_identity: CurIdentity,
     id: web::Path<Uuid>,
-    update: web::Json<UpdateSecret>,
+    update: web::Json<UpdateSecretApi>,
 ) -> ApiResult {
     let id = id.into_inner();
-    let update = update.into_inner();
+    let update: UpdateSecret = update.into_inner().into();
 
     let old = Secret::find(id).await?;
     verify_env_admin(old.env_id, cur_identity.user().id).await?;
