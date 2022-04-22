@@ -50,7 +50,7 @@ async fn create(cur_identity: CurIdentity, new_deployment: web::Json<NewDeployme
     Ok(HttpResponse::Created().json(deployment))
 }
 
-fn using_error(prefix: &str, deployments: Vec<Deployment>) -> String {
+pub fn using_error(prefix: &str, deployments: Vec<Deployment>) -> String {
     format!(
         "{}: {}",
         prefix,

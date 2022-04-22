@@ -1,3 +1,4 @@
+use super::deployments::using_error;
 use crate::auth::CurIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
@@ -7,6 +8,7 @@ use platz_db::{
     UpdateSecret,
 };
 use serde::Deserialize;
+use serde_json::json;
 use uuid::Uuid;
 
 async fn get_all(_cur_identity: CurIdentity, filters: web::Query<SecretFilters>) -> ApiResult {
@@ -58,9 +60,28 @@ async fn update(
     Ok(HttpResponse::Ok().json(new))
 }
 
+async fn delete(cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+    let id = id.into_inner();
+    let secret = Secret::find(id).await?;
+
+    verify_env_admin(secret.env_id, cur_identity.user().id).await?;
+
+    let dependents =
+        Deployment::find_using(&DbTableOrDeploymentResource::DbTable(DbTable::Secrets), id).await?;
+    if !dependents.is_empty() {
+        return Ok(HttpResponse::Conflict().json(json!({
+            "message": using_error("This deployment can't be deleted because other deployments depend on it", dependents),
+        })));
+    }
+
+    secret.delete().await?;
+    Ok(HttpResponse::NoContent().finish())
+}
+
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("", web::get().to(get_all));
     cfg.route("/{id}", web::get().to(get));
     cfg.route("", web::post().to(create));
     cfg.route("/{id}", web::put().to(update));
+    cfg.route("/{id}", web::delete().to(delete));
 }

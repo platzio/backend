@@ -64,6 +64,13 @@ impl Secret {
     pub async fn find(id: Uuid) -> DbResult<Self> {
         Ok(secrets::table.find(id).get_result_async(pool()).await?)
     }
+
+    pub async fn delete(&self) -> DbResult<()> {
+        diesel::delete(secrets::table.find(self.id))
+            .execute_async(pool())
+            .await?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Insertable, Deserialize)]
