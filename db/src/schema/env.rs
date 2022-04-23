@@ -13,6 +13,7 @@ table! {
         name -> Varchar,
         node_selector -> Jsonb,
         tolerations -> Jsonb,
+        auto_add_new_users -> Bool,
     }
 }
 
@@ -26,6 +27,8 @@ pub struct Env {
     pub name: String,
     pub node_selector: serde_json::Value,
     pub tolerations: serde_json::Value,
+    #[filter]
+    pub auto_add_new_users: bool,
 }
 
 impl Env {
@@ -62,6 +65,7 @@ impl Env {
 #[table_name = "envs"]
 pub struct NewEnv {
     pub name: String,
+    pub auto_add_new_users: Option<bool>,
 }
 
 impl NewEnv {
@@ -79,6 +83,7 @@ pub struct UpdateEnv {
     pub name: Option<String>,
     pub node_selector: Option<serde_json::Value>,
     pub tolerations: Option<serde_json::Value>,
+    pub auto_add_new_users: Option<bool>,
 }
 
 impl UpdateEnv {

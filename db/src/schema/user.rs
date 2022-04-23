@@ -1,9 +1,11 @@
 use crate::{pool, DbResult, Paginated, DEFAULT_PAGE_SIZE};
+use crate::{Env, EnvUserRole, NewEnvUserPermission};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
+use log::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -82,10 +84,23 @@ pub struct NewUser {
 
 impl NewUser {
     pub async fn insert(self) -> DbResult<User> {
-        Ok(diesel::insert_into(users::table)
+        let user: User = diesel::insert_into(users::table)
             .values(self)
             .get_result_async(pool())
-            .await?)
+            .await?;
+        for env in Env::all().await? {
+            if env.auto_add_new_users {
+                info!("Auto adding new user {:?} to env {:?}", user.id, env.id);
+                NewEnvUserPermission {
+                    env_id: env.id,
+                    user_id: user.id,
+                    role: EnvUserRole::User,
+                }
+                .insert()
+                .await?;
+            }
+        }
+        Ok(user)
     }
 }
 
