@@ -9,4 +9,4 @@ add column acting_deployment_id uuid references deployments(id);
 
 alter table deployment_tasks
 add constraint deployment_tasks__acting_user_or_deployment
-check (acting_user_id is null <> acting_deployment_id is null);
+check ((acting_user_id is null) <> (acting_deployment_id is null));
