@@ -1,5 +1,4 @@
 mod config;
-mod deploy;
 mod k8s;
 mod task_runner;
 

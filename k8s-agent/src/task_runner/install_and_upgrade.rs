@@ -1,5 +1,5 @@
 use super::helm::run_helm;
-use super::RunnableDeploymentOperation;
+use super::runnable_task::RunnableDeploymentOperation;
 use crate::k8s::K8S_TRACKER;
 use crate::k8s::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS};
 use anyhow::Result;

@@ -1,4 +1,4 @@
-use super::RunnableDeploymentOperation;
+use super::runnable_task::RunnableDeploymentOperation;
 use crate::k8s::K8S_TRACKER;
 use anyhow::anyhow;
 use anyhow::Result;

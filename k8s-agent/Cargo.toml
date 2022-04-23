@@ -30,7 +30,7 @@ serde_yaml = "0.8.17"
 thiserror = "1.0.30"
 tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.7.1"}
-url = "2.2.2"
+url = {version = "2.2.2", features = ["serde"]}
 uuid = {version = "0.8", features = ["serde", "v4"]}
 
 [dependencies.platz-chart-ext]
