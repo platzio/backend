@@ -35,6 +35,9 @@ pub use diesel_json;
 mod pagination;
 pub use pagination::{Paginated, DEFAULT_PAGE_SIZE};
 
+mod identity;
+pub use identity::Identity;
+
 type PoolManager = ConnectionManager<PgConnection>;
 
 pub type DbPool = Pool<PoolManager>;

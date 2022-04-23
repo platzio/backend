@@ -1,4 +1,4 @@
-use crate::auth::CurIdentity;
+use crate::auth::ApiIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -6,28 +6,28 @@ use platz_db::{DeploymentPermission, DeploymentPermissionFilters, NewDeploymentP
 use uuid::Uuid;
 
 async fn get_all(
-    _cur_identity: CurIdentity,
+    _identity: ApiIdentity,
     filters: web::Query<DeploymentPermissionFilters>,
 ) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentPermission::all_filtered(filters.into_inner()).await?))
 }
 
-async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentPermission::find(id.into_inner()).await?))
 }
 
 async fn create(
-    cur_identity: CurIdentity,
+    identity: ApiIdentity,
     new_permission: web::Json<NewDeploymentPermission>,
 ) -> ApiResult {
     let new_permission = new_permission.into_inner();
-    verify_env_admin(new_permission.env_id, cur_identity.user().id).await?;
+    verify_env_admin(new_permission.env_id, &identity).await?;
     Ok(HttpResponse::Created().json(new_permission.insert().await?))
 }
 
-async fn delete(cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let permission = DeploymentPermission::find(id.into_inner()).await?;
-    verify_env_admin(permission.env_id, cur_identity.user().id).await?;
+    verify_env_admin(permission.env_id, &identity).await?;
     permission.delete().await?;
     Ok(HttpResponse::NoContent().finish())
 }

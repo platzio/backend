@@ -1,3 +1,4 @@
+mod auth;
 mod deployment_permissions;
 mod deployment_resource_types;
 mod deployment_resources;
@@ -16,7 +17,7 @@ mod ws;
 use actix_web::web;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/auth").configure(super::v2::auth::config));
+    cfg.service(web::scope("/auth").configure(auth::config));
     cfg.service(web::scope("/deployment-permissions").configure(deployment_permissions::config));
     cfg.service(
         web::scope("/deployment-resource-types").configure(deployment_resource_types::config),

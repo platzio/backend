@@ -5,10 +5,9 @@ use futures::future::{BoxFuture, FutureExt, TryFutureExt};
 use jsonwebtoken::{
     decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
-use platz_db::{Setting, User};
+use platz_db::{Deployment, Identity, Setting, User};
 use rand::random;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 const JWT_SECRET_BYTES: usize = 24;
 
@@ -29,14 +28,10 @@ pub struct AccessToken {
     iat: usize,
     exp: usize,
     nbf: usize,
-    sub: Uuid,
+    sub: Identity,
 }
 
 impl AccessToken {
-    pub fn user_id(&self) -> Uuid {
-        self.sub
-    }
-
     pub async fn encode(&self) -> Result<String, AuthError> {
         let jwt_secret = get_jwt_secret().await?;
         encode(
@@ -56,8 +51,27 @@ impl From<&User> for AccessToken {
             iat: iat.timestamp() as usize,
             nbf: iat.timestamp() as usize,
             exp: exp.timestamp() as usize,
-            sub: user.id,
+            sub: user.into(),
         }
+    }
+}
+
+impl From<&Deployment> for AccessToken {
+    fn from(deployment: &Deployment) -> Self {
+        let iat = chrono::Utc::now();
+        let exp = iat + chrono::Duration::days(7);
+        Self {
+            iat: iat.timestamp() as usize,
+            nbf: iat.timestamp() as usize,
+            exp: exp.timestamp() as usize,
+            sub: deployment.into(),
+        }
+    }
+}
+
+impl From<AccessToken> for Identity {
+    fn from(access_token: AccessToken) -> Self {
+        access_token.sub
     }
 }
 

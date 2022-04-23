@@ -1,4 +1,4 @@
-use crate::auth::CurIdentity;
+use crate::auth::ApiIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -15,18 +15,18 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
 }
 
 async fn update(
-    cur_identity: CurIdentity,
+    identity: ApiIdentity,
     id: web::Path<Uuid>,
     data: web::Json<UpdateK8sCluster>,
 ) -> ApiResult {
-    verify_site_admin(cur_identity.user().id).await?;
+    verify_site_admin(&identity).await?;
     let id = id.into_inner();
     let data = data.into_inner();
     Ok(HttpResponse::Ok().json(data.save(id).await?))
 }
 
-async fn delete(cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
-    verify_site_admin(cur_identity.user().id).await?;
+async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    verify_site_admin(&identity).await?;
     let cluster = K8sCluster::find(id.into_inner()).await?;
     if !Deployment::find_by_cluster_id(cluster.id).await?.is_empty() {
         Ok(HttpResponse::Conflict().json(json!({

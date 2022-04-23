@@ -1,4 +1,4 @@
-use crate::auth::CurIdentity;
+use crate::auth::ApiIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use futures::future::try_join_all;
@@ -11,7 +11,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 async fn get_all(
-    _cur_identity: CurIdentity,
+    _identity: ApiIdentity,
     filters: web::Query<DeploymentResourceFilters>,
 ) -> ApiResult {
     let mut result = DeploymentResource::all_filtered(filters.into_inner()).await?;
@@ -25,7 +25,7 @@ async fn get_all(
     Ok(HttpResponse::Ok().json(result))
 }
 
-async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(
         DeploymentResource::find(id.into_inner())
             .await?
@@ -35,7 +35,7 @@ async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
 }
 
 async fn create(
-    _cur_identity: CurIdentity,
+    _identity: ApiIdentity,
     new_resource: web::Json<NewDeploymentResource>,
 ) -> ApiResult {
     let new_resource = new_resource.into_inner();
@@ -45,7 +45,7 @@ async fn create(
 }
 
 async fn update(
-    cur_identity: CurIdentity,
+    identity: ApiIdentity,
     id: web::Path<Uuid>,
     update: web::Json<UpdateDeploymentResource>,
 ) -> ApiResult {
@@ -84,14 +84,14 @@ async fn update(
         Deployment::reinstall_all_using(
             &resource_type.as_db_collection(),
             id,
-            cur_identity.user(),
+            &identity,
             reason.clone(),
         )
         .await?;
         Deployment::reinstall_all_using(
             &resource_type.as_legacy_db_collection(),
             id,
-            cur_identity.user(),
+            &identity,
             reason,
         )
         .await?;
@@ -100,7 +100,7 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_resource))
 }
 
-async fn delete(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let resource = DeploymentResource::find(id.into_inner()).await?;
     if !resource.exists {
         return Ok(HttpResponse::Conflict().json(json!({

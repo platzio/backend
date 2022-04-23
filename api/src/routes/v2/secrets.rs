@@ -1,5 +1,5 @@
 use super::deployments::using_error;
-use crate::auth::CurIdentity;
+use crate::auth::ApiIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -11,17 +11,17 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity, filters: web::Query<SecretFilters>) -> ApiResult {
+async fn get_all(_identity: ApiIdentity, filters: web::Query<SecretFilters>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Secret::all_filtered(filters.into_inner()).await?))
 }
 
-async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Secret::find(id.into_inner()).await?))
 }
 
-async fn create(cur_identity: CurIdentity, new_secret: web::Json<NewSecret>) -> ApiResult {
+async fn create(identity: ApiIdentity, new_secret: web::Json<NewSecret>) -> ApiResult {
     let new_secret = new_secret.into_inner();
-    verify_env_admin(new_secret.env_id, cur_identity.user().id).await?;
+    verify_env_admin(new_secret.env_id, &identity).await?;
     Ok(HttpResponse::Created().json(new_secret.insert().await?))
 }
 
@@ -38,7 +38,7 @@ impl From<UpdateSecretApi> for UpdateSecret {
 }
 
 async fn update(
-    cur_identity: CurIdentity,
+    identity: ApiIdentity,
     id: web::Path<Uuid>,
     update: web::Json<UpdateSecretApi>,
 ) -> ApiResult {
@@ -46,13 +46,13 @@ async fn update(
     let update: UpdateSecret = update.into_inner().into();
 
     let old = Secret::find(id).await?;
-    verify_env_admin(old.env_id, cur_identity.user().id).await?;
+    verify_env_admin(old.env_id, &identity).await?;
     let new = update.save(id).await?;
 
     Deployment::reinstall_all_using(
         &DbTableOrDeploymentResource::DbTable(DbTable::Secrets),
         id,
-        cur_identity.user(),
+        &identity,
         format!("{} secret has been updated", new.collection),
     )
     .await?;
@@ -60,11 +60,11 @@ async fn update(
     Ok(HttpResponse::Ok().json(new))
 }
 
-async fn delete(cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let id = id.into_inner();
     let secret = Secret::find(id).await?;
 
-    verify_env_admin(secret.env_id, cur_identity.user().id).await?;
+    verify_env_admin(secret.env_id, &identity).await?;
 
     let dependents =
         Deployment::find_using(&DbTableOrDeploymentResource::DbTable(DbTable::Secrets), id).await?;

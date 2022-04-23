@@ -1,4 +1,4 @@
-use crate::auth::CurIdentity;
+use crate::auth::ApiIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use platz_db::{
@@ -31,7 +31,7 @@ pub struct ApiNewDeploymentTask {
     pub operation: DeploymentTaskOperation,
 }
 
-async fn create(cur_identity: CurIdentity, task: web::Json<ApiNewDeploymentTask>) -> ApiResult {
+async fn create(identity: ApiIdentity, task: web::Json<ApiNewDeploymentTask>) -> ApiResult {
     let task = task.into_inner();
 
     let deployment = Deployment::find(task.deployment_id).await?;
@@ -47,7 +47,8 @@ async fn create(cur_identity: CurIdentity, task: web::Json<ApiNewDeploymentTask>
     let task = NewDeploymentTask {
         cluster_id: cluster.id,
         deployment_id: task.deployment_id,
-        user_id: cur_identity.user().id,
+        acting_user_id: identity.inner().user_id(),
+        acting_deployment_id: identity.inner().deployment_id(),
         operation: Json(task.operation),
         status: Default::default(),
     };

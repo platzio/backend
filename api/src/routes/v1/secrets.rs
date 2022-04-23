@@ -1,4 +1,4 @@
-use crate::auth::CurIdentity;
+use crate::auth::ApiIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -13,14 +13,14 @@ async fn get(id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Secret::find(id.into_inner()).await?))
 }
 
-async fn create(cur_identity: CurIdentity, new_secret: web::Json<NewSecret>) -> ApiResult {
+async fn create(identity: ApiIdentity, new_secret: web::Json<NewSecret>) -> ApiResult {
     let new_secret = new_secret.into_inner();
-    verify_env_admin(new_secret.env_id, cur_identity.user().id).await?;
+    verify_env_admin(new_secret.env_id, &identity).await?;
     Ok(HttpResponse::Created().json(new_secret.insert().await?))
 }
 
 async fn update(
-    cur_identity: CurIdentity,
+    identity: ApiIdentity,
     id: web::Path<Uuid>,
     update: web::Json<UpdateSecret>,
 ) -> ApiResult {
@@ -28,13 +28,13 @@ async fn update(
     let update = update.into_inner();
 
     let old = Secret::find(id).await?;
-    verify_env_admin(old.env_id, cur_identity.user().id).await?;
+    verify_env_admin(old.env_id, &identity).await?;
     let new = update.save(id).await?;
 
     Deployment::reinstall_all_using(
         &DbTableOrDeploymentResource::DbTable(DbTable::Secrets),
         id,
-        cur_identity.user(),
+        &identity,
         format!("{} secret has been updated", new.collection),
     )
     .await?;

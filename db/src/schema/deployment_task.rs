@@ -1,9 +1,9 @@
 use crate::json_diff::{json_diff, JsonDiff};
 use crate::Deployment;
 use crate::HelmChart;
+use crate::Identity;
 use crate::K8sCluster;
 use crate::NewDeploymentResourceType;
-use crate::User;
 use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
@@ -26,7 +26,8 @@ table! {
         finished_at -> Nullable<Timestamptz>,
         cluster_id -> Uuid,
         deployment_id -> Uuid,
-        user_id -> Uuid,
+        acting_user_id -> Nullable<Uuid>,
+        acting_deployment_id -> Nullable<Uuid>,
         operation -> Jsonb,
         status -> Varchar,
         reason -> Nullable<Varchar>,
@@ -74,7 +75,8 @@ pub struct DeploymentTask {
     pub cluster_id: Uuid,
     #[filter]
     pub deployment_id: Uuid,
-    pub user_id: Uuid,
+    pub acting_user_id: Option<Uuid>,
+    pub acting_deployment_id: Option<Uuid>,
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
     pub reason: Option<String>,
@@ -209,7 +211,8 @@ impl DeploymentTask {
 pub struct NewDeploymentTask {
     pub cluster_id: Uuid,
     pub deployment_id: Uuid,
-    pub user_id: Uuid,
+    pub acting_user_id: Option<Uuid>,
+    pub acting_deployment_id: Option<Uuid>,
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
 }
@@ -263,11 +266,15 @@ pub struct DeploymentInstallTask {
 }
 
 impl DeploymentTask {
-    pub async fn create_install_task(deployment: &Deployment, user: &User) -> DbResult<Self> {
+    pub async fn create_install_task<I>(deployment: &Deployment, identity: &I) -> DbResult<Self>
+    where
+        I: std::borrow::Borrow<Identity>,
+    {
         NewDeploymentTask {
             cluster_id: deployment.cluster_id,
             deployment_id: deployment.id,
-            user_id: user.id,
+            acting_user_id: identity.borrow().user_id(),
+            acting_deployment_id: identity.borrow().deployment_id(),
             operation: Json(DeploymentTaskOperation::Install(DeploymentInstallTask {
                 helm_chart_id: deployment.helm_chart_id,
                 config_inputs: deployment.config.clone(),
@@ -290,15 +297,19 @@ pub struct DeploymentUpgradeTask {
 }
 
 impl DeploymentTask {
-    pub async fn create_upgrade_task(
+    pub async fn create_upgrade_task<I>(
         old_deployment: &Deployment,
         new_deployment: &Deployment,
-        user: &User,
-    ) -> DbResult<Self> {
+        identity: &I,
+    ) -> DbResult<Self>
+    where
+        I: std::borrow::Borrow<Identity>,
+    {
         NewDeploymentTask {
             cluster_id: new_deployment.cluster_id,
             deployment_id: new_deployment.id,
-            user_id: user.id,
+            acting_user_id: identity.borrow().user_id(),
+            acting_deployment_id: identity.borrow().deployment_id(),
             operation: Json(DeploymentTaskOperation::Upgrade(DeploymentUpgradeTask {
                 helm_chart_id: new_deployment.helm_chart_id,
                 prev_helm_chart_id: Some(old_deployment.helm_chart_id),
@@ -319,15 +330,19 @@ pub struct DeploymentReinstallTask {
 }
 
 impl DeploymentTask {
-    pub async fn create_reinstall_task(
+    pub async fn create_reinstall_task<I>(
         deployment: &Deployment,
-        user: &User,
+        identity: &I,
         reason: String,
-    ) -> DbResult<Self> {
+    ) -> DbResult<Self>
+    where
+        I: std::borrow::Borrow<Identity>,
+    {
         NewDeploymentTask {
             cluster_id: deployment.cluster_id,
             deployment_id: deployment.id,
-            user_id: user.id,
+            acting_user_id: identity.borrow().user_id(),
+            acting_deployment_id: identity.borrow().deployment_id(),
             operation: Json(DeploymentTaskOperation::Reinstall(
                 DeploymentReinstallTask {
                     reason: reason.clone(),
@@ -349,16 +364,20 @@ pub struct DeploymentRecreaseTask {
 }
 
 impl DeploymentTask {
-    pub async fn create_recreate_task(
+    pub async fn create_recreate_task<I>(
         old_deployment: &Deployment,
         new_deployment: &Deployment,
-        user: &User,
-    ) -> DbResult<Self> {
+        identity: &I,
+    ) -> DbResult<Self>
+    where
+        I: std::borrow::Borrow<Identity>,
+    {
         NewDeploymentTask {
             // TODO: See https://github.com/platzio/backend/issues/20
             cluster_id: new_deployment.cluster_id,
             deployment_id: new_deployment.id,
-            user_id: user.id,
+            acting_user_id: identity.borrow().user_id(),
+            acting_deployment_id: identity.borrow().deployment_id(),
             operation: Json(DeploymentTaskOperation::Recreate(DeploymentRecreaseTask {
                 old_cluster_id: old_deployment.cluster_id,
                 old_namespace: old_deployment.namespace_name(),
@@ -376,11 +395,15 @@ impl DeploymentTask {
 pub struct DeploymentUninstallTask {}
 
 impl DeploymentTask {
-    pub async fn create_uninstall_task(deployment: &Deployment, user: &User) -> DbResult<Self> {
+    pub async fn create_uninstall_task<I>(deployment: &Deployment, identity: &I) -> DbResult<Self>
+    where
+        I: std::borrow::Borrow<Identity>,
+    {
         NewDeploymentTask {
             cluster_id: deployment.cluster_id,
             deployment_id: deployment.id,
-            user_id: user.id,
+            acting_user_id: identity.borrow().user_id(),
+            acting_deployment_id: identity.borrow().deployment_id(),
             operation: Json(DeploymentTaskOperation::Uninstall(
                 DeploymentUninstallTask {},
             )),

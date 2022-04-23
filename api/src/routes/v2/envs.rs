@@ -1,4 +1,4 @@
-use crate::auth::CurIdentity;
+use crate::auth::ApiIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
@@ -6,20 +6,23 @@ use itertools::Itertools;
 use platz_db::{Deployment, Env, EnvFilters, EnvUserRole, NewEnv, NewEnvUserPermission, UpdateEnv};
 use uuid::Uuid;
 
-async fn get_all(_cur_identity: CurIdentity, filters: web::Query<EnvFilters>) -> ApiResult {
+async fn get_all(_identity: ApiIdentity, filters: web::Query<EnvFilters>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Env::all_filtered(filters.into_inner()).await?))
 }
 
-async fn get(_cur_identity: CurIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Env::find(id.into_inner()).await?))
 }
 
-async fn create(cur_identity: CurIdentity, new_env: web::Json<NewEnv>) -> ApiResult {
-    verify_site_admin(cur_identity.user().id).await?;
+async fn create(identity: ApiIdentity, new_env: web::Json<NewEnv>) -> ApiResult {
+    verify_site_admin(&identity).await?;
     let env = new_env.into_inner().save().await?;
     NewEnvUserPermission {
         env_id: env.id,
-        user_id: cur_identity.user().id,
+        user_id: identity
+            .inner()
+            .user_id()
+            .expect("Site admin must be a user"),
         role: EnvUserRole::Admin,
     }
     .insert()
@@ -28,12 +31,12 @@ async fn create(cur_identity: CurIdentity, new_env: web::Json<NewEnv>) -> ApiRes
 }
 
 async fn update(
-    cur_identity: CurIdentity,
+    identity: ApiIdentity,
     id: web::Path<Uuid>,
     update: web::Json<UpdateEnv>,
 ) -> ApiResult {
     let id = id.into_inner();
-    verify_site_admin(cur_identity.user().id).await?;
+    verify_site_admin(&identity).await?;
 
     if update.node_selector.is_some() || update.tolerations.is_some() {
         let reason = format!(
@@ -46,7 +49,7 @@ async fn update(
             .flatten()
             .join(", ")
         );
-        Deployment::reinstall_all_for_env(id, cur_identity.user(), reason).await?;
+        Deployment::reinstall_all_for_env(id, &identity, reason).await?;
     }
 
     Ok(HttpResponse::Ok().json(update.into_inner().save(id).await?))

@@ -1,8 +1,8 @@
 use crate::DbTableOrDeploymentResource;
 use crate::DeploymentTask;
 use crate::HelmChart;
+use crate::Identity;
 use crate::K8sCluster;
-use crate::User;
 use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
@@ -173,18 +173,21 @@ impl Deployment {
         Ok(result)
     }
 
-    pub async fn reinstall_all_using(
+    pub async fn reinstall_all_using<I>(
         collection: &DbTableOrDeploymentResource,
         id: Uuid,
-        user: &User,
+        identity: &I,
         reason: String,
-    ) -> DbResult<()> {
+    ) -> DbResult<()>
+    where
+        I: std::borrow::Borrow<Identity>,
+    {
         for deployment in Deployment::find_using(collection, id)
             .await?
             .into_iter()
             .filter(|deployment| deployment.enabled)
         {
-            DeploymentTask::create_reinstall_task(&deployment, user, reason.clone()).await?;
+            DeploymentTask::create_reinstall_task(&deployment, identity, reason.clone()).await?;
         }
         Ok(())
     }
@@ -222,13 +225,20 @@ impl Deployment {
             .await?)
     }
 
-    pub async fn reinstall_all_for_env(env_id: Uuid, user: &User, reason: String) -> DbResult<()> {
+    pub async fn reinstall_all_for_env<I>(
+        env_id: Uuid,
+        identity: &I,
+        reason: String,
+    ) -> DbResult<()>
+    where
+        I: std::borrow::Borrow<Identity>,
+    {
         for deployment in Self::find_by_env_id(env_id)
             .await?
             .into_iter()
             .filter(|deployment| deployment.enabled)
         {
-            DeploymentTask::create_reinstall_task(&deployment, user, reason.clone()).await?;
+            DeploymentTask::create_reinstall_task(&deployment, identity, reason.clone()).await?;
         }
         Ok(())
     }
