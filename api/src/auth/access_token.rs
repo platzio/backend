@@ -28,7 +28,7 @@ pub struct AccessToken {
     iat: usize,
     exp: usize,
     nbf: usize,
-    sub: Identity,
+    identity: Identity,
 }
 
 impl AccessToken {
@@ -51,7 +51,7 @@ impl From<&User> for AccessToken {
             iat: iat.timestamp() as usize,
             nbf: iat.timestamp() as usize,
             exp: exp.timestamp() as usize,
-            sub: user.into(),
+            identity: user.into(),
         }
     }
 }
@@ -64,14 +64,14 @@ impl From<&Deployment> for AccessToken {
             iat: iat.timestamp() as usize,
             nbf: iat.timestamp() as usize,
             exp: exp.timestamp() as usize,
-            sub: deployment.into(),
+            identity: deployment.into(),
         }
     }
 }
 
 impl From<AccessToken> for Identity {
     fn from(access_token: AccessToken) -> Self {
-        access_token.sub
+        access_token.identity
     }
 }
 
