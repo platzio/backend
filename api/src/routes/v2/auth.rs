@@ -1,6 +1,6 @@
-use crate::auth::{AccessToken, ApiIdentity, OAuth2Response, OidcLogin};
 use crate::result::ApiResult;
 use actix_web::{dev::ConnectionInfo, web, HttpRequest, HttpResponse};
+use platz_auth::{AccessToken, ApiIdentity, OAuth2Response, OidcLogin};
 use platz_db::{Deployment, Identity, User};
 use serde::Serialize;
 use serde_json::json;

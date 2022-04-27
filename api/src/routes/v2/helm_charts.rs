@@ -1,6 +1,6 @@
-use crate::auth::ApiIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
+use platz_auth::ApiIdentity;
 use platz_db::{HelmChart, HelmChartFilters};
 use uuid::Uuid;
 

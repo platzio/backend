@@ -1,7 +1,7 @@
-use crate::auth::ApiIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use futures::future::try_join_all;
+use platz_auth::ApiIdentity;
 use platz_db::{
     Deployment, DeploymentResource, DeploymentResourceType, NewDeploymentResource, SyncStatus,
     UpdateDeploymentResource, UpdateDeploymentResourceSyncStatus,

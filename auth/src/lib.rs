@@ -3,6 +3,9 @@ mod error;
 mod identity;
 mod oidc;
 
+#[cfg(feature = "actix")]
+mod actix_traits;
+
 pub use access_token::AccessToken;
 pub use error::AuthError;
 pub use identity::ApiIdentity;

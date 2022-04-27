@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "api",
+  "auth",
   "chart-discovery",
   "chart-ext",
   "db",

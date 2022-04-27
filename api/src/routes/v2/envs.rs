@@ -1,8 +1,8 @@
-use crate::auth::ApiIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use itertools::Itertools;
+use platz_auth::ApiIdentity;
 use platz_db::{Deployment, Env, EnvFilters, EnvUserRole, NewEnv, NewEnvUserPermission, UpdateEnv};
 use uuid::Uuid;
 

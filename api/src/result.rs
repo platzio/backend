@@ -1,5 +1,5 @@
-use crate::auth::AuthError;
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use platz_auth::AuthError;
 use platz_db::DbError;
 
 #[derive(thiserror::Error, Debug)]

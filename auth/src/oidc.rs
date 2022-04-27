@@ -1,4 +1,4 @@
-use super::AuthError;
+use crate::error::AuthError;
 use openid::DiscoveredClient;
 use platz_db::{NewUser, User};
 use serde::Deserialize;

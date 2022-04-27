@@ -1,7 +1,7 @@
-use crate::auth::ApiIdentity;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
+use platz_auth::ApiIdentity;
 use platz_db::{HelmRegistry, UpdateHelmRegistry};
 use uuid::Uuid;
 

@@ -2243,20 +2243,15 @@ dependencies = [
  "actix",
  "actix-web",
  "actix-web-actors",
- "actix-web-httpauth",
  "anyhow",
- "base64",
- "chrono",
  "clap",
  "env_logger",
  "futures",
  "itertools",
- "jsonwebtoken",
  "log",
- "openid",
+ "platz-auth",
  "platz-chart-ext",
  "platz-db",
- "rand",
  "serde",
  "serde_json",
  "thiserror",
@@ -2264,6 +2259,25 @@ dependencies = [
  "tokio-stream",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "platz-auth"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "actix-web-httpauth",
+ "base64",
+ "chrono",
+ "futures",
+ "jsonwebtoken",
+ "openid",
+ "platz-db",
+ "rand",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "url",
 ]
 
 [[package]]

@@ -7,7 +7,6 @@ use platz_db::init_db;
 use serde_json::json;
 use url::Url;
 
-mod auth;
 mod permissions;
 mod result;
 mod routes;
@@ -59,7 +58,7 @@ async fn status() -> crate::result::ApiResult {
 async fn serve(config: Config) -> Result<()> {
     let api_port = config.api_port;
     let oidc_login = web::Data::new(
-        crate::auth::OidcLogin::new(
+        platz_auth::OidcLogin::new(
             config.oidc_server_url,
             config.oidc_client_id,
             config.oidc_client_secret,

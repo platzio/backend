@@ -1,7 +1,8 @@
+use crate::permissions::verify_deployment_maintainer;
 use crate::permissions::verify_deployment_owner;
 use crate::result::ApiResult;
-use crate::{auth::ApiIdentity, permissions::verify_deployment_maintainer};
 use actix_web::{web, HttpResponse};
+use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
     DbTable, DbTableOrDeploymentResource, Deployment, DeploymentKind, DeploymentStatus,

@@ -1,6 +1,6 @@
-use crate::auth::ApiIdentity;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
+use platz_auth::ApiIdentity;
 use platz_db::{
     DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskFilters,
     DeploymentTaskOperation, HelmChart, Json, K8sCluster, K8sResource, NewDeploymentTask,

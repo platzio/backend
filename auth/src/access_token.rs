@@ -1,17 +1,12 @@
-use super::AuthError;
-use actix_web::{dev::Payload, FromRequest, HttpRequest};
-use actix_web_httpauth::extractors::bearer::BearerAuth;
-use futures::future::{BoxFuture, FutureExt, TryFutureExt};
-use jsonwebtoken::{
-    decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
-};
+use crate::error::AuthError;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use platz_db::{Deployment, Identity, Setting, User};
 use rand::random;
 use serde::{Deserialize, Serialize};
 
 const JWT_SECRET_BYTES: usize = 24;
 
-async fn get_jwt_secret() -> Result<Vec<u8>, AuthError> {
+pub(crate) async fn get_jwt_secret() -> Result<Vec<u8>, AuthError> {
     base64::decode(
         Setting::get_or_set_default("jwt_secret", || {
             base64::encode(random::<[u8; JWT_SECRET_BYTES]>())
@@ -72,33 +67,5 @@ impl From<&Deployment> for AccessToken {
 impl From<AccessToken> for Identity {
     fn from(access_token: AccessToken) -> Self {
         access_token.identity
-    }
-}
-
-async fn validate_token(bearer: BearerAuth) -> Result<TokenData<AccessToken>, AuthError> {
-    let mut validation = Validation::new(Algorithm::HS256);
-    validation.set_required_spec_claims(&["exp", "nbf"]);
-    validation.validate_exp = true;
-    validation.validate_nbf = true;
-    validation.leeway = 5;
-    let jwt_secret = get_jwt_secret().await?;
-    decode::<AccessToken>(
-        bearer.token(),
-        &DecodingKey::from_secret(&jwt_secret),
-        &validation,
-    )
-    .map_err(AuthError::JwtDecodeError)
-}
-
-impl FromRequest for AccessToken {
-    type Error = AuthError;
-    type Future = BoxFuture<'static, Result<Self, Self::Error>>;
-
-    fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
-        BearerAuth::from_request(req, payload)
-            .map_err(|e| AuthError::BearerAuthenticationError(e.to_string()))
-            .and_then(validate_token)
-            .map_ok(|token_data| token_data.claims)
-            .boxed()
     }
 }

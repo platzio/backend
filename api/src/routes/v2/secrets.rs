@@ -1,8 +1,8 @@
 use super::deployments::using_error;
-use crate::auth::ApiIdentity;
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
+use platz_auth::ApiIdentity;
 use platz_db::{
     DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Secret, SecretFilters,
     UpdateSecret,
