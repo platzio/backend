@@ -11,6 +11,7 @@ use anyhow::Result;
 use log::*;
 use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
 use runnable_task::RunnableDeploymentTask;
+pub use secrets::apply_secret;
 use tokio::{select, sync::watch};
 
 pub async fn start() -> Result<()> {

@@ -39,5 +39,8 @@ path = "../chart-ext"
 [dependencies.platz-db]
 path = "../db"
 
+[dependencies.platz-auth]
+path = "../auth"
+
 [dependencies.rusoto-utils]
 path = "../rusoto-utils"

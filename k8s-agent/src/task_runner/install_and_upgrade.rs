@@ -1,5 +1,6 @@
 use super::helm::run_helm;
 use super::runnable_task::RunnableDeploymentOperation;
+use crate::deployment_creds::apply_deployment_credentials;
 use crate::k8s::K8S_TRACKER;
 use crate::k8s::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS};
 use anyhow::Result;
@@ -20,6 +21,7 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
             .set_status(DeploymentStatus::Installing, None)
             .await?;
         create_namespace(deployment.cluster_id, deployment_to_namespace(deployment)).await?;
+        apply_deployment_credentials(deployment).await?;
         match run_helm("install", deployment, task).await {
             Ok(output) => {
                 deployment.set_revision(Some(task.id)).await?;
@@ -97,6 +99,7 @@ impl RunnableDeploymentOperation for DeploymentRecreaseTask {
             .await?;
         delete_namespace(self.old_cluster_id, &self.old_namespace).await?;
         create_namespace(self.new_cluster_id, deployment_to_namespace(deployment)).await?;
+        apply_deployment_credentials(deployment).await?;
         Ok("".to_owned())
     }
 }

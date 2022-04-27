@@ -1,4 +1,5 @@
 mod config;
+mod deployment_creds;
 mod k8s;
 mod task_runner;
 
@@ -17,6 +18,11 @@ pub async fn _main() -> Result<()> {
 
         result = task_runner::start() => {
             warn!("Task runner finished");
+            result?;
+        }
+
+        result = deployment_creds::start() => {
+            warn!("Deployment creds task finished");
             result?;
         }
     };

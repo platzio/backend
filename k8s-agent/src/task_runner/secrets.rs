@@ -31,7 +31,7 @@ pub async fn apply_secrets(
     Ok(())
 }
 
-async fn apply_secret(
+pub async fn apply_secret(
     cluster_id: Uuid,
     namespace: &str,
     name: &str,
