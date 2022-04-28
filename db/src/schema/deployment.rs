@@ -199,6 +199,13 @@ impl Deployment {
             .await?)
     }
 
+    pub async fn find_by_cluster_ids(cluster_ids: Vec<Uuid>) -> DbResult<Vec<Self>> {
+        Ok(deployments::table
+            .filter(deployments::cluster_id.eq_any(cluster_ids))
+            .get_results_async(pool())
+            .await?)
+    }
+
     pub async fn find_by_env_id(env_id: Uuid) -> DbResult<Vec<Self>> {
         let mut result = Vec::new();
         for cluster in K8sCluster::find_by_env_id(env_id).await? {
