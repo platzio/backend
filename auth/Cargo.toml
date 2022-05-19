@@ -14,13 +14,13 @@ base64 = "0.13.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
 futures = {version = "0.3.21", optional = true}
 jsonwebtoken = "8.0.1"
-openid = {version = "0.9", default-features = false, features = ["rustls"]}
+lazy_static = "1.4.0"
+openid = {version = "0.10.0", default-features = false, features = ["rustls"]}
 rand = "0.8.4"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 thiserror = "1"
 url = "2"
-lazy_static = "1.4.0"
 
 [dependencies.platz-db]
 path = "../db"
