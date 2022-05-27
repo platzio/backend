@@ -8,6 +8,7 @@ mod env_user_permissions;
 mod envs;
 mod helm_charts;
 mod helm_registries;
+mod helm_tag_formats;
 mod k8s_clusters;
 mod k8s_resources;
 mod secrets;
@@ -29,6 +30,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/envs").configure(envs::config));
     cfg.service(web::scope("/helm-charts").configure(helm_charts::config));
     cfg.service(web::scope("/helm-registries").configure(helm_registries::config));
+    cfg.service(web::scope("/helm-tag-formats").configure(helm_tag_formats::config));
     cfg.service(web::scope("/k8s-clusters").configure(k8s_clusters::config));
     cfg.service(web::scope("/k8s-resources").configure(k8s_resources::config));
     cfg.service(web::scope("/secrets").configure(secrets::config));

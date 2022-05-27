@@ -20,6 +20,7 @@ tokio = {version = "1", features = ["full"]}
 tokio-stream = {version = "0.1.5", features = ["sync"]}
 url = "2"
 uuid = {version = "0.8", features = ["serde", "v4"]}
+regex = "1.5.6"
 
 [dependencies.platz-chart-ext]
 path = "../chart-ext"

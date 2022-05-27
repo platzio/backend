@@ -1,6 +1,7 @@
 use crate::registries::find_and_save_ecr_repo;
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
+use clap::Parser;
 use log::*;
 use platz_db::HelmRegistry;
 use rusoto_core::RusotoError;
@@ -13,7 +14,6 @@ use rusoto_utils::regions::Region;
 use rusoto_utils::sqs::handle_sqs_messages;
 use serde::Deserialize;
 use std::str::FromStr;
-use clap::Parser;
 use uuid::Uuid;
 
 #[derive(Debug, Parser)]
@@ -135,6 +135,8 @@ async fn handle_ecr_event(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
 }
 
 pub async fn run(config: &Config) -> Result<()> {
+    info!("Starting to watch for ECR events");
+
     let client = rusoto_client(env!("CARGO_CRATE_NAME").to_owned())?;
     let ecr = EcrClient::new_with_client(client, config.ecr_events_region.clone());
 

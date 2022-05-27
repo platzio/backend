@@ -1,4 +1,5 @@
 use crate::ecr_events::{EcrEvent, EcrEventDetail};
+use crate::tag_parser::parse_image_tag;
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use log::*;
@@ -34,6 +35,7 @@ pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
 
     let chart_path = download_chart(&event).await?;
     let chart_ext = ChartExt::from_path(&chart_path).await?;
+    let tag_info = parse_image_tag(&event.detail.image_tag).await?;
 
     let chart = NewHelmChart {
         created_at,
@@ -45,6 +47,11 @@ pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
         features: chart_ext.features.map(diesel_json::Json),
         resource_types: chart_ext.resource_types.map(diesel_json::Json),
         error: chart_ext.error,
+        tag_format_id: tag_info.tag_format_id,
+        parsed_version: tag_info.parsed_version,
+        parsed_revision: tag_info.parsed_revision,
+        parsed_branch: tag_info.parsed_branch,
+        parsed_commit: tag_info.parsed_commit,
     }
     .insert()
     .await?;

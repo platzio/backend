@@ -16,6 +16,7 @@ pub enum DbTable {
     EnvUserPermissions,
     HelmRegistries,
     HelmCharts,
+    HelmTagFormats,
     K8sClusters,
     K8sResources,
     Secrets,

@@ -1,11 +1,11 @@
 use anyhow::Result;
 use clap::Parser;
-use log::*;
-use tokio::time;
+use tokio::select;
 
 mod charts;
 mod ecr_events;
 mod registries;
+mod tag_parser;
 
 #[derive(Debug, Parser)]
 pub struct Config {
@@ -38,24 +38,19 @@ impl Config {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let config = Config::parse();
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
         .filter(None, config.all_log_level())
         .init();
 
-    info!("Starting to watch for ECR events");
-
-    if let Err(e) = _main(&config).await {
-        error!("{:?}", e);
-        std::process::exit(1);
-    }
-}
-
-async fn _main(config: &Config) -> Result<()> {
-    loop {
-        ecr_events::run(&config.ecr_events).await?;
-        time::sleep(time::Duration::from_secs(10)).await;
+    select! {
+        result = ecr_events::run(&config.ecr_events) => {
+            result
+        }
+        result = tag_parser::run() => {
+            result
+        }
     }
 }

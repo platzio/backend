@@ -23,6 +23,11 @@ table! {
         features -> Nullable<Jsonb>,
         resource_types -> Nullable<Jsonb>,
         error -> Nullable<Varchar>,
+        tag_format_id -> Nullable<Uuid>,
+        parsed_version -> Nullable<Varchar>,
+        parsed_revision -> Nullable<Varchar>,
+        parsed_branch -> Nullable<Varchar>,
+        parsed_commit -> Nullable<Varchar>,
     }
 }
 
@@ -42,6 +47,11 @@ pub struct HelmChart {
     pub features: Option<serde_json::Value>,
     pub resource_types: Option<serde_json::Value>,
     pub error: Option<String>,
+    pub tag_format_id: Option<Uuid>,
+    pub parsed_version: Option<String>,
+    pub parsed_revision: Option<String>,
+    pub parsed_branch: Option<String>,
+    pub parsed_commit: Option<String>,
 }
 
 impl HelmChart {
@@ -124,6 +134,11 @@ pub struct NewHelmChart {
     pub features: Option<Json<ChartExtFeatures>>,
     pub resource_types: Option<Json<ChartExtResourceTypes>>,
     pub error: Option<String>,
+    pub tag_format_id: Option<Uuid>,
+    pub parsed_version: Option<String>,
+    pub parsed_revision: Option<String>,
+    pub parsed_branch: Option<String>,
+    pub parsed_commit: Option<String>,
 }
 
 impl NewHelmChart {
@@ -142,6 +157,25 @@ pub struct UpdateHelmChart {
 }
 
 impl UpdateHelmChart {
+    pub async fn save(self, id: Uuid) -> DbResult<HelmChart> {
+        Ok(diesel::update(helm_charts::table.find(id))
+            .set(self)
+            .get_result_async(pool())
+            .await?)
+    }
+}
+
+#[derive(Debug, Default, AsChangeset)]
+#[table_name = "helm_charts"]
+pub struct HelmChartTagInfo {
+    pub tag_format_id: Option<Uuid>,
+    pub parsed_version: Option<String>,
+    pub parsed_revision: Option<String>,
+    pub parsed_branch: Option<String>,
+    pub parsed_commit: Option<String>,
+}
+
+impl HelmChartTagInfo {
     pub async fn save(self, id: Uuid) -> DbResult<HelmChart> {
         Ok(diesel::update(helm_charts::table.find(id))
             .set(self)
