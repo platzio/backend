@@ -57,11 +57,9 @@ pub async fn google_login_callback(
     oidc_login: web::Data<OidcLogin>,
     oauth2_response: web::Json<OAuth2Response>,
 ) -> ApiResult {
+    let callback = callback_url(&req.connection_info());
     let user = oidc_login
-        .login_user(
-            callback_url(&req.connection_info()),
-            oauth2_response.into_inner(),
-        )
+        .login_user(callback, oauth2_response.into_inner())
         .await?;
 
     let access_token: String = AccessToken::from(&user).encode().await?;
