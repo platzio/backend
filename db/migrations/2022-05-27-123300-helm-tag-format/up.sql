@@ -23,5 +23,5 @@ alter table helm_charts
 add column parsed_commit varchar default null;
 
 insert into helm_tag_formats (pattern)
-values ('^(chart-)?v?(?<version>\d+\.\d+\.\d+)((-(?<revision>\d+))?(-g(?<commit>[0-9a-zA-Z]+))?-(?<branch>[-\w]+))?$'),
+values ('^(chart-)?v?(?P<version>\d+\.\d+\.\d+)((-(?P<revision>\d+))?(-g(?P<commit>[0-9a-zA-Z]+))?-(?P<branch>[-\w]+))?$'),
        ('^(chart-)?v?(?P<version>\d+\.\d+\.\d+)-(?P<branch>[-_A-Za-z0-9]+)\.(?P<revision>\d+)$');
