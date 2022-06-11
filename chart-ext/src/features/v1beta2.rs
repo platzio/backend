@@ -39,6 +39,10 @@ pub struct ChartExtFeaturesSpec {
     /// Same for tolerations
     #[serde(default)]
     pub tolerations_paths: Vec<Vec<String>>,
+
+    /// Control how the deployment is displayed
+    #[serde(default)]
+    pub display: ChartExtDeploymentDisplay,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -71,4 +75,29 @@ impl Default for ChartExtIngressHostnameFormat {
     fn default() -> Self {
         Self::KindAndName
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChartExtDeploymentDisplay {
+    pub name: Option<ChartExtDeploymentDisplayName>,
+    pub icon: Option<ChartExtDeploymentDisplayIcon>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub enum ChartExtDeploymentDisplayName {
+    DeploymentName,
+    InputField(ChartExtDeploymentDisplayNameInputField),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChartExtDeploymentDisplayNameInputField {
+    pub name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChartExtDeploymentDisplayIcon {
+    pub font_awesome: String,
 }

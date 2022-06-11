@@ -1,0 +1,7 @@
+apiVersion: platz.io/v1beta2
+kind: Features
+spec:
+  display:
+    name: DeploymentName
+    icon:
+      font_awesome: rocket

@@ -3,7 +3,13 @@ mod utils;
 
 use anyhow::Result;
 use fake_db::TestDb;
-use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
+use platz_chart_ext::{
+    v1beta2::{
+        ChartExtDeploymentDisplay, ChartExtDeploymentDisplayIcon, ChartExtDeploymentDisplayName,
+        ChartExtDeploymentDisplayNameInputField,
+    },
+    ChartExtIngressHostnameFormat, UiSchema,
+};
 use serde_json::json;
 use utils::load_chart;
 use uuid::Uuid;
@@ -42,6 +48,15 @@ async fn test1() -> Result<()> {
         features.ingress().hostname_format,
         ChartExtIngressHostnameFormat::KindAndName
     ));
+    assert_eq!(
+        features.display(),
+        ChartExtDeploymentDisplay {
+            name: None,
+            icon: Some(ChartExtDeploymentDisplayIcon {
+                font_awesome: "rocket".to_owned(),
+            })
+        }
+    );
 
     let resource_types = chart_ext.resource_types.expect("No resource types");
     assert_eq!(resource_types.inner.len(), 1);
@@ -68,9 +83,40 @@ async fn test2() -> Result<()> {
         features.ingress().hostname_format,
         ChartExtIngressHostnameFormat::Name
     ));
+    assert_eq!(
+        features.display(),
+        ChartExtDeploymentDisplay {
+            name: Some(ChartExtDeploymentDisplayName::InputField(
+                ChartExtDeploymentDisplayNameInputField {
+                    name: "alias".to_owned(),
+                }
+            )),
+            icon: Some(ChartExtDeploymentDisplayIcon {
+                font_awesome: "rocket".to_owned(),
+            })
+        }
+    );
 
     let resource_types = chart_ext.resource_types.expect("No resource types");
     assert_eq!(resource_types.inner.len(), 1);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test3() -> Result<()> {
+    let chart_ext = load_chart("v1beta2/chart4").await?;
+
+    let features = chart_ext.features.expect("No features");
+    assert_eq!(
+        features.display(),
+        ChartExtDeploymentDisplay {
+            name: Some(ChartExtDeploymentDisplayName::DeploymentName),
+            icon: Some(ChartExtDeploymentDisplayIcon {
+                font_awesome: "rocket".to_owned(),
+            })
+        }
+    );
 
     Ok(())
 }

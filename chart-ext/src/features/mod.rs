@@ -68,4 +68,12 @@ impl ChartExtFeatures {
             Self::V0(features) => &features.tolerations_paths,
         }
     }
+
+    pub fn display(&self) -> v1beta2::ChartExtDeploymentDisplay {
+        match self {
+            Self::V1Beta2(features) => features.spec.display.clone(),
+            Self::V1Beta1(_) => Default::default(),
+            Self::V0(_) => Default::default(),
+        }
+    }
 }
