@@ -8,6 +8,7 @@ pub struct OidcLogin {
     pub server: Url,
     pub client_id: String,
     pub client_secret: String,
+    pub admin_emails: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -20,11 +21,13 @@ impl OidcLogin {
         server: Url,
         client_id: String,
         client_secret: String,
+        admin_emails: Vec<String>,
     ) -> Result<Self, AuthError> {
         Ok(Self {
             server,
             client_id,
             client_secret,
+            admin_emails,
         })
     }
 
@@ -70,9 +73,11 @@ impl OidcLogin {
         let email = userinfo.email.ok_or_else(|| {
             AuthError::OidcResponseError("Login succeeded but user has no email address".to_owned())
         })?;
+        let is_admin = self.admin_emails.contains(&email);
         Ok(NewUser {
             display_name,
             email,
+            is_admin,
         })
     }
 

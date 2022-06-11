@@ -80,6 +80,7 @@ impl User {
 pub struct NewUser {
     pub display_name: String,
     pub email: String,
+    pub is_admin: bool,
 }
 
 impl NewUser {

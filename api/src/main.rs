@@ -33,6 +33,16 @@ struct Config {
 
     #[clap(long, env = "OIDC_CLIENT_SECRET", hide_env_values = true)]
     oidc_client_secret: String,
+
+    /// Email addresses to add as admins instead of regular user. This option
+    /// is useful for allowing the first admins to log into Platz on a fresh
+    /// deployment. Note that admins are added only after successful validation
+    /// against the OIDC server, and if a user doesn't exist with that email.
+    /// This means that if an admin is later changed to a regular user role,
+    /// they will never become an admin again unless their user is deleted from
+    /// the database, or removed from this option.
+    #[clap(long = "admin_email", env = "ADMIN_EMAILS", value_delimiter = ' ')]
+    admin_emails: Vec<String>,
 }
 
 impl Config {
@@ -62,6 +72,7 @@ async fn serve(config: Config) -> Result<()> {
             config.oidc_server_url,
             config.oidc_client_id,
             config.oidc_client_secret,
+            config.admin_emails,
         )
         .await?,
     );
