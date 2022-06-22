@@ -11,6 +11,7 @@ table! {
     k8s_resources(id) {
         id -> Uuid,
         last_updated_at -> Timestamptz,
+        cluster_id -> Uuid,
         deployment_id -> Uuid,
         kind -> Varchar,
         api_version -> Varchar,
@@ -26,6 +27,8 @@ table! {
 pub struct K8sResource {
     pub id: Uuid,
     pub last_updated_at: DateTime<Utc>,
+    #[filter]
+    pub cluster_id: Uuid,
     #[filter]
     pub deployment_id: Uuid,
     #[filter(insensitive)]
@@ -95,8 +98,12 @@ impl K8sResource {
             .await?)
     }
 
-    pub async fn find_older_than(timestamp: DateTime<Utc>) -> DbResult<Vec<Self>> {
+    pub async fn find_older_than(
+        cluster_id: Uuid,
+        timestamp: DateTime<Utc>,
+    ) -> DbResult<Vec<Self>> {
         Ok(k8s_resources::table
+            .filter(k8s_resources::cluster_id.eq(cluster_id))
             .filter(k8s_resources::last_updated_at.lt(timestamp))
             .get_results_async(pool())
             .await?)

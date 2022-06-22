@@ -228,7 +228,7 @@ async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Re
             }
             _ = delete_resources_timeout.as_mut() => {
                 info!("Deleting old K8sResources");
-                for resource in K8sResource::find_older_than(start_time).await? {
+                for resource in K8sResource::find_older_than(cluster_id, start_time).await? {
                     debug!("Deleting {:?}", resource);
                     resource.delete().await?;
                 }
@@ -383,6 +383,7 @@ where
     if is_create {
         K8sResource {
             id,
+            cluster_id,
             deployment_id: deployment.id,
             kind: k8s_openapi::kind(&resource).to_owned(),
             api_version: k8s_openapi::api_version(&resource).to_owned(),
