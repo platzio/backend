@@ -41,7 +41,7 @@ struct Config {
     /// This means that if an admin is later changed to a regular user role,
     /// they will never become an admin again unless their user is deleted from
     /// the database, or removed from this option.
-    #[clap(long = "admin_email", env = "ADMIN_EMAILS", value_delimiter = ' ')]
+    #[clap(long = "admin-email", env = "ADMIN_EMAILS", value_delimiter = ' ')]
     admin_emails: Vec<String>,
 }
 
