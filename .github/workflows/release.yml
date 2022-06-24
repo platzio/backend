@@ -21,10 +21,17 @@ jobs:
       - name: 💾 Rust Cache
         uses: Swatinem/rust-cache@v1
 
-      - name: 📦 Cargo clippy + build
+      - name: 🔨 Cargo test
         run: |
-          cargo clippy
-          cargo build
+          cargo test --release
+
+      - name: 📎 Cargo clippy
+        run: |
+          cargo clippy --release
+
+      - name: 📦 Cargo build
+        run: |
+          cargo build --release
 
       - name: 🚚 Move executables to dist/
         run: |
