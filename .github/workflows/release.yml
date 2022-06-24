@@ -32,6 +32,8 @@ jobs:
 
       - name: 🛠 Configure sccache
         uses: visvirial/sccache-action@v1
+        with:
+          cache-key: ${{ steps.cargo.outputs.rustc }}
 
       - name: 🔨 Cargo test
         run: |
