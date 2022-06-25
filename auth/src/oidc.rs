@@ -31,7 +31,7 @@ impl OidcLogin {
         })
     }
 
-    async fn client(&self, callback_url: Url) -> Result<DiscoveredClient, AuthError> {
+    async fn client(&self, callback_url: &Url) -> Result<DiscoveredClient, AuthError> {
         DiscoveredClient::discover(
             self.client_id.clone(),
             self.client_secret.clone(),
@@ -42,7 +42,7 @@ impl OidcLogin {
         .map_err(AuthError::OidcDiscoveryError)
     }
 
-    pub async fn get_redirect_url(&self, callback_url: Url) -> Result<Url, AuthError> {
+    pub async fn get_redirect_url(&self, callback_url: &Url) -> Result<Url, AuthError> {
         let client = self.client(callback_url).await?;
 
         let options = openid::Options {
@@ -55,7 +55,7 @@ impl OidcLogin {
 
     async fn validate_user(
         &self,
-        callback_url: Url,
+        callback_url: &Url,
         oauth2_response: OAuth2Response,
     ) -> Result<NewUser, AuthError> {
         let client = self.client(callback_url).await?;
@@ -83,7 +83,7 @@ impl OidcLogin {
 
     pub async fn login_user(
         &self,
-        callback_url: Url,
+        callback_url: &Url,
         oauth2_response: OAuth2Response,
     ) -> Result<User, AuthError> {
         let new_user = self.validate_user(callback_url, oauth2_response).await?;
