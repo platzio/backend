@@ -36,6 +36,16 @@ impl ChartExt {
             Err(ChartExtError::IoError(err)) => Err(err),
         }
     }
+
+    pub fn new_with_error(error: String) -> Self {
+        Self {
+            values_ui: None,
+            actions: None,
+            features: None,
+            resource_types: None,
+            error: Some(error),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
