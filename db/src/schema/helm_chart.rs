@@ -1,7 +1,9 @@
 use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
+use diesel::pg::Pg;
 use diesel::prelude::*;
+use diesel::query_builder::{AstPass, Query, QueryFragment};
 use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 pub use diesel_json::Json;
@@ -31,7 +33,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, QueryableByName, Serialize, DieselFilter)]
 #[table_name = "helm_charts"]
 #[pagination]
 pub struct HelmChart {
@@ -50,8 +52,66 @@ pub struct HelmChart {
     pub tag_format_id: Option<Uuid>,
     pub parsed_version: Option<String>,
     pub parsed_revision: Option<String>,
+    #[filter]
     pub parsed_branch: Option<String>,
     pub parsed_commit: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HelmChartExtraFilters {
+    in_use: Option<bool>,
+}
+
+#[derive(QueryId)]
+struct InUseHelmCharts<T>(T);
+
+impl<T> Query for InUseHelmCharts<T>
+where
+    T: Query,
+{
+    type SqlType = T::SqlType;
+}
+
+impl<T> RunQueryDsl<PgConnection> for InUseHelmCharts<T> {}
+
+impl<T> QueryFragment<Pg> for InUseHelmCharts<T>
+where
+    T: QueryFragment<Pg>,
+{
+    fn walk_ast(&self, mut pass: AstPass<Pg>) -> QueryResult<()> {
+        pass.push_sql(
+            "
+            WITH first_used AS (
+                SELECT
+                    chart.helm_registry_id AS helm_registry_id,
+                    chart.parsed_branch AS parsed_branch,
+                    min(chart.created_at) AS created_at
+                FROM
+                    helm_charts chart
+                INNER JOIN
+                    deployments depl
+                ON
+                    chart.id = depl.helm_chart_id
+                GROUP BY
+                    chart.helm_registry_id,
+                    chart.parsed_branch
+            )
+            SELECT \"helm_charts\".* FROM (",
+        );
+        self.0.walk_ast(pass.reborrow())?;
+        pass.push_sql(
+            ") AS helm_charts
+            INNER JOIN
+                first_used
+            ON
+                first_used.helm_registry_id = helm_charts.helm_registry_id AND
+                first_used.parsed_branch = helm_charts.parsed_branch
+            WHERE
+                first_used.created_at <= helm_charts.created_at
+            ",
+        );
+        Ok(())
+    }
 }
 
 impl HelmChart {
@@ -59,18 +119,31 @@ impl HelmChart {
         Ok(helm_charts::table.get_results_async(pool()).await?)
     }
 
-    pub async fn all_filtered(filters: HelmChartFilters) -> DbResult<Paginated<Self>> {
+    pub async fn all_filtered(
+        filters: HelmChartFilters,
+        extra_filters: HelmChartExtraFilters,
+    ) -> DbResult<Paginated<Self>> {
+        log::debug!("{:?} {:?}", filters, extra_filters);
         let conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+
         let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+            if extra_filters.in_use.unwrap_or_default() {
+                InUseHelmCharts(Self::filter(&filters))
+                    .paginate(Some(page))
+                    .per_page(Some(per_page))
+                    .load_and_count::<Self>(&conn)
+            } else {
+                Self::filter(&filters)
+                    .paginate(Some(page))
+                    .per_page(Some(per_page))
+                    .load_and_count::<Self>(&conn)
+            }
         })
         .await
         .unwrap()?;
+
         Ok(Paginated {
             page,
             per_page,
