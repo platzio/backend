@@ -1,4 +1,5 @@
 use crate::error::AuthError;
+use chrono::prelude::*;
 use chrono::Duration;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use platz_db::{Deployment, Identity, Setting, User};
@@ -41,6 +42,11 @@ impl AccessToken {
             &EncodingKey::from_secret(&jwt_secret),
         )
         .map_err(AuthError::JwtEncodeError)
+    }
+
+    pub fn expires_at(&self) -> DateTime<Utc> {
+        let naive = NaiveDateTime::from_timestamp(self.exp as i64, 0);
+        DateTime::from_utc(naive, Utc)
     }
 }
 

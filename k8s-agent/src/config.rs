@@ -1,8 +1,14 @@
 use clap::Parser;
 use lazy_static::lazy_static;
+use std::env;
+use url::Url;
 
 lazy_static! {
     pub static ref CONFIG: Config = Default::default();
+    pub static ref OWN_URL: Url = Url::parse(
+        &env::var("PLATZ_OWN_URL").expect("PLATZ_OWN_URL environment variable is not defined")
+    )
+    .unwrap();
 }
 
 #[derive(Debug, Parser)]

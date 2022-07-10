@@ -1,21 +1,13 @@
 use super::secrets::apply_secrets;
+use crate::config::OWN_URL;
 use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
-use lazy_static::lazy_static;
 use log::*;
 use platz_chart_ext::{insert_into_map, UiSchema};
 use platz_db::{DbTableOrDeploymentResource, Deployment, DeploymentTask, Env, K8sCluster};
 use serde::Serialize;
-use std::env;
 use url::Url;
 use uuid::Uuid;
-
-lazy_static! {
-    static ref OWN_URL: Url = Url::parse(
-        &env::var("PLATZ_OWN_URL").expect("PLATZ_OWN_URL environment variable is not defined")
-    )
-    .unwrap();
-}
 
 #[derive(Serialize)]
 struct ChartValues {

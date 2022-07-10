@@ -1,3 +1,4 @@
+use crate::config::OWN_URL;
 use crate::k8s::K8S_TRACKER;
 use crate::task_runner::apply_secret;
 use anyhow::Result;
@@ -50,13 +51,15 @@ async fn refresh_credentials() -> Result<()> {
 }
 
 pub(crate) async fn apply_deployment_credentials(deployment: &Deployment) -> Result<()> {
-    let access_token = AccessToken::from(deployment).encode().await?;
+    let access_token = AccessToken::from(deployment);
     apply_secret(
         deployment.cluster_id,
         &deployment.namespace_name(),
         CREDS_SECRET_NAME,
         btreemap! {
-            "access_token".to_owned() => access_token,
+            "access_token".to_owned() => access_token.encode().await?,
+            "server_url".to_owned() => OWN_URL.to_string(),
+            "expires_at".to_owned() => access_token.expires_at().to_rfc3339(),
         },
     )
     .await
