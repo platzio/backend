@@ -1,3 +1,4 @@
+use crate::kind::get_kind;
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use itertools::Itertools;
@@ -48,8 +49,9 @@ async fn save_ecr_repo_in_db(repo: Repository) -> Result<HelmRegistry> {
         .expect("Failed unpacking ECR repository URI");
     let new_registry = NewHelmRegistry {
         created_at,
-        domain_name: domain_name.into(),
-        repo_name: repo_name.into(),
+        domain_name: domain_name.to_owned(),
+        repo_name: repo_name.to_owned(),
+        kind: get_kind(repo_name),
     };
     info!("Saving {:?}", new_registry);
     Ok(new_registry.insert().await?)

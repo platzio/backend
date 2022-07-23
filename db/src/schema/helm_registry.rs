@@ -14,6 +14,7 @@ table! {
         created_at -> Timestamptz,
         domain_name -> Varchar,
         repo_name -> Varchar,
+        kind -> Varchar,
         available -> Bool,
         fa_icon -> Varchar,
     }
@@ -28,6 +29,8 @@ pub struct HelmRegistry {
     pub domain_name: String,
     #[filter]
     pub repo_name: String,
+    #[filter]
+    pub kind: String,
     pub available: bool,
     pub fa_icon: String,
 }
@@ -92,6 +95,7 @@ pub struct NewHelmRegistry {
     pub created_at: DateTime<Utc>,
     pub domain_name: String,
     pub repo_name: String,
+    pub kind: String,
 }
 
 impl NewHelmRegistry {
@@ -118,6 +122,23 @@ pub struct UpdateHelmRegistry {
 }
 
 impl UpdateHelmRegistry {
+    pub async fn save(self, id: Uuid) -> DbResult<HelmRegistry> {
+        Ok(
+            diesel::update(helm_registries::table.filter(helm_registries::id.eq(id)))
+                .set(self)
+                .get_result_async(pool())
+                .await?,
+        )
+    }
+}
+
+#[derive(Debug, AsChangeset, Deserialize)]
+#[table_name = "helm_registries"]
+pub struct UpdateHelmRegistryKind {
+    pub kind: String,
+}
+
+impl UpdateHelmRegistryKind {
     pub async fn save(self, id: Uuid) -> DbResult<HelmRegistry> {
         Ok(
             diesel::update(helm_registries::table.filter(helm_registries::id.eq(id)))

@@ -4,6 +4,7 @@ use tokio::select;
 
 mod charts;
 mod ecr_events;
+mod kind;
 mod registries;
 mod tag_parser;
 
@@ -44,6 +45,8 @@ async fn main() -> Result<()> {
         .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
         .filter(None, config.all_log_level())
         .init();
+
+    kind::update_all_registries().await?;
 
     select! {
         result = ecr_events::run(&config.ecr_events) => {
