@@ -26,7 +26,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Clone, Identifiable, Queryable, Serialize, DieselFilter)]
 #[table_name = "k8s_clusters"]
 #[pagination]
 pub struct K8sCluster {

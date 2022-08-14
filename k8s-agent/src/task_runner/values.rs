@@ -10,9 +10,9 @@ use url::Url;
 use uuid::Uuid;
 
 #[derive(Serialize)]
-struct ChartValues {
-    platz: PlatzInfo,
-    shira: PlatzInfo, // Support old name
+struct ChartValues<'a> {
+    platz: &'a PlatzInfo<'a>,
+    shira: &'a PlatzInfo<'a>, // Support old name
     #[serde(rename = "nodeSelector")]
     node_selector: serde_json::Value,
     tolerations: serde_json::Value,
@@ -20,11 +20,12 @@ struct ChartValues {
 }
 
 #[derive(Clone, Serialize)]
-struct PlatzInfo {
+struct PlatzInfo<'a> {
     env_id: Uuid,
     env_name: String,
     cluster_id: Uuid,
     cluster_name: String,
+    cluster: &'a K8sCluster,
     deployment_id: Uuid,
     deployment_name: String,
     deployment_kind: String,
@@ -117,6 +118,7 @@ pub async fn create_values_and_secrets(
         env_name: env.name,
         cluster_id: deployment.cluster_id,
         cluster_name: cluster.name()?.to_owned(),
+        cluster: &db_cluster,
         deployment_id: deployment.id,
         deployment_name: deployment.name.to_owned(),
         deployment_kind: deployment.kind.to_owned(),
@@ -125,14 +127,14 @@ pub async fn create_values_and_secrets(
     };
 
     let mut values = serde_json::to_value(ChartValues {
-        shira: platz_info.clone(),
-        platz: platz_info,
+        shira: &platz_info,
+        platz: &platz_info,
         node_selector: env.node_selector.clone(),
         tolerations: env.tolerations.clone(),
         ingress: {
             let ingress = features.ingress();
             if ingress.enabled {
-                if let Some(secret_name) = db_cluster.domain_tls_secret_name {
+                if let Some(secret_name) = db_cluster.domain_tls_secret_name.as_ref() {
                     let ingress_host = deployment.ingress_hostname(ingress.hostname_format).await?;
                     Ingress::new(ingress_host, secret_name.clone())
                 } else {
