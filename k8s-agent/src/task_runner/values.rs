@@ -34,16 +34,19 @@ struct PlatzInfo<'a> {
 }
 
 #[derive(Default, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Ingress {
     enabled: bool,
+    class_name: Option<String>,
     hosts: Vec<IngressHost>,
     tls: Vec<IngressTls>,
 }
 
 impl Ingress {
-    fn new(host: String, secret_name: String) -> Self {
+    fn new(host: String, class_name: Option<String>, secret_name: String) -> Self {
         Self {
             enabled: true,
+            class_name,
             hosts: vec![IngressHost::new(host.clone())],
             tls: vec![IngressTls::new(host, secret_name)],
         }
@@ -133,16 +136,20 @@ pub async fn create_values_and_secrets(
         tolerations: env.tolerations.clone(),
         ingress: {
             let ingress = features.ingress();
-            if ingress.enabled {
-                if let Some(secret_name) = db_cluster.domain_tls_secret_name.as_ref() {
+            match (ingress.enabled, db_cluster.ingress_tls_secret_name.as_ref()) {
+                (true, Some(secret_name)) => {
                     let ingress_host = deployment.ingress_hostname(ingress.hostname_format).await?;
-                    Ingress::new(ingress_host, secret_name.clone())
-                } else {
+                    Ingress::new(
+                        ingress_host,
+                        db_cluster.ingress_class.to_owned(),
+                        secret_name.clone(),
+                    )
+                }
+                (true, _) => {
                     warn!("Deployment standard_ingress is enabled but domain_tls_secret_name is not configured for the cluster. Not creating ingress.");
                     Default::default()
                 }
-            } else {
-                Default::default()
+                _ => Default::default(),
             }
         },
     })?;

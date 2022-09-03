@@ -281,7 +281,9 @@ impl Deployment {
                 ChartExtIngressHostnameFormat::Name => self.name.clone(),
                 ChartExtIngressHostnameFormat::KindAndName => self.namespace_name(),
             },
-            cluster.domain.ok_or(DbError::ClusterHasNoDomain)?
+            cluster
+                .ingress_domain
+                .ok_or(DbError::ClusterHasNoIngressDomain)?
         ))
     }
 

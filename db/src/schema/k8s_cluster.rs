@@ -19,8 +19,9 @@ table! {
         is_ok -> Bool,
         not_ok_reason -> Nullable<Varchar>,
         ignore -> Bool,
-        domain -> Nullable<Varchar>,
-        domain_tls_secret_name -> Nullable<Varchar>,
+        ingress_domain -> Nullable<Varchar>,
+        ingress_class -> Nullable<Varchar>,
+        ingress_tls_secret_name -> Nullable<Varchar>,
         grafana_url -> Nullable<Varchar>,
         grafana_datasource_name -> Nullable<Varchar>,
     }
@@ -41,8 +42,9 @@ pub struct K8sCluster {
     pub is_ok: bool,
     pub not_ok_reason: Option<String>,
     pub ignore: bool,
-    pub domain: Option<String>,
-    pub domain_tls_secret_name: Option<String>,
+    pub ingress_domain: Option<String>,
+    pub ingress_class: Option<String>,
+    pub ingress_tls_secret_name: Option<String>,
     pub grafana_url: Option<String>,
     pub grafana_datasource_name: Option<String>,
 }
@@ -154,9 +156,11 @@ pub struct UpdateK8sCluster {
     pub env_id: Option<Option<Uuid>>,
     pub ignore: Option<bool>,
     #[serde(default, with = "::serde_with::rust::double_option")]
-    pub domain: Option<Option<String>>,
+    pub ingress_domain: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
-    pub domain_tls_secret_name: Option<Option<String>>,
+    pub ingress_class: Option<Option<String>>,
+    #[serde(default, with = "::serde_with::rust::double_option")]
+    pub ingress_tls_secret_name: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub grafana_url: Option<Option<String>>,
     #[serde(default, with = "::serde_with::rust::double_option")]

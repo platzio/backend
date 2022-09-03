@@ -24,7 +24,7 @@ pub enum DbError {
     EventBroadcastError(tokio::sync::broadcast::error::SendError<DbEvent>),
 
     #[error("Could not generate standard_ingress hostname because the cluster has no domain configured. Please configure a domain for the cluster and try again.")]
-    ClusterHasNoDomain,
+    ClusterHasNoIngressDomain,
 
     #[error("This helm chart does not have any actions")]
     HelmChartNoActionsSchema,
