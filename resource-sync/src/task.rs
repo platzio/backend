@@ -73,7 +73,19 @@ where
         .and_then(|lifecycle| lifecycle.target.as_ref())
         .as_ref()
     {
-        None => Ok(true),
+        None => {
+            debug!(
+                "Resource type for {} ({}) has no lifecycle hook, setting as ready",
+                resource.id, resource.name,
+            );
+            UpdateDeploymentResourceSyncStatus {
+                sync_status: Some(SyncStatus::Ready),
+                sync_reason: Some(None),
+            }
+            .save(resource.id)
+            .await?;
+            Ok(true)
+        }
         Some(target) => match resource.sync_to(target).await {
             Ok(result) => {
                 debug!(
