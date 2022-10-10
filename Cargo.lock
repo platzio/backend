@@ -2305,7 +2305,9 @@ dependencies = [
 
 [[package]]
 name = "platz-chart-ext"
-version = "0.1.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b6bfcdd4f6d48560e5fce8c80ad01be9e7a2f69525ae9300dbb2bc764081fe5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2315,7 +2317,6 @@ dependencies = [
  "serde_json",
  "serde_yaml 0.9.11",
  "strum",
- "strum_macros",
  "thiserror",
  "tokio",
  "url",

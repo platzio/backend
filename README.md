@@ -7,7 +7,6 @@ This repo contains Platz's backend. It's written in Rust 🦀 and is broken down
 * `platz-k8s-agent`
 * `platz-chart-discovery`
 * `platz-status-updates`
-* `platz-chart-ext`
 
 ## How to Develop
 
@@ -88,10 +87,6 @@ See *Helm Chart Extensions* below for more information.
 This worker is responsible for watching Platz deployments that have enabled the `status` feature in their chart's `features.json`. See *Helm Chart Extensions* below for information on this.
 
 For each deployment, Platz queries the status endpoint and updates the deployment's status in the database. The frontend can then display this information.
-
-### `platz-chart-ext`
-
-This library implements the UI Schema data structures and contains the relevant code to convert user inputs, created by this schema's definitions, to outputs and secrets that can then be used by `platz-k8s-agent` when installing deployments.
 
 ## Terraform
 

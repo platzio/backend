@@ -21,6 +21,7 @@ kube-runtime = {version = "0.73.0"}
 lazy_static = "1"
 log = "0.4.14"
 maplit = "1"
+platz-chart-ext = {version = "0.4.0", default-features = false, features = ["uuid08"]}
 platz-sdk = "0.2.0"
 rusoto_core = {version = "0.48.0", default-features = false, features = ["rustls"]}
 rusoto_eks = {version = "0.48.0", default-features = false, features = ["rustls"]}
@@ -32,9 +33,6 @@ tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.7.1"}
 url = {version = "2.2.2", features = ["serde"]}
 uuid = {version = "0.8", features = ["serde", "v4"]}
-
-[dependencies.platz-chart-ext]
-path = "../chart-ext"
 
 [dependencies.platz-db]
 path = "../db"
