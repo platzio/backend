@@ -129,13 +129,8 @@ async fn get_pod_output(mut attached: AttachedProcess) -> Result<String> {
 
     debug!("Waiting for process to finish");
     let join_lines = attached.join().await.map_or_else(
-        |_| "".to_owned(),
-        |err| {
-            format!(
-                "An error has occurred while waiting for runner pod to finish: {:?}\n\n",
-                err
-            )
-        },
+        |err| format!("An error has occurred while waiting for runner pod to finish: {err:?}\n\n",),
+        |_| Default::default(),
     );
 
     Ok(join_lines + &lines.join(""))
