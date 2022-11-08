@@ -5,9 +5,6 @@ on:
     tags:
       - v**
 
-env:
-  RUST_VERSION: 1.61.0
-
 jobs:
   build:
     name: 🚀 Build & Push to DockerHub
@@ -20,7 +17,7 @@ jobs:
         id: cargo
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ env.RUST_VERSION }}
+          toolchain: stable
           default: true
           components: clippy
 
