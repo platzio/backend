@@ -53,8 +53,12 @@ async fn run_pending_tasks() -> Result<()> {
     let cluster_ids = K8S_TRACKER.get_ids().await;
     info!("Running pending tasks for {:?}", cluster_ids);
     while let Some(task) = DeploymentTask::next_pending(&cluster_ids).await? {
-        info!("Running task {}", task.id);
-        task.run().await?;
+        let task_id = task.id;
+        info!("Running task {}", task_id);
+        match task.run().await {
+            Ok(()) => debug!("Task {} finished successfully", task_id),
+            Err(err) => error!("Task {} failed: {:?}", task_id, err),
+        }
     }
     Ok(())
 }
