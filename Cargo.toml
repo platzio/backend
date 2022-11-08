@@ -9,3 +9,6 @@ members = [
   "rusoto-utils",
   "status-updates",
 ]
+
+[profile.release]
+debug = true
