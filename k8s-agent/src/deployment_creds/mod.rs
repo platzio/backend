@@ -43,6 +43,7 @@ async fn refresh_credentials() -> Result<()> {
         Deployment::find_by_cluster_ids(cluster_ids)
             .await?
             .iter()
+            .filter(|deployment| deployment.enabled)
             .map(apply_deployment_credentials),
     )
     .await?;
