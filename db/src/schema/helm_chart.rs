@@ -80,35 +80,23 @@ where
     T: QueryFragment<Pg>,
 {
     fn walk_ast(&self, mut pass: AstPass<Pg>) -> QueryResult<()> {
-        pass.push_sql(
-            "
-            WITH first_used AS (
-                SELECT
-                    chart.helm_registry_id AS helm_registry_id,
-                    chart.parsed_branch AS parsed_branch,
-                    min(chart.created_at) AS created_at
-                FROM
-                    helm_charts chart
-                INNER JOIN
-                    deployments depl
-                ON
-                    chart.id = depl.helm_chart_id
-                GROUP BY
-                    chart.helm_registry_id,
-                    chart.parsed_branch
-            )
-            SELECT \"helm_charts\".* FROM (",
-        );
+        pass.push_sql("SELECT \"helm_charts\".* FROM (");
         self.0.walk_ast(pass.reborrow())?;
         pass.push_sql(
             ") AS helm_charts
-            INNER JOIN
-                first_used
-            ON
-                first_used.helm_registry_id = helm_charts.helm_registry_id AND
-                first_used.parsed_branch = helm_charts.parsed_branch
+
             WHERE
-                first_used.created_at <= helm_charts.created_at
+                id IN (
+                    SELECT FIRST_VALUE(id) OVER (PARTITION BY parsed_branch ORDER BY created_at DESC)
+                    FROM helm_charts
+                    WHERE EXISTS(
+                        SELECT * FROM deployments WHERE deployments.helm_chart_id = helm_charts.id
+                    )
+                )
+                OR
+                EXISTS(
+                    SELECT * FROM deployments WHERE deployments.helm_chart_id = helm_charts.id
+                )
             ",
         );
         Ok(())
