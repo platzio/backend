@@ -1,5 +1,5 @@
 /// The code below was copied from https://github.com/clux/kube-rs/blob/master/examples/pod_attach.rs
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use futures::{stream, StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, AttachedProcess, DeleteParams, ListParams, ResourceExt, WatchEvent};
@@ -24,13 +24,16 @@ impl fmt::Display for PodExecutionResult {
 
 pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
     let pod_name = pod.metadata.name.as_ref().unwrap();
-    pods.create(&Default::default(), &pod).await?;
+    pods.create(&Default::default(), &pod)
+        .await
+        .context("Failed creating pod for running Helm")?;
 
     let result = wait_for_pod(&pods, pod_name).await;
 
     debug!("Deleting {}", pod_name);
     pods.delete(pod_name, &DeleteParams::default())
-        .await?
+        .await
+        .context("Failed deleting Helm pod")?
         .map_left(|pdel| {
             assert_eq!(&ResourceExt::name(&pdel), pod_name);
         });
@@ -69,15 +72,23 @@ async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionRes
     let list_params = ListParams::default()
         .fields(&format!("metadata.name={}", pod_name))
         .timeout(60);
-    let mut pod_events = pods.watch(&list_params, "0").await?.boxed();
+    let mut pod_events = pods
+        .watch(&list_params, "0")
+        .await
+        .context("Could not start watching for Helm pod status changes")?
+        .boxed();
 
-    wait_for_pod_phase(&mut pod_events, |p| p == "Running").await?;
+    wait_for_pod_phase(&mut pod_events, |p| p == "Running")
+        .await
+        .context("Failed waiting for Helm pod to reach Running phase")?;
     info!("Ready to attach to {}", pod_name);
 
     let attached = pods.attach(pod_name, &Default::default()).await?;
     let output = get_pod_output(attached).await?;
 
-    wait_for_pod_phase(&mut pod_events, |p| p == "Succeeded" || p == "Failed").await?;
+    wait_for_pod_phase(&mut pod_events, |p| p == "Succeeded" || p == "Failed")
+        .await
+        .context("Failed waiting for Helm pod to reach Succeeded or Failed phase")?;
     info!("Pod {} terminated", pod_name);
 
     let pod_status = pods.get_status(pod_name).await?;
@@ -129,7 +140,7 @@ async fn get_pod_output(mut attached: AttachedProcess) -> Result<String> {
 
     debug!("Waiting for process to finish");
     let join_lines = attached.join().await.map_or_else(
-        |err| format!("An error has occurred while waiting for runner pod to finish: {err:?}\n\n",),
+        |err| format!("An error has occurred while waiting for Helm pod to finish: {err:?}\n\n",),
         |_| Default::default(),
     );
 
