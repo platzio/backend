@@ -2388,6 +2388,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-util",
+ "tryhard",
  "url",
  "uuid",
 ]
@@ -3662,6 +3663,17 @@ name = "try-lock"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
+
+[[package]]
+name = "tryhard"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a30c54ab5d67a3aee4be0ffb0cc035426a06ffc3ef1ba979b3c658168688691"
+dependencies = [
+ "futures",
+ "pin-project-lite",
+ "tokio",
+]
 
 [[package]]
 name = "tungstenite"

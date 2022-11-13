@@ -71,9 +71,9 @@ where
 async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionResult> {
     let list_params = ListParams::default()
         .fields(&format!("metadata.name={}", pod_name))
-        .timeout(60);
-    let mut pod_events = pods
-        .watch(&list_params, "0")
+        .timeout(5);
+    let mut pod_events = tryhard::retry_fn(|| pods.watch(&list_params, "0"))
+        .retries(5)
         .await
         .context("Could not start watching for Helm pod status changes")?
         .boxed();
