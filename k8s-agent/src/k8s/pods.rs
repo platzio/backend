@@ -1,8 +1,8 @@
 /// The code below was copied from https://github.com/clux/kube-rs/blob/master/examples/pod_attach.rs
 use anyhow::{anyhow, Context, Result};
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{stream, StreamExt};
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, AttachedProcess, DeleteParams, ListParams, ResourceExt, WatchEvent};
+use kube::api::{Api, AttachedProcess, DeleteParams, ListParams, ResourceExt};
 use log::*;
 use std::fmt;
 
@@ -46,23 +46,30 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
 
 async fn wait_for_pod_phase<S, F>(mut stream: S, pred: F) -> Result<()>
 where
-    S: futures::Stream<Item = kube::Result<WatchEvent<Pod>>> + Unpin,
+    S: futures::Stream<
+            Item = Result<kube::runtime::watcher::Event<Pod>, kube::runtime::watcher::Error>,
+        > + Unpin,
     F: Fn(&str) -> bool,
 {
-    while let Some(status) = stream.try_next().await? {
-        if let WatchEvent::Modified(pod) = status {
-            let status = match pod.status.as_ref() {
-                Some(status) => status,
-                None => continue,
-            };
-            match &status.phase {
-                Some(phase) => {
-                    if pred(phase) {
-                        return Ok(());
+    while let Some(status) = stream.next().await {
+        match status {
+            Ok(status) => {
+                if let kube::runtime::watcher::Event::Applied(pod) = status {
+                    let status = match pod.status.as_ref() {
+                        Some(status) => status,
+                        None => continue,
+                    };
+                    match &status.phase {
+                        Some(phase) => {
+                            if pred(phase) {
+                                return Ok(());
+                            }
+                        }
+                        None => continue,
                     }
                 }
-                None => continue,
             }
+            Err(e) => log::debug!("Recovering from watcher error: {e:?}"),
         }
     }
     Err(anyhow!("Failed waiting for pod to reach phase"))
@@ -72,11 +79,8 @@ async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionRes
     let list_params = ListParams::default()
         .fields(&format!("metadata.name={}", pod_name))
         .timeout(5);
-    let mut pod_events = tryhard::retry_fn(|| pods.watch(&list_params, "0"))
-        .retries(5)
-        .await
-        .context("Could not start watching for Helm pod status changes")?
-        .boxed();
+
+    let mut pod_events = kube::runtime::watcher(pods.clone(), list_params.clone()).boxed();
 
     wait_for_pod_phase(&mut pod_events, |p| p == "Running")
         .await
