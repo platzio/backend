@@ -54,7 +54,7 @@ where
     while let Some(status) = stream.next().await {
         match status {
             Ok(status) => {
-                if let kube::runtime::watcher::Event::Applied(pod) = status {
+                for pod in status.into_iter_applied() {
                     let status = match pod.status.as_ref() {
                         Some(status) => status,
                         None => continue,
