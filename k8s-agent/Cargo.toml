@@ -31,9 +31,9 @@ serde_yaml = "0.8.17"
 thiserror = "1.0.30"
 tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.7.1"}
+tryhard = "0.5.0"
 url = {version = "2.2.2", features = ["serde"]}
 uuid = {version = "0.8", features = ["serde", "v4"]}
-tryhard = "0.5.0"
 
 [dependencies.platz-db]
 path = "../db"

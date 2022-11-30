@@ -1,6 +1,6 @@
 use anyhow::Result;
 use log::*;
-use platz_db::{db_events, DbTable, HelmChart, HelmChartTagInfo, HelmTagFormat};
+use platz_db::{db_events, DbTable, HelmChart, HelmChartFilters, HelmChartTagInfo, HelmTagFormat};
 use regex::Regex;
 
 pub async fn run() -> Result<()> {
@@ -75,23 +75,49 @@ async fn update_all_charts() -> Result<()> {
         formats.0.len()
     );
 
-    for helm_chart in HelmChart::all().await? {
-        debug!("Testing chart {}", helm_chart.id);
-        let current = formats.test(&helm_chart.image_tag);
-        if helm_chart.tag_format_id != current.tag_format_id
-            && helm_chart.parsed_version != current.parsed_version
-            && helm_chart.parsed_revision != current.parsed_revision
-            && helm_chart.parsed_branch != current.parsed_branch
-            && helm_chart.parsed_commit != current.parsed_commit
-        {
-            warn!(
-                "Chart {} has new parsed tag info: {:?}",
-                helm_chart.id, current
-            );
-            current.save(helm_chart.id).await?;
+    for page in 1.. {
+        let helm_charts = get_charts_page(page).await?;
+        if helm_charts.is_empty() {
+            break;
+        }
+        for helm_chart in helm_charts {
+            debug!("Testing chart {}", helm_chart.id);
+            let current = formats.test(&helm_chart.image_tag);
+            if helm_chart.tag_format_id != current.tag_format_id
+                && helm_chart.parsed_version != current.parsed_version
+                && helm_chart.parsed_revision != current.parsed_revision
+                && helm_chart.parsed_branch != current.parsed_branch
+                && helm_chart.parsed_commit != current.parsed_commit
+            {
+                warn!(
+                    "Chart {} has new parsed tag info: {:?}",
+                    helm_chart.id, current
+                );
+                current.save(helm_chart.id).await?;
+            }
         }
     }
+
     Ok(())
+}
+
+async fn get_charts_page(page: i64) -> Result<Vec<HelmChart>> {
+    let result = HelmChart::all_filtered(
+        HelmChartFilters {
+            helm_registry_id: None,
+            parsed_branch: None,
+            page: Some(page),
+            per_page: Some(50),
+        },
+        Default::default(),
+    )
+    .await?;
+    debug!(
+        "Fetched Helm charts page {}/{}",
+        page,
+        result.num_total / result.per_page.max(1)
+    );
+    Ok(result.items)
 }
 
 pub async fn parse_image_tag(image_tag: &str) -> Result<HelmChartTagInfo> {

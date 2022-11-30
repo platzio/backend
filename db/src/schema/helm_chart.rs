@@ -57,7 +57,7 @@ pub struct HelmChart {
     pub parsed_commit: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct HelmChartExtraFilters {
     in_use: Option<bool>,
     kind: Option<String>,
