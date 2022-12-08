@@ -93,6 +93,7 @@ impl DeploymentTask {
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
+                .order_by(deployment_tasks::created_at.desc())
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&conn)
