@@ -1,0 +1,2 @@
+drop index kdeployment_tasks__created_at;
+drop index kdeployment_tasks__deployment_id;
