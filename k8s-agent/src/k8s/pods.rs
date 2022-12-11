@@ -2,9 +2,9 @@
 use anyhow::{anyhow, Context, Result};
 use futures::{stream, StreamExt};
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, AttachedProcess, DeleteParams, ListParams, ResourceExt};
+use kube::api::{Api, AttachedProcess, ListParams, ResourceExt};
 use log::*;
-use std::fmt;
+use std::{fmt, time::Duration};
 
 #[derive(Debug, thiserror::Error)]
 pub struct PodExecutionResult {
@@ -23,19 +23,26 @@ impl fmt::Display for PodExecutionResult {
 }
 
 pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
-    let pod_name = pod.metadata.name.as_ref().unwrap();
-    pods.create(&Default::default(), &pod)
+    let pod_name = pod.metadata.name.clone().unwrap();
+
+    let create_params = Default::default();
+    tryhard::retry_fn(|| pods.create(&create_params, &pod))
+        .retries(10)
+        .fixed_backoff(Duration::from_millis(500))
         .await
         .context("Failed creating pod for running Helm")?;
 
-    let result = wait_for_pod(&pods, pod_name).await;
+    let result = wait_for_pod(&pods, &pod_name).await;
 
     debug!("Deleting {}", pod_name);
-    pods.delete(pod_name, &DeleteParams::default())
+    let delete_params = Default::default();
+    tryhard::retry_fn(|| pods.delete(&pod_name, &delete_params))
+        .retries(10)
+        .fixed_backoff(Duration::from_millis(500))
         .await
         .context("Failed deleting Helm pod")?
         .map_left(|pdel| {
-            assert_eq!(&ResourceExt::name(&pdel), pod_name);
+            assert_eq!(&ResourceExt::name(&pdel), &pod_name);
         });
 
     match result {
