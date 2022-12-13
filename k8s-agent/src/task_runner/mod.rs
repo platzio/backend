@@ -12,11 +12,13 @@ use log::*;
 use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
 use runnable_task::RunnableDeploymentTask;
 pub use secrets::apply_secret;
-use tokio::{select, sync::watch};
+use tokio::{select, signal::unix::SignalKind, sync::watch};
 
 pub async fn start() -> Result<()> {
     let (db_events_tx, mut db_events_rx) = watch::channel(());
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
+    let mut term = tokio::signal::unix::signal(SignalKind::terminate())?;
+    let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
 
     tokio::spawn(async move {
         let mut db_rx = db_events();
@@ -31,6 +33,17 @@ pub async fn start() -> Result<()> {
     loop {
         info!("Waiting for next event...");
         select! {
+
+            _ = term.recv() => {
+                info!("Got SIGTERM. Terminating");
+                break Ok(());
+            }
+
+            _ = interrupt.recv() => {
+                info!("Got SIGINT. Terminating");
+                break Ok(());
+            }
+
             db_event = db_events_rx.changed() => {
                 info!("Got DB event: {:?}", db_event);
                 db_event?;

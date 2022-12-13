@@ -31,7 +31,7 @@ pub async fn _main() -> Result<()> {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_PKG_NAME")), CONFIG.log_level())
         .filter(None, CONFIG.all_log_level())
@@ -39,8 +39,5 @@ async fn main() {
 
     info!("Starting K8S worker");
 
-    if let Err(e) = _main().await {
-        error!("{:?}", e);
-        std::process::exit(1);
-    }
+    _main().await
 }
