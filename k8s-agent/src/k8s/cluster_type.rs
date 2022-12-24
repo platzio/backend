@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use kube::config::ExecInteractiveMode;
 use log::*;
 use platz_db::NewK8sCluster;
 use std::convert::TryFrom;
@@ -125,20 +126,18 @@ impl TryFrom<&K8s> for kube::config::Kubeconfig {
             kind: Some("Config".to_owned()),
             clusters: vec![kube::config::NamedCluster {
                 name: cluster.into(),
-                cluster: kube::config::Cluster {
-                    server: server_url.into(),
+                cluster: Some(kube::config::Cluster {
+                    server: Some(server_url.into()),
                     insecure_skip_tls_verify: Some(false),
-                    certificate_authority: None,
                     certificate_authority_data: Some(k8s.ca_data()?.into()),
-                    extensions: None,
-                    proxy_url: None,
-                },
+                    ..Default::default()
+                }),
             }],
             auth_infos: vec![kube::config::NamedAuthInfo {
                 name: user.to_owned(),
-                auth_info: kube::config::AuthInfo {
+                auth_info: Some(kube::config::AuthInfo {
                     exec: Some(kube::config::ExecConfig {
-                        command: "aws".into(),
+                        command: Some("aws".into()),
                         args: Some(vec![
                             "eks".into(),
                             "get-token".into(),
@@ -148,19 +147,21 @@ impl TryFrom<&K8s> for kube::config::Kubeconfig {
                             cluster.into(),
                         ]),
                         api_version: Some("client.authentication.k8s.io/v1alpha1".to_owned()),
+                        interactive_mode: Some(ExecInteractiveMode::Never),
                         env: None,
+                        drop_env: None,
                     }),
                     ..Default::default()
-                },
+                }),
             }],
             contexts: vec![kube::config::NamedContext {
                 name: "default".to_owned(),
-                context: kube::config::Context {
+                context: Some(kube::config::Context {
                     cluster: cluster.into(),
                     user: user.to_owned(),
                     namespace: None,
                     extensions: None,
-                },
+                }),
             }],
             current_context: Some("default".to_owned()),
             ..Default::default()

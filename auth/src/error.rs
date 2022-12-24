@@ -31,4 +31,7 @@ pub enum AuthError {
 
     #[error("JWT decode error")]
     JwtSecretDecodingError,
+
+    #[error("Overflow converting to NaiveDateTime: {0}")]
+    NaiveDateTimeConvertOverflow(usize),
 }

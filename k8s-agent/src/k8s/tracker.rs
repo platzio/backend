@@ -11,7 +11,7 @@ use kube::ResourceExt;
 use lazy_static::lazy_static;
 use log::*;
 use platz_db::{DeploymentStatus, K8sResource, NewK8sCluster, UpdateK8sClusterStatus};
-use platz_sdk::deployment_status::StatusColor;
+use platz_sdk::StatusColor;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::{broadcast, watch, RwLock};

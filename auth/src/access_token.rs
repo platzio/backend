@@ -44,9 +44,10 @@ impl AccessToken {
         .map_err(AuthError::JwtEncodeError)
     }
 
-    pub fn expires_at(&self) -> DateTime<Utc> {
-        let naive = NaiveDateTime::from_timestamp(self.exp as i64, 0);
-        DateTime::from_utc(naive, Utc)
+    pub fn expires_at(&self) -> Result<DateTime<Utc>, AuthError> {
+        let naive = NaiveDateTime::from_timestamp_opt(self.exp as i64, 0)
+            .ok_or_else(|| AuthError::NaiveDateTimeConvertOverflow(self.exp))?;
+        Ok(DateTime::from_utc(naive, Utc))
     }
 }
 

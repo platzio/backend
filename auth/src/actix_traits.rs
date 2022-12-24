@@ -80,6 +80,9 @@ impl From<AuthError> for actix_web::Error {
             AuthError::UserNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::DeploymentNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::JwtSecretDecodingError => actix_web::error::ErrorInternalServerError(reason),
+            AuthError::NaiveDateTimeConvertOverflow(_) => {
+                actix_web::error::ErrorUnauthorized(reason)
+            }
         }
     }
 }

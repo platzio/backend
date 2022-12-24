@@ -60,7 +60,7 @@ pub(crate) async fn apply_deployment_credentials(deployment: &Deployment) -> Res
         btreemap! {
             "access_token".to_owned() => access_token.encode().await?,
             "server_url".to_owned() => OWN_URL.to_string(),
-            "expires_at".to_owned() => access_token.expires_at().to_rfc3339(),
+            "expires_at".to_owned() => access_token.expires_at()?.to_rfc3339(),
         },
     )
     .await

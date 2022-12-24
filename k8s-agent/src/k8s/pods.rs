@@ -42,7 +42,7 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
         .await
         .context("Failed deleting Helm pod")?
         .map_left(|pdel| {
-            assert_eq!(&ResourceExt::name(&pdel), &pod_name);
+            assert_eq!(pdel.name_any(), pod_name);
         });
 
     match result {
