@@ -1,52 +1,51 @@
 use crate::kind::get_kind;
 use anyhow::{anyhow, Result};
-use chrono::prelude::*;
+use aws_sdk_ecr::model::Repository;
+use aws_smithy_types_convert::date_time::DateTimeExt;
+use aws_types::region::Region;
 use itertools::Itertools;
 use log::*;
 use platz_db::{HelmRegistry, NewHelmRegistry};
-use rusoto_ecr::{DescribeRepositoriesRequest, Ecr, EcrClient, Repository};
-use rusoto_utils::creds::rusoto_client;
-use rusoto_utils::regions::Region;
 
 pub async fn find_and_save_ecr_repo(region: Region, repo_name: &str) -> Result<HelmRegistry> {
-    let client = rusoto_client(env!("CARGO_CRATE_NAME").to_owned())?;
-    let ecr = EcrClient::new_with_client(client, region);
-    let res = ecr
-        .describe_repositories(DescribeRepositoriesRequest {
-            repository_names: Some(vec![repo_name.into()]),
-            ..Default::default()
-        })
+    let shared_config = aws_config::load_from_env().await;
+    let config = aws_sdk_ecr::config::Builder::from(&shared_config)
+        .region(region)
+        .build();
+    let ecr = aws_sdk_ecr::Client::from_conf(config);
+
+    let result = ecr
+        .describe_repositories()
+        .repository_names(repo_name)
+        .send()
         .await?;
 
-    let repo = match res.repositories {
-        None => return Err(anyhow!(format!("Could not find ECR repo: {}", repo_name))),
-        Some(repositories) => repositories
-            .into_iter()
-            .next()
-            .ok_or_else(|| anyhow!("ECR repo not found: {}", repo_name))?,
-    };
+    let repo = result
+        .repositories
+        .ok_or_else(|| anyhow!("Could not find ECR repo: {}", repo_name))?
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow!("ECR repo not found: {}", repo_name))?;
 
     save_ecr_repo_in_db(repo).await
 }
 
 async fn save_ecr_repo_in_db(repo: Repository) -> Result<HelmRegistry> {
-    let created_at = match repo.created_at {
-        None => {
-            return Err(anyhow!(format!(
-                "ECR repository has no created_at: {:?}",
-                repo
-            )))
-        }
-        Some(secs) => DateTime::from_utc(NaiveDateTime::from_timestamp(secs as i64, 0), Utc),
-    };
-    let uri = match repo.repository_uri {
-        None => return Err(anyhow!(format!("ECR repository has no url: {:?}", repo))),
-        Some(uri) => uri,
-    };
+    let created_at = repo
+        .created_at
+        .ok_or_else(|| anyhow!("ECR repository has no created_at: {:?}", repo))?
+        .to_chrono_utc()?;
+
+    let uri = repo
+        .repository_uri
+        .as_ref()
+        .ok_or_else(|| anyhow!("ECR repository has no url: {:?}", repo))?;
+
     let (domain_name, repo_name) = uri
         .splitn(2, '/')
         .collect_tuple()
         .expect("Failed unpacking ECR repository URI");
+
     let new_registry = NewHelmRegistry {
         created_at,
         domain_name: domain_name.to_owned(),

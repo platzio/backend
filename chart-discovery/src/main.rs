@@ -6,6 +6,7 @@ mod charts;
 mod ecr_events;
 mod kind;
 mod registries;
+mod sqs;
 mod tag_parser;
 
 #[derive(Debug, Parser)]

@@ -1,18 +1,17 @@
 use crate::ecr_events::{EcrEvent, EcrEventDetail};
 use crate::tag_parser::parse_image_tag;
 use anyhow::{anyhow, Result};
-use chrono::prelude::*;
+use aws_smithy_types_convert::date_time::DateTimeExt;
 use log::*;
 use platz_chart_ext::ChartExt;
 use platz_db::{diesel_json, HelmChart, NewHelmChart, UpdateHelmChart};
-use rusoto_ecr::EcrClient;
 use std::path::PathBuf;
 use tokio::process::Command;
 
 const HELM_ARTIFACT_MEDIA_TYPE: &str = "application/vnd.cncf.helm.config.v1+json";
 const TEMP_DOWNLOAD_PATH: &str = "/tmp/platz-chart-download";
 
-pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
+pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Result<()> {
     let image_detail = match event.detail.image_detail(ecr).await? {
         Some(image_detail) => image_detail,
         None => {
@@ -26,10 +25,15 @@ pub async fn add_helm_chart(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
         return Ok(());
     }
 
-    let created_at = DateTime::from_utc(
-        NaiveDateTime::from_timestamp(image_detail.image_pushed_at.unwrap() as i64, 0),
-        Utc,
-    );
+    let created_at = image_detail
+        .image_pushed_at
+        .ok_or_else(|| {
+            anyhow!(
+                "ECR image detail has no \"image_pushed_at\": {:?}",
+                image_detail
+            )
+        })?
+        .to_chrono_utc()?;
 
     let helm_registry = event.find_or_create_ecr_repo().await?;
 

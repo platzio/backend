@@ -1,14 +1,12 @@
 use anyhow::{anyhow, Result};
 use log::*;
 use platz_db::NewK8sCluster;
-use rusoto_core::Region;
 use std::convert::TryFrom;
 use std::fmt;
-use std::str::FromStr;
 
 #[derive(Debug)]
 pub enum K8s {
-    Eks(rusoto_eks::Cluster),
+    Eks(aws_sdk_eks::model::Cluster),
 }
 
 impl fmt::Display for K8s {
@@ -26,8 +24,8 @@ impl fmt::Display for K8s {
     }
 }
 
-impl From<rusoto_eks::Cluster> for K8s {
-    fn from(cluster: rusoto_eks::Cluster) -> Self {
+impl From<aws_sdk_eks::model::Cluster> for K8s {
+    fn from(cluster: aws_sdk_eks::model::Cluster) -> Self {
         Self::Eks(cluster)
     }
 }
@@ -67,19 +65,18 @@ impl K8s {
         })
     }
 
-    fn region(&self) -> Result<Region> {
+    fn region(&self) -> Result<aws_arn::Identifier> {
         Ok(match self {
             K8s::Eks(cluster) => {
-                let arn: aws_arn::ARN = cluster
+                let resource_name: aws_arn::ResourceName = cluster
                     .arn
                     .as_ref()
-                    .ok_or_else(|| anyhow!("Cluster has no arn"))?
+                    .ok_or_else(|| anyhow!("Cluster has no ARN"))?
                     .parse()
-                    .unwrap();
-                Region::from_str(
-                    &arn.region
-                        .ok_or_else(|| anyhow!("Cluster arn has no region"))?,
-                )?
+                    .map_err(|err| anyhow!("Failed parsing region from ARN: {}", err))?;
+                resource_name
+                    .region
+                    .ok_or_else(|| anyhow!("Cluster ARN has no region"))?
             }
         })
     }
@@ -104,7 +101,7 @@ impl K8s {
 
 impl From<&K8s> for NewK8sCluster {
     fn from(cluster: &K8s) -> Self {
-        let region_name = cluster.region().unwrap().name().to_owned();
+        let region_name = cluster.region().unwrap().into();
         match cluster {
             K8s::Eks(cluster) => Self {
                 provider_id: cluster.arn.as_ref().unwrap().clone(),
@@ -146,7 +143,7 @@ impl TryFrom<&K8s> for kube::config::Kubeconfig {
                             "eks".into(),
                             "get-token".into(),
                             "--region".into(),
-                            k8s.region()?.name().into(),
+                            k8s.region()?.into(),
                             "--cluster".into(),
                             cluster.into(),
                         ]),

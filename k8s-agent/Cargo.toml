@@ -6,7 +6,10 @@ version = "0.1.0"
 [dependencies]
 anyhow = {version = "1", features = ["backtrace"]}
 async-trait = "0.1.48"
-aws-arn = "0.2.0"
+aws-arn = "0.3.1"
+aws-config = "0.52.0"
+aws-sdk-ec2 = "0.22.0"
+aws-sdk-eks = "0.22.0"
 base64 = "0.13.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
 clap = {version = "3.1.6", features = ["derive", "env"]}
@@ -23,8 +26,6 @@ log = "0.4.14"
 maplit = "1"
 platz-chart-ext = {version = "0.4.0", default-features = false, features = ["uuid08"]}
 platz-sdk = "0.2.0"
-rusoto_core = {version = "0.48.0", default-features = false, features = ["rustls"]}
-rusoto_eks = {version = "0.48.0", default-features = false, features = ["rustls"]}
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 serde_yaml = "0.8.17"
@@ -34,12 +35,10 @@ tokio-util = {version = "0.7.1"}
 tryhard = "0.5.0"
 url = {version = "2.2.2", features = ["serde"]}
 uuid = {version = "0.8", features = ["serde", "v4"]}
+aws-types = "0.52.0"
 
 [dependencies.platz-db]
 path = "../db"
 
 [dependencies.platz-auth]
 path = "../auth"
-
-[dependencies.rusoto-utils]
-path = "../rusoto-utils"

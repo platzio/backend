@@ -1,19 +1,12 @@
 use crate::registries::find_and_save_ecr_repo;
 use anyhow::{anyhow, Result};
+use aws_sdk_ecr::model::{ImageDetail, ImageIdentifier};
+use aws_types::region::Region;
 use chrono::prelude::*;
 use clap::Parser;
 use log::*;
 use platz_db::HelmRegistry;
-use rusoto_core::RusotoError;
-use rusoto_ecr::{
-    DescribeImagesError, DescribeImagesRequest, Ecr, EcrClient, ImageDetail, ImageIdentifier,
-};
-use rusoto_sqs::SqsClient;
-use rusoto_utils::creds::rusoto_client;
-use rusoto_utils::regions::Region;
-use rusoto_utils::sqs::handle_sqs_messages;
 use serde::Deserialize;
-use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Debug, Parser)]
@@ -22,7 +15,7 @@ pub struct Config {
     ecr_events_queue: String,
 
     #[clap(long, env = "PLATZ_ECR_EVENTS_REGION")]
-    ecr_events_region: Region,
+    ecr_events_region: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,7 +47,7 @@ impl EcrEvent {
         Ok(match self.find_ecr_repo().await? {
             Some(registry) => registry,
             None => {
-                let region = Region::from_str(&self.region)?;
+                let region = Region::new(self.region.to_owned());
                 find_and_save_ecr_repo(region, &self.detail.repository_name).await?
             }
         })
@@ -91,20 +84,25 @@ pub struct EcrEventDetail {
 }
 
 impl EcrEventDetail {
-    pub async fn image_detail(&self, ecr: &EcrClient) -> Result<Option<ImageDetail>> {
+    pub async fn image_detail(&self, ecr: &aws_sdk_ecr::Client) -> Result<Option<ImageDetail>> {
         let res = ecr
-            .describe_images(DescribeImagesRequest {
-                repository_name: self.repository_name.clone(),
-                image_ids: Some(vec![ImageIdentifier {
-                    image_digest: Some(self.image_digest.clone()),
-                    image_tag: Some(self.image_tag.clone()),
-                }]),
-                ..Default::default()
-            })
+            .describe_images()
+            .repository_name(self.repository_name.clone())
+            .image_ids(
+                ImageIdentifier::builder()
+                    .image_digest(self.image_digest.clone())
+                    .image_tag(self.image_tag.clone())
+                    .build(),
+            )
+            .send()
             .await;
         let res = match res {
             Ok(res) => res,
-            Err(RusotoError::Service(DescribeImagesError::ImageNotFound(_))) => return Ok(None),
+            Err(aws_sdk_ecr::types::SdkError::ServiceError(service_error))
+                if service_error.err().is_image_not_found_exception() =>
+            {
+                return Ok(None);
+            }
             Err(err) => return Err(err.into()),
         };
         match res.image_details {
@@ -120,7 +118,7 @@ impl EcrEventDetail {
     }
 }
 
-async fn handle_ecr_event(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
+async fn handle_ecr_event(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Result<()> {
     debug!("Event: {:?}", event);
 
     if event.detail.result == EcrEventResult::Failure {
@@ -136,17 +134,16 @@ async fn handle_ecr_event(ecr: &EcrClient, event: EcrEvent) -> Result<()> {
 
 pub async fn run(config: &Config) -> Result<()> {
     info!("Starting to watch for ECR events");
+    let region = Region::new(config.ecr_events_region.to_owned());
 
-    let client = rusoto_client(env!("CARGO_CRATE_NAME").to_owned())?;
-    let ecr = EcrClient::new_with_client(client, config.ecr_events_region.clone());
+    let shared_config = aws_config::load_from_env().await;
+    let ecr_config = aws_sdk_ecr::config::Builder::from(&shared_config)
+        .region(region.clone())
+        .build();
+    let ecr = aws_sdk_ecr::Client::from_conf(ecr_config);
 
-    handle_sqs_messages(
-        SqsClient::new_with_client(
-            rusoto_client(env!("CARGO_PKG_NAME").to_owned())?,
-            config.ecr_events_region.clone(),
-        ),
-        &config.ecr_events_queue,
-        |event| handle_ecr_event(&ecr, event),
-    )
+    crate::sqs::handle_messages(region, &config.ecr_events_queue, |event| {
+        handle_ecr_event(&ecr, event)
+    })
     .await
 }

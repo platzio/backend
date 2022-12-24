@@ -18,7 +18,9 @@ In general, you can develop the backend against the production database or using
 
 ### Running API Locally
 
-The API requires SSM parameters for defining Google OIDC login. This is automated `api/run.sh`, but since AWS SSO is not supported in Rusoto at this point, you have to export temporary credentials before running it by going to [AWS SSO Landing Page](element36.awsapps.com/start).
+```bash
+./scripts/run-api.sh
+```
 
 ### Developing Against Production Database
 
@@ -26,13 +28,13 @@ The API requires SSM parameters for defining Google OIDC login. This is automate
 
 Run the following command in a separate tab:
 
-```
+```bash
 kubectl --context=control -n platz port-forward platz-postgresql-0 5432:5432
 ```
 
 Then run any of the workers with the `DATABASE_URL` environment variable set from the directory of the crate you'd like to execute:
 
-```
+```bash
 cd api
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/platz cargo run
 ```
