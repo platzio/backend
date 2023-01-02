@@ -82,17 +82,37 @@ pub struct DeploymentTask {
     pub reason: Option<String>,
 }
 
+#[derive(Debug, Default, Deserialize)]
+pub struct DeploymentTaskExtraFilters {
+    active_only: Option<bool>,
+    created_from: Option<DateTime<Utc>>,
+}
+
 impl DeploymentTask {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployment_tasks::table.get_results_async(pool()).await?)
     }
 
-    pub async fn all_filtered(filters: DeploymentTaskFilters) -> DbResult<Paginated<Self>> {
+    pub async fn all_filtered(
+        filters: DeploymentTaskFilters,
+        extra_filters: DeploymentTaskExtraFilters,
+    ) -> DbResult<Paginated<Self>> {
         let conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
+            let mut filtered = Self::filter(&filters);
+            if extra_filters.active_only.unwrap_or(false) {
+                filtered = filtered.filter(
+                    deployment_tasks::status
+                        .eq(DeploymentTaskStatus::Started)
+                        .or(deployment_tasks::status.eq(DeploymentTaskStatus::Pending)),
+                );
+            }
+            if let Some(from_date_time) = extra_filters.created_from {
+                filtered = filtered.filter(deployment_tasks::created_at.ge(from_date_time))
+            }
+            filtered
                 .order_by(deployment_tasks::created_at.desc())
                 .paginate(Some(page))
                 .per_page(Some(per_page))
