@@ -2,7 +2,6 @@ use actix_web::middleware::Logger;
 use actix_web::{error::InternalError, web, App, HttpResponse, HttpServer};
 use anyhow::Result;
 use clap::Parser;
-use log::*;
 use platz_db::init_db;
 use serde_json::json;
 use url::Url;
@@ -102,16 +101,13 @@ async fn _main(config: Config) -> Result<()> {
     serve(config).await
 }
 
-#[actix_web::main]
-async fn main() {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let config = Config::parse();
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
         .filter(None, config.all_log_level())
         .init();
 
-    if let Err(e) = _main(config).await {
-        error!("{:?}", e);
-        std::process::exit(1);
-    }
+    _main(config).await
 }
