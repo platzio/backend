@@ -80,23 +80,60 @@ where
     T: QueryFragment<Pg>,
 {
     fn walk_ast(&self, mut pass: AstPass<Pg>) -> QueryResult<()> {
-        pass.push_sql("SELECT \"helm_charts\".* FROM (");
+        pass.push_sql(
+            r#"WITH charts_in_use AS (
+  SELECT
+    *
+  FROM
+    helm_charts
+  WHERE
+    EXISTS (
+      SELECT
+        *
+      FROM
+        deployments
+      WHERE
+        deployments.helm_chart_id = helm_charts.id)
+),
+latest_per_branch AS (
+  SELECT
+    id,
+    helm_registry_id,
+    image_tag,
+    parsed_branch,
+    FIRST_VALUE(id) OVER (PARTITION BY (helm_registry_id,
+      parsed_branch) ORDER BY created_at DESC) AS latest_available_id
+FROM
+  helm_charts
+  WHERE
+    EXISTS (
+      SELECT
+        *
+      FROM
+        charts_in_use
+      WHERE
+        charts_in_use.helm_registry_id = helm_charts.helm_registry_id
+        AND charts_in_use.parsed_branch = helm_charts.parsed_branch))
+SELECT
+  *
+FROM ("#,
+        );
         self.0.walk_ast(pass.reborrow())?;
         pass.push_sql(
             ") AS helm_charts
 
-            WHERE
-                id IN (
-                    SELECT FIRST_VALUE(id) OVER (PARTITION BY parsed_branch ORDER BY created_at DESC)
-                    FROM helm_charts
-                    WHERE EXISTS(
-                        SELECT * FROM deployments WHERE deployments.helm_chart_id = helm_charts.id
-                    )
-                )
-                OR
-                EXISTS(
-                    SELECT * FROM deployments WHERE deployments.helm_chart_id = helm_charts.id
-                )
+           WHERE (id IN (
+    SELECT
+      latest_available_id
+    FROM
+      latest_per_branch)
+    OR EXISTS (
+      SELECT
+        *
+      FROM
+        deployments
+      WHERE
+        deployments.helm_chart_id = helm_charts.id))
             ",
         );
         Ok(())
