@@ -13,6 +13,7 @@ mod k8s_resource;
 mod secret;
 mod setting;
 mod user;
+mod user_token;
 
 pub use deployment::*;
 pub use deployment_permission::*;
@@ -29,3 +30,4 @@ pub use k8s_resource::*;
 pub use secret::*;
 pub use setting::*;
 pub use user::*;
+pub use user_token::*;

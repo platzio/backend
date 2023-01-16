@@ -34,4 +34,7 @@ pub enum AuthError {
 
     #[error("Overflow converting to NaiveDateTime: {0}")]
     NaiveDateTimeConvertOverflow(usize),
+
+    #[error("User token authentication error: {0}")]
+    UserTokenAuthenticationError(String),
 }
