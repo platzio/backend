@@ -19,7 +19,7 @@ pub async fn _main(_config: Config) -> Result<()> {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let config = Config::default();
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
@@ -28,8 +28,5 @@ async fn main() {
 
     info!("Starting deployment resource sync worker");
 
-    if let Err(e) = _main(config).await {
-        error!("{:?}", e);
-        std::process::exit(1);
-    }
+    _main(config).await
 }
