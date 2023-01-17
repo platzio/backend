@@ -103,6 +103,7 @@ async fn _main(config: Config) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    dotenvy::dotenv().ok();
     let config = Config::parse();
     env_logger::Builder::new()
         .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
