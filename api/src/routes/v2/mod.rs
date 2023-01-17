@@ -15,9 +15,13 @@ mod secrets;
 mod users;
 mod ws;
 
-use actix_web::web;
+use actix_web::{web, HttpResponse};
+use serde::Serialize;
+
+use crate::result::ApiResult;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
+    cfg.route("/self", web::get().to(self_route));
     cfg.service(web::scope("/auth").configure(auth::config));
     cfg.service(web::scope("/deployment-permissions").configure(deployment_permissions::config));
     cfg.service(
@@ -36,4 +40,15 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/secrets").configure(secrets::config));
     cfg.service(web::scope("/users").configure(users::config));
     cfg.service(web::scope("/ws").configure(ws::config));
+}
+
+#[derive(Debug, Serialize)]
+pub struct SelfInfo {
+    pub version: String,
+}
+
+async fn self_route() -> ApiResult {
+    Ok(HttpResponse::Ok().json(SelfInfo {
+        version: std::env!("PLATZ_BACKEND_VERSION").to_string(),
+    }))
 }
