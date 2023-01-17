@@ -2,15 +2,22 @@ use crate::result::ApiResult;
 use actix_web::{web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
-    DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskFilters,
-    DeploymentTaskOperation, HelmChart, Json, K8sCluster, K8sResource, NewDeploymentTask,
+    DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskExtraFilters,
+    DeploymentTaskFilters, DeploymentTaskOperation, HelmChart, Json, K8sCluster, K8sResource,
+    NewDeploymentTask,
 };
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-async fn get_all(_identity: ApiIdentity, filters: web::Query<DeploymentTaskFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(DeploymentTask::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<DeploymentTaskFilters>,
+    extra_filters: web::Query<DeploymentTaskExtraFilters>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok().json(
+        DeploymentTask::all_filtered(filters.into_inner(), extra_filters.into_inner()).await?,
+    ))
 }
 
 async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
