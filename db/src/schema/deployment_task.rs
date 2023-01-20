@@ -88,6 +88,14 @@ pub struct DeploymentTaskExtraFilters {
     created_from: Option<DateTime<Utc>>,
 }
 
+#[derive(QueryableByName)]
+pub struct DeploymentTaskStat {
+    #[sql_type = "diesel::sql_types::BigInt"]
+    pub count: i64,
+    #[sql_type = "diesel::sql_types::Varchar"]
+    pub status: String,
+}
+
 impl DeploymentTask {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployment_tasks::table.get_results_async(pool()).await?)
@@ -224,6 +232,14 @@ impl DeploymentTask {
             .execute_async(pool())
             .await?;
         Ok(())
+    }
+
+    pub async fn get_status_counters() -> DbResult<Vec<DeploymentTaskStat>> {
+        Ok(diesel::sql_query(
+            "SELECT count(*) as count, status FROM deployment_tasks GROUP BY status",
+        )
+        .load_async::<DeploymentTaskStat>(pool())
+        .await?)
     }
 }
 

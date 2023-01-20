@@ -1,15 +1,19 @@
 use actix_web::middleware::Logger;
+use actix_web::Responder;
 use actix_web::{error::InternalError, web, App, HttpResponse, HttpServer};
 use anyhow::Result;
 use clap::Parser;
+use log::*;
 use platz_db::init_db;
 use serde_json::json;
+use std::time::Duration;
 use url::Url;
 
 mod permissions;
 mod result;
 mod routes;
 mod serde_utils;
+use prometheus::Encoder;
 
 #[derive(Clone, Debug, Parser)]
 struct Config {
@@ -42,6 +46,9 @@ struct Config {
     /// the database, or removed from this option.
     #[clap(long = "admin-email", env = "ADMIN_EMAILS", value_delimiter = ' ')]
     admin_emails: Vec<String>,
+
+    #[clap(long, default_value = "5")]
+    prometheus_update_interval_secs: u64,
 }
 
 impl Config {
@@ -62,6 +69,15 @@ impl Config {
 
 async fn status() -> crate::result::ApiResult {
     Ok(HttpResponse::Ok().json("ok"))
+}
+
+async fn metrics() -> impl Responder {
+    let encoder = prometheus::TextEncoder::new();
+    let mut buffer = Vec::new();
+    let metric_families = prometheus::gather();
+    // Encode them to send.
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+    String::from_utf8(buffer).unwrap()
 }
 
 async fn serve(config: Config) -> Result<()> {
@@ -89,6 +105,7 @@ async fn serve(config: Config) -> Result<()> {
             .app_data(json_cfg)
             .app_data(oidc_login.clone())
             .route("/status", web::get().to(status))
+            .route("/metrics", web::get().to(metrics))
             .service(web::scope("/api/v1").configure(routes::v1::config))
             .service(web::scope("/api/v2").configure(routes::v2::config))
     });
@@ -98,7 +115,21 @@ async fn serve(config: Config) -> Result<()> {
 
 async fn _main(config: Config) -> Result<()> {
     init_db(true).await?;
-    serve(config).await
+    crate::routes::metrics::initialize();
+
+    tokio::select! {
+        result = crate::routes::metrics::update_metrics_task(
+                Duration::from_secs(config.prometheus_update_interval_secs),
+                ) => {
+                warn!("Prometheus metrics finished");
+                result
+            }
+
+        result = serve(config) => {
+            warn!("API server finished");
+            result
+            }
+    }
 }
 
 #[tokio::main]
