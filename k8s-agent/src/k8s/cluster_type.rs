@@ -147,7 +147,7 @@ impl TryFrom<&K8s> for kube::config::Kubeconfig {
                             "--cluster-name".into(),
                             cluster.into(),
                         ]),
-                        api_version: Some("client.authentication.k8s.io/v1alpha1".to_owned()),
+                        api_version: Some("client.authentication.k8s.io/v1".to_owned()),
                         interactive_mode: Some(ExecInteractiveMode::Never),
                         env: None,
                         drop_env: None,
