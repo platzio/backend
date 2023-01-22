@@ -12,6 +12,11 @@ const HELM_ARTIFACT_MEDIA_TYPE: &str = "application/vnd.cncf.helm.config.v1+json
 const TEMP_DOWNLOAD_PATH: &str = "/tmp/platz-chart-download";
 
 pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Result<()> {
+    if event.detail.image_tag.is_empty() {
+        warn!("The event has no image_tag, skipping: {:?}", event);
+        return Ok(());
+    }
+
     let image_detail = match event.detail.image_detail(ecr).await? {
         Some(image_detail) => image_detail,
         None => {
@@ -34,12 +39,6 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
             )
         })?
         .to_chrono_utc()?;
-
-    if event.detail.image_tag.is_empty() {
-        warn!("The event has no image_tag, skipping: {:?}", event);
-        return Ok(());
-    }
-
     let tag_info = parse_image_tag(&event.detail.image_tag).await?;
 
     let helm_registry = event.find_or_create_ecr_repo().await?;
