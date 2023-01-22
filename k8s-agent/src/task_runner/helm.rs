@@ -3,6 +3,7 @@ use crate::config::CONFIG;
 use crate::k8s::execute_pod;
 use crate::k8s::K8S_TRACKER;
 use anyhow::Result;
+use base64::prelude::*;
 use k8s_openapi::api::core::v1::{Container, EnvVar, Pod, PodSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::Api;
@@ -99,13 +100,13 @@ async fn helm_pod(
                     },
                     EnvVar {
                         name: "VALUES_BASE64".into(),
-                        value: Some(base64::encode(serde_yaml::to_string(&values)?)),
+                        value: Some(BASE64_STANDARD.encode(serde_yaml::to_string(&values)?)),
                         ..Default::default()
                     },
                     EnvVar {
                         name: "VALUES_OVERRIDE_BASE64".into(),
                         value: if let Some(values_override) = &deployment.values_override {
-                            Some(base64::encode(serde_yaml::to_string(values_override)?))
+                            Some(BASE64_STANDARD.encode(serde_yaml::to_string(values_override)?))
                         } else {
                             None
                         },

@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use base64::prelude::*;
 use kube::config::ExecInteractiveMode;
 use log::*;
 use platz_db::NewK8sCluster;
@@ -96,7 +97,7 @@ impl K8s {
         let kubeconfig = kube::config::Kubeconfig::try_from(self)?;
         let yaml_kubeconfig = serde_yaml::to_string(&kubeconfig)?;
         warn!("Generated yaml kubeconfig:\n{}", yaml_kubeconfig);
-        Ok(base64::encode(yaml_kubeconfig))
+        Ok(BASE64_STANDARD.encode(yaml_kubeconfig))
     }
 }
 

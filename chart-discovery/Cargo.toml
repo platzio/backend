@@ -5,17 +5,17 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.43"
-aws-config = "0.52.0"
-aws-sdk-ecr = "0.22.0"
-aws-sdk-sqs = "0.22.0"
-aws-smithy-types-convert = {version = "0.52.0", features = ["convert-chrono"]}
-aws-types = "0.52.0"
+aws-config = "0.53.0"
+aws-sdk-ecr = "0.23.0"
+aws-sdk-sqs = "0.23.0"
+aws-smithy-types-convert = {version = "0.53.0", features = ["convert-chrono"]}
+aws-types = "0.53.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
 clap = {version = "4.0.32", features = ["derive", "env"]}
 env_logger = "0.10.0"
 itertools = "0.10.1"
 log = "0.4.14"
-platz-chart-ext = {version = "0.4.0", default-features = false, features = ["uuid08"]}
+platz-chart-ext = {version = "0.4.2", default-features = false, features = ["uuid08"]}
 regex = "1.5.6"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
