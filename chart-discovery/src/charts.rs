@@ -35,14 +35,19 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
         })?
         .to_chrono_utc()?;
 
+    if event.detail.image_tag.is_empty() {
+        warn!("The event has no image_tag, skipping: {:?}", event);
+        return Ok(());
+    }
+
+    let tag_info = parse_image_tag(&event.detail.image_tag).await?;
+
     let helm_registry = event.find_or_create_ecr_repo().await?;
 
     let chart_ext = match download_chart(&event).await {
         Ok(path) => ChartExt::from_path(&path).await?,
         Err(err) => ChartExt::new_with_error(err.to_string()),
     };
-
-    let tag_info = parse_image_tag(&event.detail.image_tag).await?;
 
     let chart = NewHelmChart {
         created_at,
