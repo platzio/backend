@@ -144,7 +144,7 @@ impl TryFrom<&K8s> for kube::config::Kubeconfig {
                             "get-token".into(),
                             "--region".into(),
                             k8s.region()?.into(),
-                            "--cluster".into(),
+                            "--cluster-name".into(),
                             cluster.into(),
                         ]),
                         api_version: Some("client.authentication.k8s.io/v1alpha1".to_owned()),
