@@ -19,7 +19,7 @@ async fn create(identity: ApiIdentity, new_tag_format: web::Json<NewHelmTagForma
     verify_site_admin(&identity).await?;
     let new_tag_format = new_tag_format.into_inner();
     Ok(if let Err(err) = Regex::new(&new_tag_format.pattern) {
-        HttpResponse::BadRequest().json(json!({ "error": format!("Pattern error: {}", err) }))
+        HttpResponse::BadRequest().json(json!({ "error": format!("Pattern error: {err}") }))
     } else {
         HttpResponse::Created().json(new_tag_format.insert().await?)
     })

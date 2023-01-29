@@ -4,10 +4,10 @@ mod tracker;
 
 use crate::tracker::StatusTracker;
 use anyhow::Result;
-use log::*;
 use clap::Parser;
+use log::*;
 
-#[derive( Debug,Parser)]
+#[derive(Debug, Parser)]
 pub struct Config {
     /// Turn debug logs on
     #[clap(long)]

@@ -11,5 +11,5 @@ fn main() {
     }
     let version = String::from_utf8_lossy(&output.stdout).into_owned();
 
-    println!("cargo:rustc-env=PLATZ_BACKEND_VERSION={}", version);
+    println!("cargo:rustc-env=PLATZ_BACKEND_VERSION={version}");
 }

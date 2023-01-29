@@ -93,7 +93,7 @@ async fn serve(config: Config) -> Result<()> {
             .service(web::scope("/api/v2").configure(routes::v2::config))
     });
 
-    Ok(server.bind(&format!("0.0.0.0:{}", api_port))?.run().await?)
+    Ok(server.bind(&format!("0.0.0.0:{api_port}"))?.run().await?)
 }
 
 async fn _main(config: Config) -> Result<()> {

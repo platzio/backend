@@ -185,7 +185,7 @@ pub struct UpdateDeploymentResource {
 
 fn merge(a: &mut serde_json::Value, b: &serde_json::Value) {
     match (a, b) {
-        (&mut serde_json::Value::Object(ref mut a), &serde_json::Value::Object(ref b)) => {
+        (&mut serde_json::Value::Object(ref mut a), serde_json::Value::Object(b)) => {
             for (k, v) in b {
                 merge(a.entry(k.clone()).or_insert(serde_json::Value::Null), v);
             }
