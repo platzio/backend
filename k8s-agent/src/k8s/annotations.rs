@@ -17,7 +17,7 @@ lazy_static::lazy_static! {
     pub static ref DEPLOYMENT_NAMESPACE_LABELS_SELECTOR: String =
         DEPLOYMENT_NAMESPACE_LABELS
             .iter()
-            .map(|(key, value)| format!("{}={}", key, value))
+            .map(|(key, value)| format!("{key}={value}"))
             .join(",");
 }
 

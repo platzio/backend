@@ -53,9 +53,7 @@ async fn helm_pod(
         "echo $VALUES_BASE64 | base64 --decode > values.yaml",
         "echo $VALUES_OVERRIDE_BASE64 | base64 --decode > values-override.yaml",
         &format!(
-            "helm --debug --kubeconfig=/root/.kube/config {command} {name} oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG --namespace={name} -f values.yaml -f values-override.yaml",
-            command=command,
-            name=namespace_name,
+            "helm --debug --kubeconfig=/root/.kube/config {command} {namespace_name} oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG --namespace={namespace_name} -f values.yaml -f values-override.yaml",
         ),
     ].join(" && ");
 

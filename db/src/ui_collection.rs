@@ -62,9 +62,9 @@ impl std::fmt::Display for DbTableOrDeploymentResource {
         match self {
             Self::DbTable(db_table) => db_table.fmt(f),
             Self::DeploymentResourceType { deployment, r#type } => {
-                write!(f, "{}/{}", deployment, r#type)
+                write!(f, "{deployment}/{type}")
             }
-            Self::LegacyCollectionName(name) => write!(f, "{}", name),
+            Self::LegacyCollectionName(name) => write!(f, "{name}"),
         }
     }
 }

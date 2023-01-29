@@ -47,7 +47,7 @@ pub async fn google_login_info(oidc_login: web::Data<OidcLogin>) -> ApiResult {
         .map(|redirect_url| HttpResponse::Ok().json(GoogleLoginInfo { redirect_url }))
         .unwrap_or_else(|e| {
             HttpResponse::InternalServerError().json(json!({
-                "message": format!("Error getting redirect URL: {}", e),
+                "message": format!("Error getting redirect URL: {e}"),
             }))
         }))
 }

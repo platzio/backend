@@ -84,7 +84,7 @@ where
 
 async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionResult> {
     let list_params = ListParams::default()
-        .fields(&format!("metadata.name={}", pod_name))
+        .fields(&format!("metadata.name={pod_name}"))
         .timeout(5);
 
     let mut pod_events = kube::runtime::watcher(pods.clone(), list_params.clone()).boxed();
