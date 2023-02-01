@@ -3,9 +3,6 @@ use crate::events::DbEvent;
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
     #[error("Diesel database error: {0}")]
-    AsyncDieselError(#[from] async_diesel::AsyncError),
-
-    #[error("Diesel database error: {0}")]
     DieselError(#[from] diesel::result::Error),
 
     #[error("Database pool error: {0}")]
@@ -61,3 +58,12 @@ pub enum DbError {
 }
 
 pub type DbResult<T> = Result<T, DbError>;
+
+impl From<async_diesel::AsyncError> for DbError {
+    fn from(err: async_diesel::AsyncError) -> Self {
+        match err {
+            async_diesel::AsyncError::Checkout(err) => Self::R2d2Error(err),
+            async_diesel::AsyncError::Error(err) => Self::DieselError(err),
+        }
+    }
+}
