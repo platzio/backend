@@ -83,6 +83,7 @@ impl From<AuthError> for actix_web::Error {
         let reason = err.to_string();
         match err {
             AuthError::DatabaseError(_) => actix_web::error::ErrorServiceUnavailable(reason),
+            AuthError::JoinError(_) => actix_web::error::ErrorInternalServerError(reason),
             AuthError::OidcDiscoveryError(_) => actix_web::error::ErrorServiceUnavailable(reason),
             AuthError::OidcLoginError(_) => actix_web::error::ErrorUnauthorized(reason),
             AuthError::OidcResponseError(_) => actix_web::error::ErrorInternalServerError(reason),

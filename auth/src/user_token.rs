@@ -2,6 +2,7 @@ use crate::error::AuthError;
 use platz_db::UserToken;
 use rand::random;
 use sha2::{Digest, Sha256};
+use tokio::task::spawn_blocking;
 use uuid::Uuid;
 
 const USER_TOKEN_SECRET_BYTES: usize = 32;
@@ -20,15 +21,15 @@ fn calculate_secret_hash(secret: &str) -> String {
     base64::encode(secret_sha256)
 }
 
-pub fn generate_user_token() -> UserTokenInfo {
+pub async fn generate_user_token() -> Result<UserTokenInfo, AuthError> {
     let token_id = Uuid::new_v4();
-    let secret = base64::encode(random::<[u8; USER_TOKEN_SECRET_BYTES]>());
+    let secret = base64::encode(spawn_blocking(random::<[u8; USER_TOKEN_SECRET_BYTES]>).await?);
     let secret_hash = calculate_secret_hash(&secret);
-    UserTokenInfo {
+    Ok(UserTokenInfo {
         secret_hash,
         token_value: format!("{}.{}", &base64::encode(token_id.as_bytes()), secret),
         token_id,
-    }
+    })
 }
 
 pub(crate) async fn validate_user_token(user_token: String) -> Result<UserToken, AuthError> {

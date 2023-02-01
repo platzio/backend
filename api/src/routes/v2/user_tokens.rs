@@ -47,7 +47,7 @@ async fn create(identity: ApiIdentity, new_user_token: web::Json<ApiNewUserToken
     let token_user_id =
         get_token_user_id_and_verify_permissions(identity, new_user_token.user_id).await?;
 
-    let user_token_info = generate_user_token();
+    let user_token_info = generate_user_token().await?;
     NewUserToken {
         id: user_token_info.token_id,
         user_id: token_user_id,
