@@ -2,7 +2,7 @@ use crate::access_token::{get_jwt_secret, AccessToken};
 use crate::error::AuthError;
 use actix_web::{dev::Payload, http::header::HeaderName, FromRequest, HttpRequest};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use futures::future::{ok, BoxFuture, FutureExt, TryFutureExt};
+use futures::future::{ok, ready, BoxFuture, FutureExt, TryFutureExt};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use platz_db::{Deployment, Identity, User};
 
@@ -61,12 +61,21 @@ impl FromRequest for super::ApiIdentity {
         let headers = req.headers();
         if let Some(user_token_value) = headers.get(HeaderName::from_static("x-platz-token")) {
             // Get (& verify) ApiIdentity from UserToken
-            let user_token_value_str = user_token_value.to_str().unwrap().to_string();
-            crate::user_token::validate_user_token(user_token_value_str)
-                .and_then(|user_token| ok(Identity::User(user_token.user_id)))
-                .and_then(|identity| ok(Self::from(identity)))
-                .and_then(|api_identity| api_identity.validate())
-                .boxed()
+            ready(
+                user_token_value
+                    .to_str()
+                    .map(ToOwned::to_owned)
+                    .map_err(|_| {
+                        AuthError::UserTokenAuthenticationError(
+                            "Token header has no value".to_owned(),
+                        )
+                    }),
+            )
+            .and_then(crate::user_token::validate_user_token)
+            .and_then(|user_token| ok(Identity::User(user_token.user_id)))
+            .and_then(|identity| ok(Self::from(identity)))
+            .and_then(|api_identity| api_identity.validate())
+            .boxed()
         } else {
             // Get (& verify) ApiIdentity from AccessToken
             AccessToken::from_request(req, payload)
