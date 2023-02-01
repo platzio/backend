@@ -1,8 +1,8 @@
 use crate::access_token::{get_jwt_secret, AccessToken};
 use crate::error::AuthError;
-use actix_web::{dev::Payload, FromRequest, HttpRequest};
+use actix_web::{dev::Payload, http::header::HeaderName, FromRequest, HttpRequest};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use futures::future::{ok, BoxFuture, FutureExt, TryFutureExt};
+use futures::future::{ok, ready, BoxFuture, FutureExt, TryFutureExt};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use platz_db::{Deployment, Identity, User};
 
@@ -58,11 +58,32 @@ impl FromRequest for super::ApiIdentity {
     type Future = BoxFuture<'static, Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
-        AccessToken::from_request(req, payload)
-            .and_then(|access_token| ok(Identity::from(access_token)))
+        let headers = req.headers();
+        if let Some(user_token_value) = headers.get(HeaderName::from_static("x-platz-token")) {
+            // Get (& verify) ApiIdentity from UserToken
+            ready(
+                user_token_value
+                    .to_str()
+                    .map(ToOwned::to_owned)
+                    .map_err(|_| {
+                        AuthError::UserTokenAuthenticationError(
+                            "Token header has no value".to_owned(),
+                        )
+                    }),
+            )
+            .and_then(crate::user_token::validate_user_token)
+            .and_then(|user_token| ok(Identity::User(user_token.user_id)))
             .and_then(|identity| ok(Self::from(identity)))
             .and_then(|api_identity| api_identity.validate())
             .boxed()
+        } else {
+            // Get (& verify) ApiIdentity from AccessToken
+            AccessToken::from_request(req, payload)
+                .and_then(|access_token| ok(Identity::from(access_token)))
+                .and_then(|identity| ok(Self::from(identity)))
+                .and_then(|api_identity| api_identity.validate())
+                .boxed()
+        }
     }
 }
 
@@ -71,6 +92,7 @@ impl From<AuthError> for actix_web::Error {
         let reason = err.to_string();
         match err {
             AuthError::DatabaseError(_) => actix_web::error::ErrorServiceUnavailable(reason),
+            AuthError::JoinError(_) => actix_web::error::ErrorInternalServerError(reason),
             AuthError::OidcDiscoveryError(_) => actix_web::error::ErrorServiceUnavailable(reason),
             AuthError::OidcLoginError(_) => actix_web::error::ErrorUnauthorized(reason),
             AuthError::OidcResponseError(_) => actix_web::error::ErrorInternalServerError(reason),
@@ -80,6 +102,9 @@ impl From<AuthError> for actix_web::Error {
             AuthError::UserNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::DeploymentNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::JwtSecretDecodingError => actix_web::error::ErrorInternalServerError(reason),
+            AuthError::UserTokenAuthenticationError(_) => {
+                actix_web::error::ErrorUnauthorized(reason)
+            }
             AuthError::NaiveDateTimeConvertOverflow(_) => {
                 actix_web::error::ErrorUnauthorized(reason)
             }

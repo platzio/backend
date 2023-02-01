@@ -5,6 +5,9 @@ pub enum AuthError {
     #[error("Database error: {0}")]
     DatabaseError(#[from] DbError),
 
+    #[error(transparent)]
+    JoinError(#[from] tokio::task::JoinError),
+
     #[error("OIDC discovery error: {0}")]
     OidcDiscoveryError(openid::error::Error),
 
@@ -34,4 +37,7 @@ pub enum AuthError {
 
     #[error("Overflow converting to NaiveDateTime: {0}")]
     NaiveDateTimeConvertOverflow(usize),
+
+    #[error("User token authentication error: {0}")]
+    UserTokenAuthenticationError(String),
 }

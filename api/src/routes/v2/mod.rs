@@ -12,6 +12,7 @@ mod helm_tag_formats;
 mod k8s_clusters;
 mod k8s_resources;
 mod secrets;
+mod user_tokens;
 mod users;
 mod ws;
 
@@ -38,6 +39,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/k8s-clusters").configure(k8s_clusters::config));
     cfg.service(web::scope("/k8s-resources").configure(k8s_resources::config));
     cfg.service(web::scope("/secrets").configure(secrets::config));
+    cfg.service(web::scope("/user-tokens").configure(user_tokens::config));
     cfg.service(web::scope("/users").configure(users::config));
     cfg.service(web::scope("/ws").configure(ws::config));
 }

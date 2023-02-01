@@ -2773,7 +2773,7 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "actix-web-httpauth",
- "base64 0.20.0",
+ "base64 0.21.0",
  "chrono",
  "futures",
  "jsonwebtoken",
@@ -2783,8 +2783,11 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
+ "tokio",
  "url",
+ "uuid",
 ]
 
 [[package]]

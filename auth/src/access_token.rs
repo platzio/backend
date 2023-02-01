@@ -1,4 +1,5 @@
 use crate::error::AuthError;
+use base64::prelude::*;
 use chrono::prelude::*;
 use chrono::Duration;
 use jsonwebtoken::{encode, EncodingKey, Header};
@@ -14,15 +15,16 @@ lazy_static::lazy_static! {
 }
 
 pub(crate) async fn get_jwt_secret() -> Result<Vec<u8>, AuthError> {
-    base64::decode(
-        Setting::get_or_set_default("jwt_secret", || {
-            base64::encode(random::<[u8; JWT_SECRET_BYTES]>())
-        })
-        .await?
-        .value
-        .as_str(),
-    )
-    .map_err(|_| AuthError::JwtSecretDecodingError)
+    BASE64_STANDARD
+        .decode(
+            Setting::get_or_set_default("jwt_secret", || {
+                BASE64_STANDARD.encode(random::<[u8; JWT_SECRET_BYTES]>())
+            })
+            .await?
+            .value
+            .as_str(),
+        )
+        .map_err(|_| AuthError::JwtSecretDecodingError)
 }
 
 #[derive(Serialize, Deserialize)]

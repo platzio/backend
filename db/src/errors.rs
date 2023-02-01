@@ -3,16 +3,16 @@ use crate::events::DbEvent;
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
     #[error("Diesel database error: {0}")]
-    AsyncDieselError(#[from] async_diesel::AsyncError),
-
-    #[error("Diesel database error: {0}")]
-    DieselError(#[from] diesel::result::Error),
+    DieselError(diesel::result::Error),
 
     #[error("Database pool error: {0}")]
     R2d2Error(#[from] r2d2::Error),
 
     #[error("Postgres database error: {0}")]
     PostgresError(#[from] postgres::Error),
+
+    #[error("Not found")]
+    NotFound,
 
     #[error("Failed parsing region name from helm registry domain name")]
     RegionNameParseError,
@@ -61,3 +61,21 @@ pub enum DbError {
 }
 
 pub type DbResult<T> = Result<T, DbError>;
+
+impl From<async_diesel::AsyncError> for DbError {
+    fn from(err: async_diesel::AsyncError) -> Self {
+        match err {
+            async_diesel::AsyncError::Checkout(err) => Self::R2d2Error(err),
+            async_diesel::AsyncError::Error(err) => Self::DieselError(err),
+        }
+    }
+}
+
+impl From<diesel::result::Error> for DbError {
+    fn from(err: diesel::result::Error) -> Self {
+        match err {
+            diesel::result::Error::NotFound => Self::NotFound,
+            err => Self::DieselError(err),
+        }
+    }
+}
