@@ -51,7 +51,7 @@ impl Setting {
 }
 
 #[derive(Debug, Insertable, Deserialize)]
-#[table_name = "settings"]
+#[diesel(table_name = settings)]
 pub struct UpdateSetting {
     pub key: String,
     pub value: String,

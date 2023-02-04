@@ -28,7 +28,7 @@ table! {
 }
 
 #[derive(Debug, Clone, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "k8s_clusters"]
+#[diesel(table_name = k8s_clusters)]
 #[pagination]
 pub struct K8sCluster {
     pub id: Uuid,
@@ -55,14 +55,14 @@ impl K8sCluster {
     }
 
     pub async fn all_filtered(filters: K8sClusterFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -105,7 +105,7 @@ impl K8sCluster {
 }
 
 #[derive(Debug, Insertable, Deserialize)]
-#[table_name = "k8s_clusters"]
+#[diesel(table_name = k8s_clusters)]
 pub struct NewK8sCluster {
     pub provider_id: String,
     pub name: String,
@@ -132,7 +132,7 @@ impl NewK8sCluster {
 }
 
 #[derive(Debug, AsChangeset)]
-#[table_name = "k8s_clusters"]
+#[diesel(table_name = k8s_clusters)]
 pub struct UpdateK8sClusterStatus {
     pub is_ok: Option<bool>,
     pub not_ok_reason: Option<Option<String>>,
@@ -150,7 +150,7 @@ impl UpdateK8sClusterStatus {
 }
 
 #[derive(Debug, AsChangeset, Deserialize)]
-#[table_name = "k8s_clusters"]
+#[diesel(table_name = k8s_clusters)]
 pub struct UpdateK8sCluster {
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub env_id: Option<Option<Uuid>>,

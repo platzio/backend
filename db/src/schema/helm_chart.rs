@@ -6,7 +6,7 @@ use diesel::prelude::*;
 use diesel::query_builder::{AstPass, Query, QueryFragment};
 use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
-pub use diesel_json::Json;
+use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceTypes;
 use platz_chart_ext::{ChartExtActions, ChartExtFeatures, UiSchema};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ table! {
 }
 
 #[derive(Debug, Identifiable, Queryable, QueryableByName, Serialize, DieselFilter)]
-#[table_name = "helm_charts"]
+#[diesel(table_name = helm_charts)]
 #[pagination]
 pub struct HelmChart {
     pub id: Uuid,
@@ -63,7 +63,7 @@ pub struct HelmChartExtraFilters {
     kind: Option<String>,
 }
 
-#[derive(QueryId)]
+#[derive(diesel::QueryId)]
 struct InUseHelmCharts<T>(T);
 
 impl<T> Query for InUseHelmCharts<T>
@@ -79,7 +79,7 @@ impl<T> QueryFragment<Pg> for InUseHelmCharts<T>
 where
     T: QueryFragment<Pg>,
 {
-    fn walk_ast(&self, mut pass: AstPass<Pg>) -> QueryResult<()> {
+    fn walk_ast<'a>(&'a self, mut pass: AstPass<'_, 'a, Pg>) -> QueryResult<()> {
         pass.push_sql(
             r#"WITH charts_in_use AS (
   SELECT
@@ -140,7 +140,7 @@ FROM ("#,
     }
 }
 
-#[derive(QueryId)]
+#[derive(diesel::QueryId)]
 struct HelmChartsByKind<T> {
     query: T,
     kind: String,
@@ -160,7 +160,7 @@ impl<T> QueryFragment<Pg> for HelmChartsByKind<T>
 where
     T: QueryFragment<Pg>,
 {
-    fn walk_ast(&self, mut pass: AstPass<Pg>) -> QueryResult<()> {
+    fn walk_ast<'a>(&'a self, mut pass: AstPass<'_, 'a, Pg>) -> QueryResult<()> {
         pass.push_sql(
             "
             SELECT \"helm_charts\".* FROM (",
@@ -191,7 +191,7 @@ impl HelmChart {
         extra_filters: HelmChartExtraFilters,
     ) -> DbResult<Paginated<Self>> {
         log::debug!("{:?} {:?}", filters, extra_filters);
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
 
@@ -203,22 +203,22 @@ impl HelmChart {
                 })
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn),
+                .load_and_count::<Self>(&mut conn),
                 (true, None) => InUseHelmCharts(Self::filter(&filters))
                     .paginate(Some(page))
                     .per_page(Some(per_page))
-                    .load_and_count::<Self>(&conn),
+                    .load_and_count::<Self>(&mut conn),
                 (false, Some(kind)) => HelmChartsByKind {
                     query: Self::filter(&filters),
                     kind,
                 }
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn),
+                .load_and_count::<Self>(&mut conn),
                 (false, None) => Self::filter(&filters)
                     .paginate(Some(page))
                     .per_page(Some(per_page))
-                    .load_and_count::<Self>(&conn),
+                    .load_and_count::<Self>(&mut conn),
             }
         })
         .await
@@ -276,7 +276,7 @@ impl HelmChart {
 }
 
 #[derive(Insertable, Deserialize)]
-#[table_name = "helm_charts"]
+#[diesel(table_name = helm_charts)]
 pub struct NewHelmChart {
     pub created_at: DateTime<Utc>,
     pub helm_registry_id: Uuid,
@@ -304,7 +304,7 @@ impl NewHelmChart {
 }
 
 #[derive(AsChangeset)]
-#[table_name = "helm_charts"]
+#[diesel(table_name = helm_charts)]
 pub struct UpdateHelmChart {
     pub available: Option<bool>,
 }
@@ -319,7 +319,7 @@ impl UpdateHelmChart {
 }
 
 #[derive(Debug, Default, AsChangeset)]
-#[table_name = "helm_charts"]
+#[diesel(table_name = helm_charts)]
 pub struct HelmChartTagInfo {
     pub tag_format_id: Option<Uuid>,
     pub parsed_version: Option<String>,

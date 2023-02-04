@@ -4,7 +4,7 @@ use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use diesel_derive_more::DBEnum;
+use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use log::*;
 use platz_chart_ext::ChartExtActionTarget;
@@ -27,20 +27,8 @@ table! {
 }
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Serialize,
-    Deserialize,
-    EnumString,
-    Display,
-    AsExpression,
-    FromSqlRow,
-    DBEnum,
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, DieselEnum,
 )]
-#[sql_type = "diesel::sql_types::Text"]
 pub enum SyncStatus {
     Creating,
     Updating,
@@ -50,7 +38,7 @@ pub enum SyncStatus {
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "deployment_resources"]
+#[diesel(table_name = deployment_resources)]
 #[pagination]
 pub struct DeploymentResource {
     pub id: Uuid,
@@ -73,14 +61,14 @@ impl DeploymentResource {
     }
 
     pub async fn all_filtered(filters: DeploymentResourceFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -154,7 +142,7 @@ impl DeploymentResource {
 }
 
 #[derive(Debug, Insertable, Deserialize)]
-#[table_name = "deployment_resources"]
+#[diesel(table_name = deployment_resources)]
 pub struct NewDeploymentResource {
     pub id: Option<Uuid>,
     pub created_at: Option<DateTime<Utc>>,
@@ -175,7 +163,7 @@ impl NewDeploymentResource {
 }
 
 #[derive(Debug, AsChangeset, Deserialize)]
-#[table_name = "deployment_resources"]
+#[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResource {
     pub name: Option<String>,
     pub props: Option<serde_json::Value>,
@@ -220,7 +208,7 @@ impl UpdateDeploymentResource {
 }
 
 #[derive(Debug, AsChangeset, Deserialize)]
-#[table_name = "deployment_resources"]
+#[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResourceExists {
     pub exists: Option<bool>,
 }
@@ -237,7 +225,7 @@ impl UpdateDeploymentResourceExists {
 }
 
 #[derive(Debug, AsChangeset, Deserialize)]
-#[table_name = "deployment_resources"]
+#[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResourceSyncStatus {
     pub sync_status: Option<SyncStatus>,
     pub sync_reason: Option<Option<String>>,

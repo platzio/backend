@@ -31,3 +31,22 @@ pub use secret::*;
 pub use setting::*;
 pub use user::*;
 pub use user_token::*;
+
+diesel::allow_tables_to_appear_in_same_query!(
+    deployments,
+    deployment_permissions,
+    deployment_resources,
+    deployment_resource_types,
+    deployment_tasks,
+    envs,
+    env_user_permissions,
+    helm_charts,
+    helm_registries,
+    helm_tag_formats,
+    k8s_clusters,
+    k8s_resources,
+    secrets,
+    settings,
+    users,
+    user_tokens,
+);

@@ -20,7 +20,7 @@ table! {
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "secrets"]
+#[diesel(table_name = secrets)]
 #[pagination]
 pub struct Secret {
     pub id: Uuid,
@@ -42,14 +42,14 @@ impl Secret {
     }
 
     pub async fn all_filtered(filters: SecretFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -74,7 +74,7 @@ impl Secret {
 }
 
 #[derive(Debug, Insertable, Deserialize)]
-#[table_name = "secrets"]
+#[diesel(table_name = secrets)]
 pub struct NewSecret {
     pub env_id: Uuid,
     pub collection: String,
@@ -92,7 +92,7 @@ impl NewSecret {
 }
 
 #[derive(Debug, AsChangeset, Deserialize)]
-#[table_name = "secrets"]
+#[diesel(table_name = secrets)]
 pub struct UpdateSecret {
     updated_at: Option<DateTime<Utc>>,
     name: Option<String>,

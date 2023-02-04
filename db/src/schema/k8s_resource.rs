@@ -22,7 +22,7 @@ table! {
 }
 
 #[derive(Debug, Identifiable, Queryable, Insertable, Serialize, DieselFilter)]
-#[table_name = "k8s_resources"]
+#[diesel(table_name = k8s_resources)]
 #[pagination]
 pub struct K8sResource {
     pub id: Uuid,
@@ -46,14 +46,14 @@ impl K8sResource {
     }
 
     pub async fn all_filtered(filters: K8sResourceFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;

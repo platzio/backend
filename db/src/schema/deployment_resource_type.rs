@@ -20,7 +20,7 @@ table! {
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "deployment_resource_types"]
+#[diesel(table_name = deployment_resource_types)]
 #[pagination]
 pub struct DeploymentResourceType {
     pub id: Uuid,
@@ -42,14 +42,14 @@ impl DeploymentResourceType {
     }
 
     pub async fn all_filtered(filters: DeploymentResourceTypeFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -133,7 +133,7 @@ impl DeploymentResourceType {
 }
 
 #[derive(Debug, Insertable, Deserialize)]
-#[table_name = "deployment_resource_types"]
+#[diesel(table_name = deployment_resource_types)]
 pub struct NewDeploymentResourceType {
     pub env_id: Option<Uuid>,
     pub deployment_kind: String,

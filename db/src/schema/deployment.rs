@@ -8,7 +8,7 @@ use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
-use diesel_derive_more::DBEnum;
+use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use platz_chart_ext::actions::{
     ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver,
@@ -48,13 +48,10 @@ table! {
     Serialize,
     Deserialize,
     EnumString,
-    Display,
     AsRefStr,
-    AsExpression,
-    FromSqlRow,
-    DBEnum,
+    Display,
+    DieselEnum,
 )]
-#[sql_type = "diesel::sql_types::Text"]
 pub enum DeploymentStatus {
     Unknown,
     Installing,
@@ -70,7 +67,7 @@ pub enum DeploymentStatus {
 pub type DeploymentKind = String;
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "deployments"]
+#[diesel(table_name = deployments)]
 #[pagination]
 pub struct Deployment {
     pub id: Uuid,
@@ -95,13 +92,13 @@ pub struct Deployment {
 
 #[derive(QueryableByName)]
 pub struct DeploymentStat {
-    #[sql_type = "diesel::sql_types::BigInt"]
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
     pub count: i64,
-    #[sql_type = "diesel::sql_types::Varchar"]
+    #[diesel(sql_type = diesel::sql_types::Varchar)]
     pub kind: String,
-    #[sql_type = "diesel::sql_types::Varchar"]
+    #[diesel(sql_type = diesel::sql_types::Varchar)]
     pub status: DeploymentStatus,
-    #[sql_type = "diesel::sql_types::Uuid"]
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub cluster_id: Uuid,
 }
 
@@ -111,14 +108,14 @@ impl Deployment {
     }
 
     pub async fn all_filtered(filters: DeploymentFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -376,7 +373,7 @@ impl Deployment {
 }
 
 #[derive(Insertable, Deserialize)]
-#[table_name = "deployments"]
+#[diesel(table_name = deployments)]
 pub struct NewDeployment {
     #[serde(default)]
     pub name: String,
@@ -397,7 +394,7 @@ impl NewDeployment {
 }
 
 #[derive(AsChangeset, Deserialize)]
-#[table_name = "deployments"]
+#[diesel(table_name = deployments)]
 pub struct UpdateDeployment {
     pub name: Option<String>,
     pub cluster_id: Option<Uuid>,
@@ -420,7 +417,7 @@ impl UpdateDeployment {
 }
 
 #[derive(AsChangeset)]
-#[table_name = "deployments"]
+#[diesel(table_name = deployments)]
 pub struct UpdateDeploymentStatus {
     pub status: Option<DeploymentStatus>,
     pub reason: Option<Option<String>>,
@@ -439,7 +436,7 @@ impl UpdateDeploymentStatus {
 }
 
 #[derive(AsChangeset)]
-#[table_name = "deployments"]
+#[diesel(table_name = deployments)]
 pub struct UpdateDeploymentReportedStatus {
     pub reported_status: Option<Option<serde_json::Value>>,
 }

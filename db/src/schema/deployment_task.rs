@@ -9,9 +9,9 @@ use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
-use diesel_derive_more::DBEnum;
+use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
-pub use diesel_json::Json;
+use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString};
@@ -43,13 +43,10 @@ table! {
     Serialize,
     Deserialize,
     EnumString,
-    Display,
     AsRefStr,
-    AsExpression,
-    FromSqlRow,
-    DBEnum,
+    Display,
+    DieselEnum,
 )]
-#[sql_type = "diesel::sql_types::Text"]
 pub enum DeploymentTaskStatus {
     Pending,
     Started,
@@ -64,7 +61,7 @@ impl Default for DeploymentTaskStatus {
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "deployment_tasks"]
+#[diesel(table_name = deployment_tasks)]
 #[pagination]
 pub struct DeploymentTask {
     pub id: Uuid,
@@ -91,9 +88,9 @@ pub struct DeploymentTaskExtraFilters {
 
 #[derive(QueryableByName)]
 pub struct DeploymentTaskStat {
-    #[sql_type = "diesel::sql_types::BigInt"]
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
     pub count: i64,
-    #[sql_type = "diesel::sql_types::Varchar"]
+    #[diesel(sql_type = diesel::sql_types::Varchar)]
     pub status: DeploymentTaskStatus,
 }
 
@@ -106,7 +103,7 @@ impl DeploymentTask {
         filters: DeploymentTaskFilters,
         extra_filters: DeploymentTaskExtraFilters,
     ) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
@@ -125,7 +122,7 @@ impl DeploymentTask {
                 .order_by(deployment_tasks::created_at.desc())
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -245,7 +242,7 @@ impl DeploymentTask {
 }
 
 #[derive(Insertable, Deserialize)]
-#[table_name = "deployment_tasks"]
+#[diesel(table_name = deployment_tasks)]
 pub struct NewDeploymentTask {
     pub cluster_id: Uuid,
     pub deployment_id: Uuid,
@@ -265,7 +262,7 @@ impl NewDeploymentTask {
 }
 
 #[derive(AsChangeset)]
-#[table_name = "deployment_tasks"]
+#[diesel(table_name = deployment_tasks)]
 pub struct UpdateDeploymentTask {
     pub first_attempted_at: Option<DateTime<Utc>>,
     pub started_at: Option<DateTime<Utc>>,

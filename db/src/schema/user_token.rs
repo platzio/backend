@@ -17,7 +17,7 @@ table! {
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "user_tokens"]
+#[diesel(table_name = user_tokens)]
 #[pagination]
 pub struct UserToken {
     pub id: Uuid,
@@ -30,14 +30,14 @@ pub struct UserToken {
 
 impl UserToken {
     pub async fn all_filtered(filters: UserTokenFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -62,7 +62,7 @@ impl UserToken {
 }
 
 #[derive(Deserialize, Insertable)]
-#[table_name = "user_tokens"]
+#[diesel(table_name = user_tokens)]
 pub struct NewUserToken {
     pub id: Uuid,
     pub user_id: Uuid,

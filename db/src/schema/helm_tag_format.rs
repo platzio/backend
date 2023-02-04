@@ -15,7 +15,7 @@ table! {
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "helm_tag_formats"]
+#[diesel(table_name = helm_tag_formats)]
 #[pagination]
 pub struct HelmTagFormat {
     pub id: Uuid,
@@ -33,7 +33,7 @@ impl HelmTagFormat {
     }
 
     pub async fn all_filtered(filters: HelmTagFormatFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
@@ -41,7 +41,7 @@ impl HelmTagFormat {
                 .order_by(helm_tag_formats::created_at.desc())
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -69,7 +69,7 @@ impl HelmTagFormat {
 }
 
 #[derive(Debug, Deserialize, Insertable)]
-#[table_name = "helm_tag_formats"]
+#[diesel(table_name = helm_tag_formats)]
 pub struct NewHelmTagFormat {
     pub pattern: String,
 }

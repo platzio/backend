@@ -7,10 +7,10 @@ version = "0.1.0"
 anyhow = {version = "1", features = ["backtrace"]}
 async-trait = "0.1.48"
 aws-arn = "0.3.1"
-aws-config = "0.53.0"
-aws-sdk-ec2 = "0.23.0"
-aws-sdk-eks = "0.23.0"
-aws-types = "0.53.0"
+aws-config = "0.54.1"
+aws-sdk-ec2 = "0.24.0"
+aws-sdk-eks = "0.24.0"
+aws-types = "0.54.1"
 base64 = "0.21.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
 clap = {version = "4.0.32", features = ["derive", "env"]}
@@ -24,8 +24,8 @@ kube = {version = "0.78.0", default-features = false, features = ["client", "gzi
 lazy_static = "1"
 log = "0.4.14"
 maplit = "1"
-platz-chart-ext = {version = "0.4.2", default-features = false, features = ["uuid08"]}
-platz-sdk = "0.4.5"
+platz-chart-ext = "0.5.0"
+platz-sdk = "0.5.0"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 serde_yaml = "0.9.16"
@@ -34,7 +34,7 @@ tokio = {version = "1", features = ["full"]}
 tokio-util = {version = "0.7.1"}
 tryhard = "0.5.0"
 url = {version = "2.2.2", features = ["serde"]}
-uuid = {version = "0.8", features = ["serde", "v4"]}
+uuid = {version = "1", features = ["serde", "v4"]}
 
 [dependencies.platz-db]
 path = "../db"

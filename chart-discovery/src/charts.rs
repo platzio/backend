@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use log::*;
 use platz_chart_ext::ChartExt;
-use platz_db::{diesel_json, HelmChart, NewHelmChart, UpdateHelmChart};
+use platz_db::{HelmChart, Json, NewHelmChart, UpdateHelmChart};
 use std::path::PathBuf;
 use tokio::process::Command;
 
@@ -53,10 +53,10 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
         helm_registry_id: helm_registry.id,
         image_digest: event.detail.image_digest,
         image_tag: event.detail.image_tag,
-        values_ui: chart_ext.values_ui.map(diesel_json::Json),
-        actions_schema: chart_ext.actions.map(diesel_json::Json),
-        features: chart_ext.features.map(diesel_json::Json),
-        resource_types: chart_ext.resource_types.map(diesel_json::Json),
+        values_ui: chart_ext.values_ui.map(Json),
+        actions_schema: chart_ext.actions.map(Json),
+        features: chart_ext.features.map(Json),
+        resource_types: chart_ext.resource_types.map(Json),
         error: chart_ext.error,
         tag_format_id: tag_info.tag_format_id,
         parsed_version: tag_info.parsed_version,

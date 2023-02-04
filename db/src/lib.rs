@@ -1,11 +1,7 @@
 #![recursion_limit = "256"]
 
-#[macro_use]
-extern crate diesel;
-#[macro_use]
-extern crate diesel_migrations;
-
 mod ui_collection;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub use ui_collection::DbTableOrDeploymentResource;
 
 mod config;
@@ -28,11 +24,10 @@ mod json_diff;
 pub use async_diesel::*;
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
+pub use diesel_json::Json;
 use lazy_static::lazy_static;
 use log::*;
 use tokio::task;
-
-pub use diesel_json;
 
 mod pagination;
 pub use pagination::{Paginated, DEFAULT_PAGE_SIZE};
@@ -63,12 +58,13 @@ lazy_static! {
     static ref DB: Db = Db::new();
 }
 
-embed_migrations!();
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub async fn init_db(run_migrations: bool) -> DbResult<()> {
     if run_migrations {
         info!("Running database migrations");
-        embedded_migrations::run(&DB.pool.get().unwrap()).unwrap();
+        let mut conn = DB.pool.get()?;
+        conn.run_pending_migrations(MIGRATIONS).unwrap();
         info!("Finished running migrations");
     }
     task::spawn(DB.events.run());

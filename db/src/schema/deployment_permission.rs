@@ -3,7 +3,7 @@ use crate::{pool, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use diesel_derive_more::DBEnum;
+use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
@@ -21,27 +21,15 @@ table! {
 }
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Serialize,
-    Deserialize,
-    EnumString,
-    Display,
-    AsExpression,
-    FromSqlRow,
-    DBEnum,
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, DieselEnum,
 )]
-#[sql_type = "diesel::sql_types::Text"]
 pub enum UserDeploymentRole {
     Owner,
     Maintainer,
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
-#[table_name = "deployment_permissions"]
+#[diesel(table_name = deployment_permissions)]
 #[pagination]
 pub struct DeploymentPermission {
     pub id: Uuid,
@@ -61,14 +49,14 @@ impl DeploymentPermission {
     }
 
     pub async fn all_filtered(filters: DeploymentPermissionFilters) -> DbResult<Paginated<Self>> {
-        let conn = pool().get()?;
+        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&conn)
+                .load_and_count::<Self>(&mut conn)
         })
         .await
         .unwrap()?;
@@ -111,7 +99,7 @@ impl DeploymentPermission {
 }
 
 #[derive(Insertable, Deserialize)]
-#[table_name = "deployment_permissions"]
+#[diesel(table_name = deployment_permissions)]
 pub struct NewDeploymentPermission {
     pub env_id: Uuid,
     pub user_id: Uuid,
