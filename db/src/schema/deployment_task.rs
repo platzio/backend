@@ -14,7 +14,7 @@ use diesel_filter::{DieselFilter, Paginate};
 pub use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString};
+use strum::{AsRefStr, Display, EnumString};
 use uuid::Uuid;
 
 table! {
@@ -44,6 +44,7 @@ table! {
     Deserialize,
     EnumString,
     Display,
+    AsRefStr,
     AsExpression,
     FromSqlRow,
     DBEnum,
@@ -86,6 +87,14 @@ pub struct DeploymentTask {
 pub struct DeploymentTaskExtraFilters {
     active_only: Option<bool>,
     created_from: Option<DateTime<Utc>>,
+}
+
+#[derive(QueryableByName)]
+pub struct DeploymentTaskStat {
+    #[sql_type = "diesel::sql_types::BigInt"]
+    pub count: i64,
+    #[sql_type = "diesel::sql_types::Varchar"]
+    pub status: DeploymentTaskStatus,
 }
 
 impl DeploymentTask {
@@ -224,6 +233,14 @@ impl DeploymentTask {
             .execute_async(pool())
             .await?;
         Ok(())
+    }
+
+    pub async fn get_status_counters() -> DbResult<Vec<DeploymentTaskStat>> {
+        Ok(diesel::sql_query(
+            "SELECT count(*) as count, status FROM deployment_tasks GROUP BY status",
+        )
+        .load_async::<DeploymentTaskStat>(pool())
+        .await?)
     }
 }
 

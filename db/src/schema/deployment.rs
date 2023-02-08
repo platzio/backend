@@ -15,6 +15,7 @@ use platz_chart_ext::actions::{
 };
 use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
 use serde::{Deserialize, Serialize};
+use strum::AsRefStr;
 use strum::{Display, EnumString};
 use url::Url;
 use uuid::Uuid;
@@ -48,6 +49,7 @@ table! {
     Deserialize,
     EnumString,
     Display,
+    AsRefStr,
     AsExpression,
     FromSqlRow,
     DBEnum,
@@ -89,6 +91,18 @@ pub struct Deployment {
     pub helm_chart_id: Uuid,
     pub config: serde_json::Value,
     pub values_override: Option<serde_json::Value>,
+}
+
+#[derive(QueryableByName)]
+pub struct DeploymentStat {
+    #[sql_type = "diesel::sql_types::BigInt"]
+    pub count: i64,
+    #[sql_type = "diesel::sql_types::Varchar"]
+    pub kind: String,
+    #[sql_type = "diesel::sql_types::Varchar"]
+    pub status: DeploymentStatus,
+    #[sql_type = "diesel::sql_types::Uuid"]
+    pub cluster_id: Uuid,
 }
 
 impl Deployment {
@@ -350,6 +364,14 @@ impl Deployment {
             .execute_async(pool())
             .await?;
         Ok(())
+    }
+
+    pub async fn get_status_counters() -> DbResult<Vec<DeploymentStat>> {
+        Ok(diesel::sql_query(
+            "SELECT count(*) as count, kind, status, cluster_id FROM deployments GROUP BY kind, status, cluster_id",
+        )
+        .load_async::<DeploymentStat>(pool())
+        .await?)
     }
 }
 
