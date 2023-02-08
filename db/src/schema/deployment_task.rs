@@ -93,7 +93,7 @@ pub struct DeploymentTaskStat {
     #[sql_type = "diesel::sql_types::BigInt"]
     pub count: i64,
     #[sql_type = "diesel::sql_types::Varchar"]
-    pub status: String,
+    pub status: DeploymentTaskStatus,
 }
 
 impl DeploymentTask {

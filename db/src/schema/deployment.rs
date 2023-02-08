@@ -98,7 +98,7 @@ pub struct DeploymentStat {
     #[sql_type = "diesel::sql_types::Varchar"]
     pub kind: String,
     #[sql_type = "diesel::sql_types::Varchar"]
-    pub status: String,
+    pub status: DeploymentStatus,
     #[sql_type = "diesel::sql_types::Uuid"]
     pub cluster_id: Uuid,
 }
@@ -370,9 +370,6 @@ impl Deployment {
         )
         .load_async::<DeploymentStat>(pool())
         .await?)
-        //.into_iter()
-        //        .map(|stat| (stat.kind, stat.status, stat.cluster_id, stat.count))
-        //.collect())
     }
 }
 

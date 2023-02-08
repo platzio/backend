@@ -1,12 +1,10 @@
 use actix_web::middleware::Logger;
-use actix_web::Responder;
 use actix_web::{error::InternalError, web, App, HttpResponse, HttpServer};
 use anyhow::Result;
 use clap::Parser;
 use log::*;
 use platz_db::init_db;
 use serde_json::json;
-use std::time::Duration;
 use url::Url;
 
 mod permissions;
@@ -47,8 +45,8 @@ struct Config {
     #[clap(long = "admin-email", env = "ADMIN_EMAILS", value_delimiter = ' ')]
     admin_emails: Vec<String>,
 
-    #[clap(long, default_value = "5")]
-    prometheus_update_interval_secs: u64,
+    #[clap(long, default_value = "5secs")]
+    prometheus_update_interval: humantime::Duration,
 }
 
 impl Config {
@@ -71,13 +69,16 @@ async fn status() -> crate::result::ApiResult {
     Ok(HttpResponse::Ok().json("ok"))
 }
 
-async fn metrics() -> impl Responder {
+async fn metrics() -> HttpResponse {
     let encoder = prometheus::TextEncoder::new();
     let mut buffer = Vec::new();
     let metric_families = prometheus::gather();
     // Encode them to send.
     encoder.encode(&metric_families, &mut buffer).unwrap();
-    String::from_utf8(buffer).unwrap()
+    match String::from_utf8(buffer) {
+        Ok(body) => HttpResponse::Ok().body(body),
+        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+    }
 }
 
 async fn serve(config: Config) -> Result<()> {
@@ -115,11 +116,10 @@ async fn serve(config: Config) -> Result<()> {
 
 async fn _main(config: Config) -> Result<()> {
     init_db(true).await?;
-    crate::routes::metrics::initialize();
 
     tokio::select! {
         result = crate::routes::metrics::update_metrics_task(
-                Duration::from_secs(config.prometheus_update_interval_secs),
+                config.prometheus_update_interval.into(),
                 ) => {
                 warn!("Prometheus metrics finished");
                 result
