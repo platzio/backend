@@ -15,6 +15,7 @@ use platz_chart_ext::actions::{
 };
 use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
 use serde::{Deserialize, Serialize};
+use strum::AsRefStr;
 use strum::{Display, EnumString};
 use url::Url;
 use uuid::Uuid;
@@ -48,6 +49,7 @@ table! {
     Deserialize,
     EnumString,
     Display,
+    AsRefStr,
     AsExpression,
     FromSqlRow,
     DBEnum,

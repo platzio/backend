@@ -14,7 +14,7 @@ use diesel_filter::{DieselFilter, Paginate};
 pub use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString};
+use strum::{AsRefStr, Display, EnumString};
 use uuid::Uuid;
 
 table! {
@@ -44,6 +44,7 @@ table! {
     Deserialize,
     EnumString,
     Display,
+    AsRefStr,
     AsExpression,
     FromSqlRow,
     DBEnum,

@@ -27,7 +27,7 @@ async fn update_metrics() -> Result<()> {
         .context("Failed updating prometheus metrics of deployment tasks")?;
     for stat in task_status_counts.iter() {
         TASK_STATUS_COUNTERS
-            .with_label_values(&[stat.status.to_string().as_str()])
+            .with_label_values(&[stat.status.as_ref()])
             .set(stat.count);
     }
 
@@ -47,11 +47,7 @@ async fn update_metrics() -> Result<()> {
             .cloned()
             .unwrap_or("");
         DEPLOYMENT_STATUS_COUNTERS
-            .with_label_values(&[
-                stat.kind.as_str(),
-                stat.status.to_string().as_str(),
-                cluster_name,
-            ])
+            .with_label_values(&[stat.kind.as_str(), stat.status.as_ref(), cluster_name])
             .set(stat.count);
     }
 
