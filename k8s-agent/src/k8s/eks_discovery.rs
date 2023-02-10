@@ -13,7 +13,9 @@ pub async fn scan_for_new_clusters(every: Duration) -> Result<()> {
 
     loop {
         interval.tick().await;
-        load_clusters().await?;
+        if let Err(err) = load_clusters().await {
+            error!("Error scanning for clusters: {:?}", err);
+        }
     }
 }
 
