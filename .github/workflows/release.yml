@@ -10,8 +10,8 @@ jobs:
     name: 🚀 Build & Push to DockerHub
     runs-on: ubuntu-latest
     steps:
-      - name: 🛠 Checkout
-        uses: actions/checkout@v2
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v3
 
       - name: 📦 Install Cargo
         id: cargo
@@ -36,22 +36,13 @@ jobs:
         with:
           cache-key: ${{ steps.cargo.outputs.rustc }}
 
+      - name: 📎 Cargo clippy
+        run: |
+          cargo clippy --release -- -D warnings
+
       - name: 🔨 Cargo test
         run: |
           cargo test --release
-
-      - name: 📎 Cargo clippy
-        run: |
-          cargo clippy --release
-
-      - name: 📦 Cargo build
-        run: |
-          cargo build --release
-
-      - name: 🚚 Move executables to dist/
-        run: |
-          mkdir ./dist
-          find target/release/ -maxdepth 1 -type f -perm /a+x -exec mv -v {} ./dist/ \;
 
       - name: 🏷 Get tag
         id: tag
@@ -59,15 +50,23 @@ jobs:
           echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
 
       - name: 🐳 Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          config: .github/buildkitd.toml
+
       - name: 🐳 Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: .
-          build-args: BASE_IMAGE=platzio/base:v4
+          build-args: BASE_IMAGE=platzio/base:v5
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: platzio/backend:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
