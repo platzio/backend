@@ -23,8 +23,6 @@ dpkg --add-architecture "${TARGETARCH}"
 apt-get update
 apt-get install -y "libpq-dev:${TARGETARCH}"
 
-RUST_TARGET="${LINUX_TARGETARCH}-unknown-linux-gnu"
-
 if [ "${LINUX_TARGETARCH}" != `uname -m` ]
 then
     apt-get install -y "gcc-`echo ${LINUX_TARGETARCH} | tr '_' '-'`-linux-gnu"
@@ -47,8 +45,9 @@ export CXX_aarch64_unknown_linux_gnu="aarch64-linux-gnu-g++"
 export AR_aarch64_unknown_linux_gnu="aarch64-linux-gnu-ar"
 
 export LDFLAGS="-L/usr/lib/${LINUX_TARGETARCH}-linux-gnu"
+export CARGO_BUILD_TARGET="${LINUX_TARGETARCH}-unknown-linux-gnu"
 
-rustup target add "${RUST_TARGET}"
-cargo build --release --target="${RUST_TARGET}"
+rustup target add "${CARGO_BUILD_TARGET}"
+cargo build --release
 
-find "target/${RUST_TARGET}/release/" -maxdepth 1 -type f -executable -exec mv -v {} "${BUILD_DEST}/" \;
+find "target/${CARGO_BUILD_TARGET}/release/" -maxdepth 1 -type f -executable -exec mv -v {} "${BUILD_DEST}/" \;
