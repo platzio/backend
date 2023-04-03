@@ -5,11 +5,11 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.43"
-aws-config = "0.54.1"
-aws-sdk-ecr = "0.24.0"
-aws-sdk-sqs = "0.24.0"
-aws-smithy-types-convert = {version = "0.54.1", features = ["convert-chrono"]}
-aws-types = "0.54.1"
+aws-config = "0.55.0"
+aws-sdk-ecr = "0.25.0"
+aws-sdk-sqs = "0.25.0"
+aws-smithy-types-convert = {version = "0.55.0", features = ["convert-chrono"]}
+aws-types = "0.55.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
 clap = {version = "4.0.32", features = ["derive", "env"]}
 env_logger = "0.10.0"

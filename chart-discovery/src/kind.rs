@@ -23,10 +23,7 @@ pub fn get_kind(repo_name: &str) -> String {
         _ => (),
     }
 
-    parts
-        .into_iter()
-        .map(titlecase)
-        .fold(String::new(), |a, b| b + &a)
+    parts.map(titlecase).fold(String::new(), |a, b| b + &a)
 }
 
 #[test]

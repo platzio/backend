@@ -1,6 +1,6 @@
 use crate::registries::find_and_save_ecr_repo;
 use anyhow::{anyhow, Result};
-use aws_sdk_ecr::model::{ImageDetail, ImageIdentifier};
+use aws_sdk_ecr::types::{ImageDetail, ImageIdentifier};
 use aws_types::region::Region;
 use chrono::prelude::*;
 use clap::Parser;
@@ -98,7 +98,7 @@ impl EcrEventDetail {
             .await;
         let res = match res {
             Ok(res) => res,
-            Err(aws_sdk_ecr::types::SdkError::ServiceError(service_error))
+            Err(aws_sdk_ecr::error::SdkError::ServiceError(service_error))
                 if service_error.err().is_image_not_found_exception() =>
             {
                 return Ok(None);

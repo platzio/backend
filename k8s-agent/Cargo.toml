@@ -7,10 +7,10 @@ version = "0.1.0"
 anyhow = {version = "1", features = ["backtrace"]}
 async-trait = "0.1.48"
 aws-arn = "0.3.1"
-aws-config = "0.54.1"
-aws-sdk-ec2 = "0.24.0"
-aws-sdk-eks = "0.24.0"
-aws-types = "0.54.1"
+aws-config = "0.55.0"
+aws-sdk-ec2 = "0.25.0"
+aws-sdk-eks = "0.25.0"
+aws-types = "0.55.0"
 base64 = "0.21.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
 clap = {version = "4.0.32", features = ["derive", "env"]}
@@ -20,7 +20,7 @@ http = "0.2.6"
 humantime = '2.1.0'
 itertools = "0.10.0"
 k8s-openapi = {version = "0.17.0", default-features = false, features = ["v1_21"]}
-kube = {version = "0.78.0", default-features = false, features = ["client", "gzip", "ws", "runtime", "rustls-tls"]}
+kube = {version = "0.80.0", default-features = false, features = ["client", "gzip", "ws", "runtime", "rustls-tls"]}
 lazy_static = "1"
 log = "0.4.14"
 maplit = "1"

@@ -8,7 +8,7 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum K8s {
-    Eks(aws_sdk_eks::model::Cluster),
+    Eks(aws_sdk_eks::types::Cluster),
 }
 
 impl fmt::Display for K8s {
@@ -26,8 +26,8 @@ impl fmt::Display for K8s {
     }
 }
 
-impl From<aws_sdk_eks::model::Cluster> for K8s {
-    fn from(cluster: aws_sdk_eks::model::Cluster) -> Self {
+impl From<aws_sdk_eks::types::Cluster> for K8s {
+    fn from(cluster: aws_sdk_eks::types::Cluster) -> Self {
         Self::Eks(cluster)
     }
 }

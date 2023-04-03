@@ -1,6 +1,6 @@
 use crate::kind::get_kind;
 use anyhow::{anyhow, Result};
-use aws_sdk_ecr::model::Repository;
+use aws_sdk_ecr::types::Repository;
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use aws_types::region::Region;
 use itertools::Itertools;
