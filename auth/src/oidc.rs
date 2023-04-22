@@ -4,6 +4,40 @@ use platz_db::{NewUser, User};
 use serde::Deserialize;
 use url::Url;
 
+#[derive(clap::Args)]
+#[group(skip)]
+pub struct Config {
+    #[arg(long, env = "OIDC_SERVER_URL")]
+    oidc_server_url: Url,
+
+    #[arg(long, env = "OIDC_CLIENT_ID")]
+    oidc_client_id: String,
+
+    #[arg(long, env = "OIDC_CLIENT_SECRET", hide_env_values = true)]
+    oidc_client_secret: String,
+
+    /// Email addresses to add as admins instead of regular user. This option
+    /// is useful for allowing the first admins to log into Platz on a fresh
+    /// deployment. Note that admins are added only after successful validation
+    /// against the OIDC server, and if a user doesn't exist with that email.
+    /// This means that if an admin is later changed to a regular user role,
+    /// they will never become an admin again unless their user is deleted from
+    /// the database, or removed from this option.
+    #[arg(long = "admin-email", env = "ADMIN_EMAILS", value_delimiter = ' ')]
+    admin_emails: Vec<String>,
+}
+
+impl From<Config> for OidcLogin {
+    fn from(config: Config) -> Self {
+        Self {
+            server: config.oidc_server_url,
+            client_id: config.oidc_client_id,
+            client_secret: config.oidc_client_secret,
+            admin_emails: config.admin_emails,
+        }
+    }
+}
+
 pub struct OidcLogin {
     pub server: Url,
     pub client_id: String,
@@ -17,20 +51,6 @@ pub struct OAuth2Response {
 }
 
 impl OidcLogin {
-    pub async fn new(
-        server: Url,
-        client_id: String,
-        client_secret: String,
-        admin_emails: Vec<String>,
-    ) -> Result<Self, AuthError> {
-        Ok(Self {
-            server,
-            client_id,
-            client_secret,
-            admin_emails,
-        })
-    }
-
     async fn client(&self, callback_url: &Url) -> Result<DiscoveredClient, AuthError> {
         DiscoveredClient::discover(
             self.client_id.clone(),

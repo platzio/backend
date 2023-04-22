@@ -10,5 +10,5 @@ mod actix_traits;
 pub use access_token::{AccessToken, DEPLOYMENT_TOKEN_DURATION, USER_TOKEN_DURATION};
 pub use error::AuthError;
 pub use identity::ApiIdentity;
-pub use oidc::{OAuth2Response, OidcLogin};
+pub use oidc::{Config, OAuth2Response, OidcLogin};
 pub use user_token::generate_user_token;
