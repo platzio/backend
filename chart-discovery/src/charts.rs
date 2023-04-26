@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use log::*;
 use platz_chart_ext::ChartExt;
-use platz_db::{HelmChart, Json, NewHelmChart, UpdateHelmChart};
+use platz_db::{HelmChart, HelmChartTagInfo, Json, NewHelmChart, UpdateHelmChart};
 use std::path::PathBuf;
 use tokio::process::Command;
 
@@ -39,13 +39,33 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
             )
         })?
         .to_chrono_utc()?;
-    let tag_info = parse_image_tag(&event.detail.image_tag).await?;
 
     let helm_registry = event.find_or_create_ecr_repo().await?;
 
     let chart_ext = match download_chart(&event).await {
         Ok(path) => ChartExt::from_path(&path).await?,
         Err(err) => ChartExt::new_with_error(err.to_string()),
+    };
+
+    let tag_info = match chart_ext.metadata {
+        Some(metadata) if metadata.git_commit.is_none() && metadata.git_branch.is_none() => {
+            let parsed = parse_image_tag(&event.detail.image_tag).await?;
+            HelmChartTagInfo {
+                tag_format_id: parsed.tag_format_id,
+                parsed_commit: parsed.parsed_commit,
+                parsed_branch: parsed.parsed_branch,
+                parsed_version: Some(metadata.version),
+                parsed_revision: None,
+            }
+        }
+        Some(metadata) => HelmChartTagInfo {
+            tag_format_id: None,
+            parsed_commit: metadata.git_commit,
+            parsed_branch: metadata.git_branch,
+            parsed_version: Some(metadata.version),
+            parsed_revision: None,
+        },
+        None => parse_image_tag(&event.detail.image_tag).await?,
     };
 
     let chart = NewHelmChart {
