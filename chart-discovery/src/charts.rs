@@ -53,7 +53,7 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
         helm_registry_id: helm_registry.id,
         image_digest: event.detail.image_digest,
         image_tag: event.detail.image_tag,
-        values_ui: chart_ext.values_ui.map(Json),
+        values_ui: chart_ext.ui_schema.map(Json),
         actions_schema: chart_ext.actions.map(Json),
         features: chart_ext.features.map(Json),
         resource_types: chart_ext.resource_types.map(Json),

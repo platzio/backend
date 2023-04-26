@@ -2,7 +2,8 @@
 use anyhow::{anyhow, Context, Result};
 use futures::{stream, StreamExt};
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, AttachedProcess, ListParams, ResourceExt};
+use kube::api::{Api, AttachedProcess, ResourceExt};
+use kube::runtime::watcher;
 use log::*;
 use std::{fmt, time::Duration};
 
@@ -83,11 +84,11 @@ where
 }
 
 async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionResult> {
-    let list_params = ListParams::default()
+    let watcher_config = watcher::Config::default()
         .fields(&format!("metadata.name={pod_name}"))
         .timeout(5);
 
-    let mut pod_events = kube::runtime::watcher(pods.clone(), list_params.clone()).boxed();
+    let mut pod_events = watcher::watcher(pods.clone(), watcher_config).boxed();
 
     wait_for_pod_phase(&mut pod_events, |p| p == "Running")
         .await

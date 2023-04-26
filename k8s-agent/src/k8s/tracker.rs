@@ -6,7 +6,7 @@ use super::cluster_type::K8s;
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use futures::{FutureExt, StreamExt, TryStreamExt};
-use kube::api::{Api, ListParams, WatchEvent};
+use kube::api::{Api, ListParams, WatchEvent, WatchParams};
 use kube::ResourceExt;
 use lazy_static::lazy_static;
 use log::*;
@@ -167,21 +167,21 @@ async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Re
     let ns_api = Api::<k8s_openapi::api::core::v1::Namespace>::all(client.clone());
     let mut namespaces = Api::<k8s_openapi::api::core::v1::Namespace>::all(client.clone())
         .watch(
-            &ListParams::default().labels(&DEPLOYMENT_NAMESPACE_LABELS_SELECTOR),
+            &WatchParams::default().labels(&DEPLOYMENT_NAMESPACE_LABELS_SELECTOR),
             "0",
         )
         .await?
         .boxed();
     let mut deployments = Api::<k8s_openapi::api::apps::v1::Deployment>::all(client.clone())
-        .watch(&ListParams::default(), "0")
+        .watch(&WatchParams::default(), "0")
         .await?
         .boxed();
     let mut statefulsets = Api::<k8s_openapi::api::apps::v1::StatefulSet>::all(client.clone())
-        .watch(&ListParams::default(), "0")
+        .watch(&WatchParams::default(), "0")
         .await?
         .boxed();
     let mut jobs = Api::<k8s_openapi::api::batch::v1::Job>::all(client)
-        .watch(&ListParams::default(), "0")
+        .watch(&WatchParams::default(), "0")
         .await?
         .boxed();
 
