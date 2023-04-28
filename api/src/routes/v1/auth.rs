@@ -15,12 +15,4 @@ async fn me(identity: ApiIdentity) -> ApiResult {
 
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("/me", web::get().to(me));
-    cfg.route(
-        "/google",
-        web::get().to(super::super::v2::auth::google_login_info),
-    );
-    cfg.route(
-        "/google/callback",
-        web::post().to(super::super::v2::auth::google_login_callback),
-    );
 }

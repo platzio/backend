@@ -1,11 +1,12 @@
 use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
-use actix_web::{web, HttpResponse};
+use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{EnvUserPermission, EnvUserPermissionFilters, NewEnvUserPermission};
 use serde_json::json;
 use uuid::Uuid;
 
+#[get("/env-user-permissions")]
 async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<EnvUserPermissionFilters>,
@@ -13,10 +14,12 @@ async fn get_all(
     Ok(HttpResponse::Ok().json(EnvUserPermission::all_filtered(filters.into_inner()).await?))
 }
 
-async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+#[get("/env-user-permissions/{id}")]
+async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(EnvUserPermission::find(id.into_inner()).await?))
 }
 
+#[post("/env-user-permissions")]
 async fn create(
     identity: ApiIdentity,
     new_permission: web::Json<NewEnvUserPermission>,
@@ -26,6 +29,7 @@ async fn create(
     Ok(HttpResponse::Created().json(new_permission.insert().await?))
 }
 
+#[delete("/env-user-permissions/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let permission = EnvUserPermission::find(id.into_inner()).await?;
     verify_env_admin(permission.env_id, &identity).await?;
@@ -36,11 +40,4 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     }
     permission.delete().await?;
     Ok(HttpResponse::NoContent().finish())
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("", web::get().to(get_all));
-    cfg.route("/{id}", web::get().to(get));
-    cfg.route("", web::post().to(create));
-    cfg.route("/{id}", web::delete().to(delete));
 }

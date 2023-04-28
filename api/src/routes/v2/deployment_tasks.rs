@@ -1,5 +1,5 @@
 use crate::result::ApiResult;
-use actix_web::{web, HttpResponse};
+use actix_web::{get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
     DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskExtraFilters,
@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
+#[get("/deployment-tasks")]
 async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<DeploymentTaskFilters>,
@@ -20,7 +21,8 @@ async fn get_all(
     ))
 }
 
-async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+#[get("/deployment-tasks/{id}")]
+async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentTask::find(id.into_inner()).await?))
 }
 
@@ -30,6 +32,7 @@ pub struct ApiNewDeploymentTask {
     pub operation: DeploymentTaskOperation,
 }
 
+#[post("/deployment-tasks")]
 async fn create(identity: ApiIdentity, task: web::Json<ApiNewDeploymentTask>) -> ApiResult {
     let task = task.into_inner();
 
@@ -100,10 +103,4 @@ async fn create(identity: ApiIdentity, task: web::Json<ApiNewDeploymentTask>) ->
                 )
         })),
     })
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("", web::get().to(get_all));
-    cfg.route("/{id}", web::get().to(get));
-    cfg.route("", web::post().to(create));
 }
