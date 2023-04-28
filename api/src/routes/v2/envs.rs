@@ -1,19 +1,22 @@
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
-use actix_web::{web, HttpResponse};
+use actix_web::{get, post, put, web, HttpResponse};
 use itertools::Itertools;
 use platz_auth::ApiIdentity;
 use platz_db::{Deployment, Env, EnvFilters, EnvUserRole, NewEnv, NewEnvUserPermission, UpdateEnv};
 use uuid::Uuid;
 
+#[get("/envs")]
 async fn get_all(_identity: ApiIdentity, filters: web::Query<EnvFilters>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Env::all_filtered(filters.into_inner()).await?))
 }
 
-async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+#[get("/envs/{id}")]
+async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Env::find(id.into_inner()).await?))
 }
 
+#[post("/envs")]
 async fn create(identity: ApiIdentity, new_env: web::Json<NewEnv>) -> ApiResult {
     verify_site_admin(&identity).await?;
     let env = new_env.into_inner().save().await?;
@@ -30,6 +33,7 @@ async fn create(identity: ApiIdentity, new_env: web::Json<NewEnv>) -> ApiResult 
     Ok(HttpResponse::Created().json(env))
 }
 
+#[put("/envs/{id}")]
 async fn update(
     identity: ApiIdentity,
     id: web::Path<Uuid>,
@@ -53,11 +57,4 @@ async fn update(
     }
 
     Ok(HttpResponse::Ok().json(update.into_inner().save(id).await?))
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("", web::get().to(get_all));
-    cfg.route("/{id}", web::get().to(get));
-    cfg.route("", web::post().to(create));
-    cfg.route("/{id}", web::put().to(update));
 }

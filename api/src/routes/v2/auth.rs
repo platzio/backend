@@ -1,5 +1,5 @@
 use crate::result::ApiResult;
-use actix_web::{web, HttpResponse};
+use actix_web::{get, post, web, HttpResponse};
 use platz_auth::{AccessToken, ApiIdentity, OAuth2Response, OidcLogin};
 use platz_db::{Deployment, Identity, User};
 use serde::Serialize;
@@ -25,6 +25,7 @@ enum MeResponse {
     Deployment { id: Uuid, name: String },
 }
 
+#[get("/auth/me")]
 async fn me(identity: ApiIdentity) -> ApiResult {
     Ok(HttpResponse::Ok().json(match identity.into_inner() {
         Identity::User(user_id) => MeResponse::User(User::find(user_id).await?.unwrap()),
@@ -40,7 +41,8 @@ struct GoogleLoginInfo {
     redirect_url: Url,
 }
 
-pub async fn google_login_info(oidc_login: web::Data<OidcLogin>) -> ApiResult {
+#[get("/auth/google")]
+pub async fn start_google_login(oidc_login: web::Data<OidcLogin>) -> ApiResult {
     Ok(oidc_login
         .get_redirect_url(&CALLBACK_URL)
         .await
@@ -52,7 +54,8 @@ pub async fn google_login_info(oidc_login: web::Data<OidcLogin>) -> ApiResult {
         }))
 }
 
-pub async fn google_login_callback(
+#[post("/auth/google/callback")]
+pub async fn finish_google_login(
     oidc_login: web::Data<OidcLogin>,
     oauth2_response: web::Json<OAuth2Response>,
 ) -> ApiResult {
@@ -64,10 +67,4 @@ pub async fn google_login_callback(
     Ok(HttpResponse::Ok().json(json!({
         "access_token": access_token,
     })))
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("/me", web::get().to(me));
-    cfg.route("/google", web::get().to(google_login_info));
-    cfg.route("/google/callback", web::post().to(google_login_callback));
 }

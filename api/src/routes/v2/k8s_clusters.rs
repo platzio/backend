@@ -1,19 +1,22 @@
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
-use actix_web::{web, HttpResponse};
+use actix_web::{delete, get, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{Deployment, K8sCluster, K8sClusterFilters, UpdateK8sCluster};
 use serde_json::json;
 use uuid::Uuid;
 
+#[get("/k8s-clusters")]
 async fn get_all(_identity: ApiIdentity, filters: web::Query<K8sClusterFilters>) -> ApiResult {
     Ok(HttpResponse::Ok().json(K8sCluster::all_filtered(filters.into_inner()).await?))
 }
 
-async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+#[get("/k8s-clusters/{id}")]
+async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(K8sCluster::find(id.into_inner()).await?))
 }
 
+#[put("/k8s-clusters/{id}")]
 async fn update(
     identity: ApiIdentity,
     id: web::Path<Uuid>,
@@ -25,6 +28,7 @@ async fn update(
     Ok(HttpResponse::Ok().json(data.save(id).await?))
 }
 
+#[delete("/k8s-clusters/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     verify_site_admin(&identity).await?;
     let cluster = K8sCluster::find(id.into_inner()).await?;
@@ -36,11 +40,4 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
         cluster.delete().await?;
         Ok(HttpResponse::NoContent().finish())
     }
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("", web::get().to(get_all));
-    cfg.route("/{id}", web::get().to(get));
-    cfg.route("/{id}", web::put().to(update));
-    cfg.route("/{id}", web::delete().to(delete));
 }

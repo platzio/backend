@@ -1,6 +1,6 @@
 use crate::permissions::verify_site_admin;
 use crate::result::{ApiError, ApiResult};
-use actix_web::{web, HttpResponse};
+use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::{generate_user_token, ApiIdentity, AuthError};
 use platz_db::{DbError, NewUserToken, User, UserToken, UserTokenFilters};
 use serde::{Deserialize, Serialize};
@@ -19,6 +19,7 @@ async fn ensure_user(identity: &ApiIdentity) -> Result<User, ApiError> {
     })
 }
 
+#[get("/user-tokens")]
 async fn get_all(identity: ApiIdentity, filters: web::Query<UserTokenFilters>) -> ApiResult {
     let user = ensure_user(&identity).await?;
     let mut filters = filters.into_inner();
@@ -33,7 +34,8 @@ async fn get_all(identity: ApiIdentity, filters: web::Query<UserTokenFilters>) -
     Ok(HttpResponse::Ok().json(UserToken::all_filtered(filters).await?))
 }
 
-async fn get(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+#[get("/user-tokens/{id}")]
+async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let user = ensure_user(&identity).await?;
     let user_token = UserToken::find(id.into_inner()).await?;
     if user.is_admin || (user.id == user_token.user_id) {
@@ -66,6 +68,7 @@ pub struct TokenCreationResponse {
     created_token: String,
 }
 
+#[post("/user-tokens")]
 async fn create(identity: ApiIdentity, new_user_token: web::Json<ApiNewUserToken>) -> ApiResult {
     let new_user_token = new_user_token.into_inner();
     let token_user_id =
@@ -85,17 +88,11 @@ async fn create(identity: ApiIdentity, new_user_token: web::Json<ApiNewUserToken
     }))
 }
 
+#[delete("/user-tokens/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let id = id.into_inner();
     let user_token = UserToken::find(id).await?;
     get_token_user_id_and_verify_permissions(&identity, Some(user_token.user_id)).await?;
     user_token.delete().await?;
     Ok(HttpResponse::NoContent().finish())
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("", web::get().to(get_all));
-    cfg.route("/{id}", web::get().to(get));
-    cfg.route("", web::post().to(create));
-    cfg.route("/{id}", web::delete().to(delete));
 }

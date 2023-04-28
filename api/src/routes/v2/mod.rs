@@ -1,4 +1,4 @@
-pub mod auth;
+mod auth;
 mod deployment_permissions;
 mod deployment_resource_types;
 mod deployment_resources;
@@ -12,45 +12,70 @@ mod helm_tag_formats;
 mod k8s_clusters;
 mod k8s_resources;
 mod secrets;
+mod server;
 mod user_tokens;
 mod users;
 mod ws;
 
-use actix_web::{web, HttpResponse};
-use serde::Serialize;
-
-use crate::result::ApiResult;
+use actix_web::web;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("/self", web::get().to(self_route));
-    cfg.service(web::scope("/auth").configure(auth::config));
-    cfg.service(web::scope("/deployment-permissions").configure(deployment_permissions::config));
-    cfg.service(
-        web::scope("/deployment-resource-types").configure(deployment_resource_types::config),
-    );
-    cfg.service(web::scope("/deployment-resources").configure(deployment_resources::config));
-    cfg.service(web::scope("/deployment-tasks").configure(deployment_tasks::config));
-    cfg.service(web::scope("/deployments").configure(deployments::config));
-    cfg.service(web::scope("/env-user-permissions").configure(env_user_permissions::config));
-    cfg.service(web::scope("/envs").configure(envs::config));
-    cfg.service(web::scope("/helm-charts").configure(helm_charts::config));
-    cfg.service(web::scope("/helm-registries").configure(helm_registries::config));
-    cfg.service(web::scope("/helm-tag-formats").configure(helm_tag_formats::config));
-    cfg.service(web::scope("/k8s-clusters").configure(k8s_clusters::config));
-    cfg.service(web::scope("/k8s-resources").configure(k8s_resources::config));
-    cfg.service(web::scope("/secrets").configure(secrets::config));
-    cfg.service(web::scope("/user-tokens").configure(user_tokens::config));
-    cfg.service(web::scope("/users").configure(users::config));
+    cfg.service(auth::me);
+    cfg.service(auth::start_google_login);
+    cfg.service(auth::finish_google_login);
+    cfg.service(deployment_permissions::get_all);
+    cfg.service(deployment_permissions::get_one);
+    cfg.service(deployment_permissions::create);
+    cfg.service(deployment_permissions::delete);
+    cfg.service(deployment_resource_types::get_all);
+    cfg.service(deployment_resource_types::get_one);
+    cfg.service(deployment_resources::get_all);
+    cfg.service(deployment_resources::get_one);
+    cfg.service(deployment_resources::create);
+    cfg.service(deployment_resources::update);
+    cfg.service(deployment_resources::delete);
+    cfg.service(deployment_tasks::get_all);
+    cfg.service(deployment_tasks::get_one);
+    cfg.service(deployment_tasks::create);
+    cfg.service(deployments::get_all);
+    cfg.service(deployments::get_one);
+    cfg.service(deployments::create);
+    cfg.service(deployments::update);
+    cfg.service(deployments::delete);
+    cfg.service(env_user_permissions::get_all);
+    cfg.service(env_user_permissions::get_one);
+    cfg.service(env_user_permissions::create);
+    cfg.service(env_user_permissions::delete);
+    cfg.service(envs::get_all);
+    cfg.service(envs::get_one);
+    cfg.service(envs::create);
+    cfg.service(envs::update);
+    cfg.service(helm_charts::get_all);
+    cfg.service(helm_charts::get_one);
+    cfg.service(helm_registries::get_all);
+    cfg.service(helm_registries::get_one);
+    cfg.service(helm_registries::update);
+    cfg.service(helm_tag_formats::get_all);
+    cfg.service(helm_tag_formats::get_one);
+    cfg.service(helm_tag_formats::create);
+    cfg.service(helm_tag_formats::delete);
+    cfg.service(k8s_clusters::get_all);
+    cfg.service(k8s_resources::get_all);
+    cfg.service(k8s_clusters::update);
+    cfg.service(k8s_clusters::delete);
+    cfg.service(k8s_resources::get_one);
+    cfg.service(secrets::get_all);
+    cfg.service(secrets::get_one);
+    cfg.service(secrets::create);
+    cfg.service(secrets::update);
+    cfg.service(secrets::delete);
+    cfg.service(server::get_one);
+    cfg.service(user_tokens::get_all);
+    cfg.service(user_tokens::get_one);
+    cfg.service(user_tokens::create);
+    cfg.service(user_tokens::delete);
+    cfg.service(users::get_all);
+    cfg.service(users::get_one);
+    cfg.service(users::update);
     cfg.service(web::scope("/ws").configure(ws::config));
-}
-
-#[derive(Debug, Serialize)]
-pub struct SelfInfo {
-    pub version: String,
-}
-
-async fn self_route() -> ApiResult {
-    Ok(HttpResponse::Ok().json(SelfInfo {
-        version: std::env!("PLATZ_BACKEND_VERSION").to_string(),
-    }))
 }

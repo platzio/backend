@@ -1,5 +1,5 @@
 use crate::result::ApiResult;
-use actix_web::{web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use futures::future::try_join_all;
 use platz_auth::ApiIdentity;
 use platz_db::{
@@ -10,6 +10,7 @@ use platz_db::{
 use serde_json::json;
 use uuid::Uuid;
 
+#[get("/deployment-resources")]
 async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<DeploymentResourceFilters>,
@@ -25,7 +26,8 @@ async fn get_all(
     Ok(HttpResponse::Ok().json(result))
 }
 
-async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+#[get("/deployment-resources/{id}")]
+async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(
         DeploymentResource::find(id.into_inner())
             .await?
@@ -34,6 +36,7 @@ async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     ))
 }
 
+#[post("/deployment-resources")]
 async fn create(
     _identity: ApiIdentity,
     new_resource: web::Json<NewDeploymentResource>,
@@ -44,6 +47,7 @@ async fn create(
     Ok(HttpResponse::Created().json(resource))
 }
 
+#[put("/deployment-resources/{id}")]
 async fn update(
     identity: ApiIdentity,
     id: web::Path<Uuid>,
@@ -100,6 +104,7 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_resource))
 }
 
+#[delete("/deployment-resources/{id}")]
 async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let resource = DeploymentResource::find(id.into_inner()).await?;
     if !resource.exists {
@@ -118,12 +123,4 @@ async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     .await?;
 
     Ok(HttpResponse::NoContent().finish())
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("", web::get().to(get_all));
-    cfg.route("/{id}", web::get().to(get));
-    cfg.route("", web::post().to(create));
-    cfg.route("/{id}", web::put().to(update));
-    cfg.route("/{id}", web::delete().to(delete));
 }

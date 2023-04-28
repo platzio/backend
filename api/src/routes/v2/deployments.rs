@@ -1,7 +1,7 @@
 use crate::permissions::verify_deployment_maintainer;
 use crate::permissions::verify_deployment_owner;
 use crate::result::ApiResult;
-use actix_web::{web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
@@ -11,14 +11,17 @@ use platz_db::{
 use serde_json::json;
 use uuid::Uuid;
 
+#[get("/deployments")]
 async fn get_all(_identity: ApiIdentity, filters: web::Query<DeploymentFilters>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Deployment::all_filtered(filters.into_inner()).await?))
 }
 
-async fn get(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+#[get("/deployments/{id}")]
+async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Deployment::find(id.into_inner()).await?))
 }
 
+#[post("/deployments")]
 async fn create(identity: ApiIdentity, new_deployment: web::Json<NewDeployment>) -> ApiResult {
     let new_deployment = new_deployment.into_inner();
     verify_deployment_owner(new_deployment.cluster_id, &new_deployment.kind, &identity).await?;
@@ -58,6 +61,7 @@ pub fn using_error(prefix: &str, deployments: Vec<Deployment>) -> String {
     )
 }
 
+#[put("/deployments/{id}")]
 async fn update(
     identity: ApiIdentity,
     id: web::Path<Uuid>,
@@ -134,6 +138,7 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_deployment))
 }
 
+#[delete("/deployments/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let deployment = Deployment::find(id.into_inner()).await?;
     verify_deployment_owner(deployment.cluster_id, &deployment.kind, &identity).await?;
@@ -156,12 +161,4 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     DeploymentTask::create_uninstall_task(&deployment, &identity).await?;
 
     Ok(HttpResponse::NoContent().finish())
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.route("", web::get().to(get_all));
-    cfg.route("/{id}", web::get().to(get));
-    cfg.route("", web::post().to(create));
-    cfg.route("/{id}", web::put().to(update));
-    cfg.route("/{id}", web::delete().to(delete));
 }
