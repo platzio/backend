@@ -5,8 +5,8 @@ use actix_web::{web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentKind, DeploymentStatus,
-    DeploymentTask, HelmChart, NewDeployment, UpdateDeployment,
+    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentStatus, DeploymentTask, HelmChart,
+    NewDeployment, UpdateDeployment,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -16,7 +16,7 @@ use uuid::Uuid;
 struct Query {
     #[serde(default, deserialize_with = "crate::serde_utils::bool_from_str")]
     all: bool,
-    kind: Option<DeploymentKind>,
+    kind: Option<String>,
     cluster_id: Option<Uuid>,
 }
 

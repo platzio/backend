@@ -1,4 +1,3 @@
-use super::DeploymentKind;
 use crate::{pool, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
@@ -37,7 +36,7 @@ pub struct DeploymentPermission {
     #[filter]
     pub env_id: Uuid,
     pub user_id: Uuid,
-    pub kind: DeploymentKind,
+    pub kind: String,
     pub role: UserDeploymentRole,
 }
 
@@ -78,7 +77,7 @@ impl DeploymentPermission {
     pub async fn find_user_role(
         env_id: Uuid,
         user_id: Uuid,
-        kind: DeploymentKind,
+        kind: String,
     ) -> DbResult<Option<UserDeploymentRole>> {
         Ok(deployment_permissions::table
             .filter(deployment_permissions::env_id.eq(env_id))
@@ -103,7 +102,7 @@ impl DeploymentPermission {
 pub struct NewDeploymentPermission {
     pub env_id: Uuid,
     pub user_id: Uuid,
-    pub kind: DeploymentKind,
+    pub kind: String,
     pub role: UserDeploymentRole,
 }
 

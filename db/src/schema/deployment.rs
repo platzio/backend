@@ -64,8 +64,6 @@ pub enum DeploymentStatus {
     Deleting,
 }
 
-pub type DeploymentKind = String;
-
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
 #[diesel(table_name = deployments)]
 #[pagination]
@@ -75,7 +73,7 @@ pub struct Deployment {
     #[filter(insensitive, substring)]
     pub name: String,
     #[filter(insensitive)]
-    pub kind: DeploymentKind,
+    pub kind: String,
     #[filter]
     pub cluster_id: Uuid,
     #[filter]
@@ -139,7 +137,7 @@ impl Deployment {
             .optional()?)
     }
 
-    pub async fn find_by_kind(kind: DeploymentKind) -> DbResult<Vec<Self>> {
+    pub async fn find_by_kind(kind: String) -> DbResult<Vec<Self>> {
         Ok(deployments::table
             .filter(deployments::kind.eq(kind))
             .get_results_async(pool())
@@ -261,10 +259,7 @@ impl Deployment {
         Ok(())
     }
 
-    pub async fn find_by_cluster_and_kind(
-        cluster_id: Uuid,
-        kind: DeploymentKind,
-    ) -> DbResult<Vec<Self>> {
+    pub async fn find_by_cluster_and_kind(cluster_id: Uuid, kind: String) -> DbResult<Vec<Self>> {
         Ok(deployments::table
             .filter(deployments::cluster_id.eq(cluster_id))
             .filter(deployments::kind.eq(kind))
@@ -377,7 +372,7 @@ impl Deployment {
 pub struct NewDeployment {
     #[serde(default)]
     pub name: String,
-    pub kind: DeploymentKind,
+    pub kind: String,
     pub cluster_id: Uuid,
     pub helm_chart_id: Uuid,
     pub config: Option<serde_json::Value>,
