@@ -29,7 +29,7 @@ table! {
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, DieselEnum,
 )]
-pub enum SyncStatus {
+pub enum DeploymentResourceSyncStatus {
     Creating,
     Updating,
     Deleting,
@@ -49,7 +49,7 @@ pub struct DeploymentResource {
     pub name: String,
     pub exists: bool,
     pub props: serde_json::Value,
-    pub sync_status: SyncStatus,
+    pub sync_status: DeploymentResourceSyncStatus,
     pub sync_reason: Option<String>,
 }
 
@@ -150,7 +150,7 @@ pub struct NewDeploymentResource {
     pub deployment_id: Uuid,
     pub name: String,
     pub props: serde_json::Value,
-    pub sync_status: Option<SyncStatus>,
+    pub sync_status: Option<DeploymentResourceSyncStatus>,
 }
 
 impl NewDeploymentResource {
@@ -227,7 +227,7 @@ impl UpdateDeploymentResourceExists {
 #[derive(Debug, AsChangeset, Deserialize)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResourceSyncStatus {
-    pub sync_status: Option<SyncStatus>,
+    pub sync_status: Option<DeploymentResourceSyncStatus>,
     pub sync_reason: Option<Option<String>>,
 }
 

@@ -3,8 +3,8 @@ use actix_web::{web, HttpResponse};
 use futures::future::try_join_all;
 use platz_auth::ApiIdentity;
 use platz_db::{
-    Deployment, DeploymentResource, DeploymentResourceFilters, DeploymentResourceType,
-    NewDeploymentResource, SyncStatus, UpdateDeploymentResource,
+    Deployment, DeploymentResource, DeploymentResourceFilters, DeploymentResourceSyncStatus,
+    DeploymentResourceType, NewDeploymentResource, UpdateDeploymentResource,
     UpdateDeploymentResourceSyncStatus,
 };
 use serde_json::json;
@@ -74,7 +74,7 @@ async fn update(
     let new_resource = update.save(id).await?;
 
     UpdateDeploymentResourceSyncStatus {
-        sync_status: Some(SyncStatus::Updating),
+        sync_status: Some(DeploymentResourceSyncStatus::Updating),
         sync_reason: Some(None),
     }
     .save(new_resource.id)
@@ -111,7 +111,7 @@ async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     // TODO: Check allowed_role
 
     UpdateDeploymentResourceSyncStatus {
-        sync_status: Some(SyncStatus::Deleting),
+        sync_status: Some(DeploymentResourceSyncStatus::Deleting),
         sync_reason: Some(None),
     }
     .save(resource.id)

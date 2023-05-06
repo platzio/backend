@@ -2,8 +2,8 @@ use anyhow::{anyhow, Result};
 use log::*;
 use platz_chart_ext::resource_types::v1beta1::{ChartExtResourceLifecycle, ResourceLifecycle};
 use platz_db::{
-    db_events, DbEventOperation, DbTable, DeploymentResource, DeploymentResourceType, SyncStatus,
-    UpdateDeploymentResourceSyncStatus,
+    db_events, DbEventOperation, DbTable, DeploymentResource, DeploymentResourceSyncStatus,
+    DeploymentResourceType, UpdateDeploymentResourceSyncStatus,
 };
 
 pub async fn monitor_deployment_resource_changes() -> Result<()> {
@@ -38,21 +38,21 @@ async fn sync_resource(resource: DeploymentResource) -> Result<()> {
     );
 
     match resource.sync_status {
-        SyncStatus::Creating => {
+        DeploymentResourceSyncStatus::Creating => {
             info!("Creating {} ({})", resource.id, resource.name);
             call_lifecycle_target(&resource, |lifecycle| lifecycle.create.as_ref()).await?;
         }
-        SyncStatus::Updating => {
+        DeploymentResourceSyncStatus::Updating => {
             info!("Updating {} ({})", resource.id, resource.name);
             call_lifecycle_target(&resource, |lifecycle| lifecycle.update.as_ref()).await?;
         }
-        SyncStatus::Deleting => {
+        DeploymentResourceSyncStatus::Deleting => {
             info!("Deleting {} ({})", resource.id, resource.name);
             if call_lifecycle_target(&resource, |lifecycle| lifecycle.delete.as_ref()).await? {
                 resource.delete().await?;
             }
         }
-        SyncStatus::Ready | SyncStatus::Error => {
+        DeploymentResourceSyncStatus::Ready | DeploymentResourceSyncStatus::Error => {
             debug!("Nothing to do for {} ({})", resource.id, resource.name);
         }
     }
@@ -79,7 +79,7 @@ where
                 resource.id, resource.name,
             );
             UpdateDeploymentResourceSyncStatus {
-                sync_status: Some(SyncStatus::Ready),
+                sync_status: Some(DeploymentResourceSyncStatus::Ready),
                 sync_reason: Some(None),
             }
             .save(resource.id)
@@ -93,7 +93,7 @@ where
                     resource.id, resource.name, result
                 );
                 UpdateDeploymentResourceSyncStatus {
-                    sync_status: Some(SyncStatus::Ready),
+                    sync_status: Some(DeploymentResourceSyncStatus::Ready),
                     sync_reason: Some(None),
                 }
                 .save(resource.id)
@@ -103,7 +103,7 @@ where
             Err(err) => {
                 error!("Error syncing {} ({}): {}", resource.id, resource.name, err);
                 UpdateDeploymentResourceSyncStatus {
-                    sync_status: Some(SyncStatus::Error),
+                    sync_status: Some(DeploymentResourceSyncStatus::Error),
                     sync_reason: Some(Some(err.to_string())),
                 }
                 .save(resource.id)
