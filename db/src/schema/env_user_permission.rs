@@ -6,6 +6,7 @@ use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -19,14 +20,24 @@ table! {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, DieselEnum,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    EnumString,
+    Display,
+    DieselEnum,
+    ToSchema,
 )]
 pub enum EnvUserRole {
     Admin,
     User,
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = env_user_permissions)]
 #[pagination]
 pub struct EnvUserPermission {
@@ -93,7 +104,7 @@ impl EnvUserPermission {
     }
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = env_user_permissions)]
 pub struct NewEnvUserPermission {
     pub env_id: Uuid,

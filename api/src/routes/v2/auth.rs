@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde_json::json;
 use std::env;
 use url::Url;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 lazy_static::lazy_static! {
@@ -19,12 +20,27 @@ lazy_static::lazy_static! {
         .expect("Failed creating callback URL");
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 enum MeResponse {
     User(User),
     Deployment { id: Uuid, name: String },
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Authentication",
+    operation_id = "authMe",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = MeResponse,
+        ),
+    ),
+)]
 #[get("/auth/me")]
 async fn me(identity: ApiIdentity) -> ApiResult {
     Ok(HttpResponse::Ok().json(match identity.into_inner() {
@@ -36,17 +52,29 @@ async fn me(identity: ApiIdentity) -> ApiResult {
     }))
 }
 
-#[derive(Serialize)]
-struct GoogleLoginInfo {
+#[derive(Serialize, ToSchema)]
+struct StartGoogleLoginResponse {
+    #[schema(value_type = String)]
     redirect_url: Url,
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Authentication",
+    operation_id = "startGoogleLogin",
+    responses(
+        (
+            status = OK,
+            body = StartGoogleLoginResponse,
+        ),
+    ),
+)]
 #[get("/auth/google")]
 pub async fn start_google_login(oidc_login: web::Data<OidcLogin>) -> ApiResult {
     Ok(oidc_login
         .get_redirect_url(&CALLBACK_URL)
         .await
-        .map(|redirect_url| HttpResponse::Ok().json(GoogleLoginInfo { redirect_url }))
+        .map(|redirect_url| HttpResponse::Ok().json(StartGoogleLoginResponse { redirect_url }))
         .unwrap_or_else(|e| {
             HttpResponse::InternalServerError().json(json!({
                 "message": format!("Error getting redirect URL: {e}"),
@@ -54,6 +82,23 @@ pub async fn start_google_login(oidc_login: web::Data<OidcLogin>) -> ApiResult {
         }))
 }
 
+#[derive(Serialize, ToSchema)]
+struct FinishGoogleLoginResponse {
+    access_token: String,
+}
+
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Authentication",
+    operation_id = "finishGoogleLogin",
+    request_body = OAuth2Response,
+    responses(
+        (
+            status = OK,
+            body = FinishGoogleLoginResponse,
+        ),
+    ),
+)]
 #[post("/auth/google/callback")]
 pub async fn finish_google_login(
     oidc_login: web::Data<OidcLogin>,
@@ -64,7 +109,24 @@ pub async fn finish_google_login(
         .await?;
 
     let access_token: String = AccessToken::from(&user).encode().await?;
-    Ok(HttpResponse::Ok().json(json!({
-        "access_token": access_token,
-    })))
+    Ok(HttpResponse::Ok().json(FinishGoogleLoginResponse { access_token }))
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Authentication",
+        description = "\
+APIs for logging into Platz and getting information about the current user.
+",
+    )),
+    paths(me, start_google_login, finish_google_login),
+    components(schemas(
+        MeResponse,
+        User,
+        StartGoogleLoginResponse,
+        OAuth2Response,
+        FinishGoogleLoginResponse,
+    ))
+)]
+pub(super) struct OpenApi;

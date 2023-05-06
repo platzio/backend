@@ -26,6 +26,7 @@ strum = {version = "0.24.0", features = ["derive"]}
 thiserror = "1.0.29"
 tokio = {version = "1", features = ["full"]}
 url = "2.2.2"
+utoipa = {version = "3.3.0", features = ["chrono", "decimal", "preserve_order", "uuid"]}
 uuid = {version = "1", features = ["serde", "v4"]}
 
 [dependencies.diesel]
@@ -46,5 +47,6 @@ features = [
   "serde",
   "serialize",
   "pagination",
+  "utoipa",
 ]
-version = "1.0.2"
+git = "https://github.com/popen2/diesel_filter"

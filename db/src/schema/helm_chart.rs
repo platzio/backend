@@ -10,6 +10,7 @@ use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceTypes;
 use platz_chart_ext::{ChartExtActions, ChartExtFeatures, UiSchema};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -33,7 +34,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, QueryableByName, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, QueryableByName, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = helm_charts)]
 #[pagination]
 pub struct HelmChart {
@@ -57,7 +58,7 @@ pub struct HelmChart {
     pub parsed_commit: Option<String>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct HelmChartExtraFilters {
     in_use: Option<bool>,
     kind: Option<String>,
@@ -275,7 +276,7 @@ impl HelmChart {
     }
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = helm_charts)]
 pub struct NewHelmChart {
     pub created_at: DateTime<Utc>,
@@ -318,7 +319,7 @@ impl UpdateHelmChart {
     }
 }
 
-#[derive(Debug, Default, AsChangeset)]
+#[derive(Debug, Default, AsChangeset, ToSchema)]
 #[diesel(table_name = helm_charts)]
 pub struct HelmChartTagInfo {
     pub tag_format_id: Option<Uuid>,

@@ -5,6 +5,7 @@ use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -16,7 +17,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = user_tokens)]
 #[pagination]
 pub struct UserToken {
@@ -61,7 +62,7 @@ impl UserToken {
     }
 }
 
-#[derive(Deserialize, Insertable)]
+#[derive(Deserialize, Insertable, ToSchema)]
 #[diesel(table_name = user_tokens)]
 pub struct NewUserToken {
     pub id: Uuid,

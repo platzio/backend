@@ -3,6 +3,7 @@ use openid::DiscoveredClient;
 use platz_db::{NewUser, User};
 use serde::Deserialize;
 use url::Url;
+use utoipa::ToSchema;
 
 #[derive(clap::Args)]
 #[group(skip)]
@@ -45,7 +46,7 @@ pub struct OidcLogin {
     pub admin_emails: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct OAuth2Response {
     auth_code: String,
 }

@@ -2,10 +2,28 @@ use crate::permissions::verify_env_admin;
 use crate::result::ApiResult;
 use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{EnvUserPermission, EnvUserPermissionFilters, NewEnvUserPermission};
+use platz_db::{
+    EnvUserPermission, EnvUserPermissionFilters, EnvUserRole, NewEnvUserPermission, Paginated,
+};
 use serde_json::json;
 use uuid::Uuid;
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Env User Permissions",
+    operation_id = "allEnvUserPermissions",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    params(EnvUserPermissionFilters),
+    responses(
+        (
+            status = OK,
+            body = inline(Paginated<EnvUserPermission>),
+        ),
+    ),
+)]
 #[get("/env-user-permissions")]
 async fn get_all(
     _identity: ApiIdentity,
@@ -14,11 +32,42 @@ async fn get_all(
     Ok(HttpResponse::Ok().json(EnvUserPermission::all_filtered(filters.into_inner()).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Env User Permissions",
+    operation_id = "getEnvUserPermission",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = EnvUserPermission,
+        ),
+    ),
+)]
 #[get("/env-user-permissions/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(EnvUserPermission::find(id.into_inner()).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Env User Permissions",
+    operation_id = "createEnvUserPermission",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = NewEnvUserPermission,
+    responses(
+        (
+            status = CREATED,
+            body = EnvUserPermission,
+        ),
+    ),
+)]
 #[post("/env-user-permissions")]
 async fn create(
     identity: ApiIdentity,
@@ -29,6 +78,20 @@ async fn create(
     Ok(HttpResponse::Created().json(new_permission.insert().await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Env User Permissions",
+    operation_id = "deleteEnvUserPermission",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = NO_CONTENT,
+        ),
+    ),
+)]
 #[delete("/env-user-permissions/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let permission = EnvUserPermission::find(id.into_inner()).await?;
@@ -41,3 +104,20 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     permission.delete().await?;
     Ok(HttpResponse::NoContent().finish())
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Env User Permissions",
+        description = "\
+Controls which envs each user can see.
+        ",
+    )),
+    paths(get_all, get_one, create, delete),
+    components(schemas(
+        EnvUserPermission,
+        EnvUserRole,
+        NewEnvUserPermission,
+    )),
+)]
+pub(super) struct OpenApi;

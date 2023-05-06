@@ -7,6 +7,8 @@ mod user_token;
 #[cfg(feature = "actix")]
 mod actix_traits;
 
+pub const USER_TOKEN_HEADER: &str = "x-platz-token";
+
 pub use access_token::{AccessToken, DEPLOYMENT_TOKEN_DURATION, USER_TOKEN_DURATION};
 pub use error::AuthError;
 pub use identity::ApiIdentity;

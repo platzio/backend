@@ -2,9 +2,10 @@ use crate::permissions::verify_site_admin;
 use crate::result::{ApiError, ApiResult};
 use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::{generate_user_token, ApiIdentity, AuthError};
-use platz_db::{DbError, NewUserToken, User, UserToken, UserTokenFilters};
+use platz_db::{DbError, NewUserToken, Paginated, User, UserToken, UserTokenFilters};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 fn ensure_user_id(identity: &ApiIdentity) -> Result<Uuid, ApiError> {
@@ -19,6 +20,22 @@ async fn ensure_user(identity: &ApiIdentity) -> Result<User, ApiError> {
     })
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "User Tokens",
+    operation_id = "allUserTokens",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    params(UserTokenFilters),
+    responses(
+        (
+            status = OK,
+            body = inline(Paginated<UserToken>),
+        ),
+    ),
+)]
 #[get("/user-tokens")]
 async fn get_all(identity: ApiIdentity, filters: web::Query<UserTokenFilters>) -> ApiResult {
     let user = ensure_user(&identity).await?;
@@ -34,6 +51,21 @@ async fn get_all(identity: ApiIdentity, filters: web::Query<UserTokenFilters>) -
     Ok(HttpResponse::Ok().json(UserToken::all_filtered(filters).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "User Tokens",
+    operation_id = "getUserToken",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = UserToken,
+        ),
+    ),
+)]
 #[get("/user-tokens/{id}")]
 async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let user = ensure_user(&identity).await?;
@@ -58,8 +90,8 @@ async fn get_token_user_id_and_verify_permissions(
     Ok(token_user_id)
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ApiNewUserToken {
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateUserToken {
     pub user_id: Option<Uuid>,
 }
 
@@ -68,8 +100,24 @@ pub struct TokenCreationResponse {
     created_token: String,
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "User Tokens",
+    operation_id = "createUserToken",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = CreateUserToken,
+    responses(
+        (
+            status = CREATED,
+            body = UserToken,
+        ),
+    ),
+)]
 #[post("/user-tokens")]
-async fn create(identity: ApiIdentity, new_user_token: web::Json<ApiNewUserToken>) -> ApiResult {
+async fn create(identity: ApiIdentity, new_user_token: web::Json<CreateUserToken>) -> ApiResult {
     let new_user_token = new_user_token.into_inner();
     let token_user_id =
         get_token_user_id_and_verify_permissions(&identity, new_user_token.user_id).await?;
@@ -88,6 +136,20 @@ async fn create(identity: ApiIdentity, new_user_token: web::Json<ApiNewUserToken
     }))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "User Tokens",
+    operation_id = "deleteUserToken",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = NO_CONTENT,
+        ),
+    ),
+)]
 #[delete("/user-tokens/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let id = id.into_inner();
@@ -96,3 +158,22 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     user_token.delete().await?;
     Ok(HttpResponse::NoContent().finish())
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "User Tokens",
+        description = "\
+User tokens allow users to authenticate using a long-lived token that can be
+used in direct API calls, CLI, etc.
+
+User tokens are passed in the `x-platz-token` header.
+",
+    )),
+    paths(get_all, get_one, create, delete),
+    components(schemas(
+        UserToken,
+        CreateUserToken,
+    )),
+)]
+pub(super) struct OpenApi;

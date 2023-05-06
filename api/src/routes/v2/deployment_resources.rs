@@ -4,12 +4,28 @@ use futures::future::try_join_all;
 use platz_auth::ApiIdentity;
 use platz_db::{
     Deployment, DeploymentResource, DeploymentResourceFilters, DeploymentResourceSyncStatus,
-    DeploymentResourceType, NewDeploymentResource, UpdateDeploymentResource,
+    DeploymentResourceType, NewDeploymentResource, Paginated, UpdateDeploymentResource,
     UpdateDeploymentResourceSyncStatus,
 };
 use serde_json::json;
 use uuid::Uuid;
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Resources",
+    operation_id = "allDeploymentResources",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    params(DeploymentResourceFilters),
+    responses(
+        (
+            status = OK,
+            body = inline(Paginated<DeploymentResource>),
+        ),
+    ),
+)]
 #[get("/deployment-resources")]
 async fn get_all(
     _identity: ApiIdentity,
@@ -26,6 +42,21 @@ async fn get_all(
     Ok(HttpResponse::Ok().json(result))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Resources",
+    operation_id = "getDeploymentResource",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = DeploymentResource,
+        ),
+    ),
+)]
 #[get("/deployment-resources/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(
@@ -36,6 +67,22 @@ async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     ))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Resources",
+    operation_id = "createDeploymentResource",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = NewDeploymentResource,
+    responses(
+        (
+            status = CREATED,
+            body = DeploymentResource,
+        ),
+    ),
+)]
 #[post("/deployment-resources")]
 async fn create(
     _identity: ApiIdentity,
@@ -47,6 +94,22 @@ async fn create(
     Ok(HttpResponse::Created().json(resource))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Resources",
+    operation_id = "updateDeploymentResource",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = UpdateDeploymentResource,
+    responses(
+        (
+            status = OK,
+            body = DeploymentResource,
+        ),
+    ),
+)]
 #[put("/deployment-resources/{id}")]
 async fn update(
     identity: ApiIdentity,
@@ -104,6 +167,20 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_resource))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Resources",
+    operation_id = "deleteDeploymentResource",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = NO_CONTENT,
+        ),
+    ),
+)]
 #[delete("/deployment-resources/{id}")]
 async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let resource = DeploymentResource::find(id.into_inner()).await?;
@@ -124,3 +201,19 @@ async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
 
     Ok(HttpResponse::NoContent().finish())
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Deployment Resources",
+        description = "",
+    )),
+    paths(get_all, get_one, create, update, delete),
+    components(schemas(
+        DeploymentResource,
+        NewDeploymentResource,
+        UpdateDeploymentResource,
+        DeploymentResourceSyncStatus,
+    )),
+)]
+pub(super) struct OpenApi;

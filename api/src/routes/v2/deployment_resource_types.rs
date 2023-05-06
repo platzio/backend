@@ -1,9 +1,25 @@
 use crate::result::ApiResult;
 use actix_web::{get, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{DeploymentResourceType, DeploymentResourceTypeFilters};
+use platz_db::{DeploymentResourceType, DeploymentResourceTypeFilters, Paginated};
 use uuid::Uuid;
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Resource Types",
+    operation_id = "allDeploymentResourceTypes",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    params(DeploymentResourceTypeFilters),
+    responses(
+        (
+            status = OK,
+            body = inline(Paginated<DeploymentResourceType>),
+        ),
+    ),
+)]
 #[get("/deployment-resource-types")]
 async fn get_all(
     _identity: ApiIdentity,
@@ -12,7 +28,36 @@ async fn get_all(
     Ok(HttpResponse::Ok().json(DeploymentResourceType::all_filtered(filters.into_inner()).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Resource Types",
+    operation_id = "getDeploymentResourceType",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = DeploymentResourceType,
+        ),
+    ),
+)]
 #[get("/deployment-resource-types/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentResourceType::find(id.into_inner()).await?))
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Deployment Resource Types",
+        description = "\
+Deployment resource types are custom types defined in a chart's extensions
+contained in the `platz` directory in the deployment Helm chart.
+        ",
+    )),
+    paths(get_all, get_one),
+    components(schemas(DeploymentResourceType)),
+)]
+pub(super) struct OpenApi;

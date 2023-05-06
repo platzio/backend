@@ -1,5 +1,6 @@
 use crate::access_token::{get_jwt_secret, AccessToken};
 use crate::error::AuthError;
+use crate::USER_TOKEN_HEADER;
 use actix_web::{dev::Payload, http::header::HeaderName, FromRequest, HttpRequest};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future::{ok, ready, BoxFuture, FutureExt, TryFutureExt};
@@ -59,7 +60,7 @@ impl FromRequest for super::ApiIdentity {
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
         let headers = req.headers();
-        if let Some(user_token_value) = headers.get(HeaderName::from_static("x-platz-token")) {
+        if let Some(user_token_value) = headers.get(HeaderName::from_static(USER_TOKEN_HEADER)) {
             // Get (& verify) ApiIdentity from UserToken
             ready(
                 user_token_value

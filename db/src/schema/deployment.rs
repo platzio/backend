@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
 use strum::{Display, EnumString};
 use url::Url;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -51,6 +52,7 @@ table! {
     AsRefStr,
     Display,
     DieselEnum,
+    ToSchema,
 )]
 pub enum DeploymentStatus {
     Unknown,
@@ -64,7 +66,7 @@ pub enum DeploymentStatus {
     Deleting,
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = deployments)]
 #[pagination]
 pub struct Deployment {
@@ -367,7 +369,7 @@ impl Deployment {
     }
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = deployments)]
 pub struct NewDeployment {
     #[serde(default)]
@@ -388,7 +390,7 @@ impl NewDeployment {
     }
 }
 
-#[derive(AsChangeset, Deserialize)]
+#[derive(AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployments)]
 pub struct UpdateDeployment {
     pub name: Option<String>,

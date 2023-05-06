@@ -15,6 +15,7 @@ use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display, EnumString};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -46,6 +47,7 @@ table! {
     AsRefStr,
     Display,
     DieselEnum,
+    ToSchema,
 )]
 pub enum DeploymentTaskStatus {
     Pending,
@@ -60,7 +62,7 @@ impl Default for DeploymentTaskStatus {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = deployment_tasks)]
 #[pagination]
 pub struct DeploymentTask {
@@ -75,12 +77,13 @@ pub struct DeploymentTask {
     pub deployment_id: Uuid,
     pub acting_user_id: Option<Uuid>,
     pub acting_deployment_id: Option<Uuid>,
+    #[schema(value_type = DeploymentTaskOperation)]
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
     pub reason: Option<String>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct DeploymentTaskExtraFilters {
     active_only: Option<bool>,
     created_from: Option<DateTime<Utc>>,
@@ -241,13 +244,14 @@ impl DeploymentTask {
     }
 }
 
-#[derive(Insertable, Deserialize)]
+#[derive(Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_tasks)]
 pub struct NewDeploymentTask {
     pub cluster_id: Uuid,
     pub deployment_id: Uuid,
     pub acting_user_id: Option<Uuid>,
     pub acting_deployment_id: Option<Uuid>,
+    #[schema(value_type = DeploymentTaskOperation)]
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
 }
@@ -282,7 +286,7 @@ impl UpdateDeploymentTask {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum DeploymentTaskOperation {
     Install(DeploymentInstallTask),
     Upgrade(DeploymentUpgradeTask),
@@ -293,7 +297,7 @@ pub enum DeploymentTaskOperation {
     RestartK8sResource(DeploymentRestartK8sResourceTask),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentInstallTask {
     pub helm_chart_id: Uuid,
     pub config_inputs: serde_json::Value,
@@ -322,11 +326,12 @@ impl DeploymentTask {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentUpgradeTask {
     pub helm_chart_id: Uuid,
     pub prev_helm_chart_id: Option<Uuid>,
     pub config_inputs: serde_json::Value,
+    #[schema(value_type = Object)]
     pub config_delta: Option<JsonDiff>,
     pub values_override: Option<serde_json::Value>,
 }
@@ -359,7 +364,7 @@ impl DeploymentTask {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentReinstallTask {
     pub reason: String,
 }
@@ -390,7 +395,7 @@ impl DeploymentTask {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentRecreaseTask {
     pub old_cluster_id: Uuid,
     pub old_namespace: String,
@@ -426,7 +431,7 @@ impl DeploymentTask {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentUninstallTask {}
 
 impl DeploymentTask {
@@ -449,14 +454,14 @@ impl DeploymentTask {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentInvokeActionTask {
     pub helm_chart_id: Uuid,
     pub action_id: String,
     pub body: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentRestartK8sResourceTask {
     pub resource_id: Uuid,
     pub resource_name: String,

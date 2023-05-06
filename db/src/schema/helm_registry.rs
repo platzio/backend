@@ -6,6 +6,7 @@ use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -20,7 +21,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = helm_registries)]
 #[pagination]
 pub struct HelmRegistry {
@@ -89,7 +90,7 @@ impl HelmRegistry {
     }
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = helm_registries)]
 pub struct NewHelmRegistry {
     pub created_at: DateTime<Utc>,
@@ -115,7 +116,7 @@ impl NewHelmRegistry {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = helm_registries)]
 pub struct UpdateHelmRegistry {
     pub fa_icon: Option<String>,
@@ -132,7 +133,7 @@ impl UpdateHelmRegistry {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = helm_registries)]
 pub struct UpdateHelmRegistryKind {
     pub kind: String,

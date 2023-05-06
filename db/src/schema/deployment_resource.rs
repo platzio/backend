@@ -10,6 +10,7 @@ use log::*;
 use platz_chart_ext::ChartExtActionTarget;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -27,7 +28,17 @@ table! {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, EnumString, Display, DieselEnum,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    EnumString,
+    Display,
+    DieselEnum,
+    ToSchema,
 )]
 pub enum DeploymentResourceSyncStatus {
     Creating,
@@ -37,7 +48,7 @@ pub enum DeploymentResourceSyncStatus {
     Error,
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 #[pagination]
 pub struct DeploymentResource {
@@ -141,7 +152,7 @@ impl DeploymentResource {
     }
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct NewDeploymentResource {
     pub id: Option<Uuid>,
@@ -162,7 +173,7 @@ impl NewDeploymentResource {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResource {
     pub name: Option<String>,
@@ -207,7 +218,7 @@ impl UpdateDeploymentResource {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResourceExists {
     pub exists: Option<bool>,
