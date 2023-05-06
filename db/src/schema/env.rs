@@ -4,6 +4,7 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -17,7 +18,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = envs)]
 #[pagination]
 pub struct Env {
@@ -61,7 +62,7 @@ impl Env {
     }
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = envs)]
 pub struct NewEnv {
     pub name: String,
@@ -77,7 +78,7 @@ impl NewEnv {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = envs)]
 pub struct UpdateEnv {
     pub name: Option<String>,

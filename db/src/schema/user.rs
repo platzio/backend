@@ -7,6 +7,7 @@ use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use log::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -19,7 +20,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = users)]
 #[pagination]
 pub struct User {
@@ -75,7 +76,7 @@ impl User {
     }
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = users)]
 pub struct NewUser {
     pub display_name: String,
@@ -105,7 +106,7 @@ impl NewUser {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = users)]
 pub struct UpdateUser {
     pub is_admin: Option<bool>,

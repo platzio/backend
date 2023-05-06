@@ -5,6 +5,7 @@ use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::Serialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -21,7 +22,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Insertable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Insertable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = k8s_resources)]
 #[pagination]
 pub struct K8sResource {

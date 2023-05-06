@@ -6,21 +6,68 @@ use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
     DbTable, DbTableOrDeploymentResource, Deployment, DeploymentFilters, DeploymentStatus,
-    DeploymentTask, HelmChart, NewDeployment, UpdateDeployment,
+    DeploymentTask, HelmChart, NewDeployment, Paginated, UpdateDeployment,
 };
 use serde_json::json;
 use uuid::Uuid;
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployments",
+    operation_id = "allDeployments",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    params(DeploymentFilters),
+    responses(
+        (
+            status = OK,
+            body = inline(Paginated<Deployment>),
+        ),
+    ),
+)]
 #[get("/deployments")]
 async fn get_all(_identity: ApiIdentity, filters: web::Query<DeploymentFilters>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Deployment::all_filtered(filters.into_inner()).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployments",
+    operation_id = "getDeployment",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = Deployment,
+        ),
+    ),
+)]
 #[get("/deployments/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Deployment::find(id.into_inner()).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployments",
+    operation_id = "createDeployment",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = NewDeployment,
+    responses(
+        (
+            status = CREATED,
+            body = Deployment,
+        ),
+    ),
+)]
 #[post("/deployments")]
 async fn create(identity: ApiIdentity, new_deployment: web::Json<NewDeployment>) -> ApiResult {
     let new_deployment = new_deployment.into_inner();
@@ -61,6 +108,22 @@ pub fn using_error(prefix: &str, deployments: Vec<Deployment>) -> String {
     )
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployments",
+    operation_id = "updateDeployment",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = UpdateDeployment,
+    responses(
+        (
+            status = OK,
+            body = Deployment,
+        ),
+    ),
+)]
 #[put("/deployments/{id}")]
 async fn update(
     identity: ApiIdentity,
@@ -138,6 +201,20 @@ async fn update(
     Ok(HttpResponse::Ok().json(new_deployment))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployments",
+    operation_id = "deleteDeployment",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = NO_CONTENT,
+        ),
+    ),
+)]
 #[delete("/deployments/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let deployment = Deployment::find(id.into_inner()).await?;
@@ -162,3 +239,21 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
 
     Ok(HttpResponse::NoContent().finish())
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Deployments",
+        description = "\
+This collection contains deployments of Helm chart into envs.
+",
+    )),
+    paths(get_all, get_one, create, update, delete),
+    components(schemas(
+        Deployment,
+        NewDeployment,
+        UpdateDeployment,
+        DeploymentStatus,
+    )),
+)]
+pub(super) struct OpenApi;

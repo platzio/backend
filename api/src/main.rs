@@ -1,6 +1,7 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use log::*;
 use platz_db::init_db;
+use routes::openapi::SchemaFormat;
 
 mod permissions;
 mod result;
@@ -18,6 +19,18 @@ enum Command {
         auth_config: platz_auth::Config,
         #[clap(long, default_value = "5secs")]
         prometheus_update_interval: humantime::Duration,
+    },
+    #[command(subcommand)]
+    Openapi(OpenapiSubcommand),
+}
+
+#[derive(Subcommand)]
+#[command(name = "openapi")]
+enum OpenapiSubcommand {
+    #[command(name = "schema")]
+    Schema {
+        #[arg(default_value_t = SchemaFormat::Yaml)]
+        format: SchemaFormat,
     },
 }
 
@@ -53,6 +66,11 @@ async fn main() -> anyhow::Result<()> {
                     result
                 }
             }
+        }
+        Command::Openapi(OpenapiSubcommand::Schema { format }) => {
+            let schema = routes::openapi::get_schema(format);
+            println!("{}", schema);
+            Ok(())
         }
     }
 }

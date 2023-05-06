@@ -3,7 +3,7 @@ use crate::DbResult;
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use uuid::Uuid;
 
 table! {
@@ -15,7 +15,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize)]
+#[derive(Debug, Identifiable, Queryable)]
 pub struct Setting {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,

@@ -6,6 +6,7 @@ use diesel::prelude::*;
 use diesel_filter::{DieselFilter, Paginate};
 use platz_chart_ext::resource_types::v1beta1::ChartExtResourceTypeSpec;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -19,7 +20,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = deployment_resource_types)]
 #[pagination]
 pub struct DeploymentResourceType {
@@ -132,7 +133,7 @@ impl DeploymentResourceType {
     }
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resource_types)]
 pub struct NewDeploymentResourceType {
     pub env_id: Option<Uuid>,

@@ -2,14 +2,33 @@ use crate::result::ApiResult;
 use actix_web::{get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
-    DbError, DbTableOrDeploymentResource, Deployment, DeploymentTask, DeploymentTaskExtraFilters,
-    DeploymentTaskFilters, DeploymentTaskOperation, HelmChart, Json, K8sCluster, K8sResource,
-    NewDeploymentTask,
+    DbError, DbTableOrDeploymentResource, Deployment, DeploymentInstallTask,
+    DeploymentInvokeActionTask, DeploymentRecreaseTask, DeploymentReinstallTask,
+    DeploymentRestartK8sResourceTask, DeploymentTask, DeploymentTaskExtraFilters,
+    DeploymentTaskFilters, DeploymentTaskOperation, DeploymentTaskStatus, DeploymentUninstallTask,
+    DeploymentUpgradeTask, HelmChart, Json, K8sCluster, K8sResource, NewDeploymentTask, Paginated,
 };
 use serde::Deserialize;
 use serde_json::json;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Tasks",
+    operation_id = "allDeploymentTasks",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    params(DeploymentTaskFilters),
+    responses(
+        (
+            status = OK,
+            body = inline(Paginated<DeploymentTask>),
+        ),
+    ),
+)]
 #[get("/deployment-tasks")]
 async fn get_all(
     _identity: ApiIdentity,
@@ -21,19 +40,50 @@ async fn get_all(
     ))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Tasks",
+    operation_id = "getDeploymentTask",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = DeploymentTask,
+        ),
+    ),
+)]
 #[get("/deployment-tasks/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentTask::find(id.into_inner()).await?))
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ApiNewDeploymentTask {
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateDeploymentTask {
     pub deployment_id: Uuid,
     pub operation: DeploymentTaskOperation,
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Tasks",
+    operation_id = "createDeploymentTask",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = CreateDeploymentTask,
+    responses(
+        (
+            status = CREATED,
+            body = DeploymentTask,
+        ),
+    ),
+)]
 #[post("/deployment-tasks")]
-async fn create(identity: ApiIdentity, task: web::Json<ApiNewDeploymentTask>) -> ApiResult {
+async fn create(identity: ApiIdentity, task: web::Json<CreateDeploymentTask>) -> ApiResult {
     let task = task.into_inner();
 
     let deployment = Deployment::find(task.deployment_id).await?;
@@ -104,3 +154,29 @@ async fn create(identity: ApiIdentity, task: web::Json<ApiNewDeploymentTask>) ->
         })),
     })
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Deployment Tasks",
+        description = "\
+Deployment tasks are all operations performed on each deployment, along with
+their status.
+        ",
+    )),
+    paths(get_all, get_one, create),
+    components(schemas(
+        DeploymentTask,
+        DeploymentTaskOperation,
+        DeploymentInstallTask,
+        DeploymentUpgradeTask,
+        DeploymentReinstallTask,
+        DeploymentRecreaseTask,
+        DeploymentUninstallTask,
+        DeploymentInvokeActionTask,
+        DeploymentRestartK8sResourceTask,
+        DeploymentTaskStatus,
+        CreateDeploymentTask,
+    )),
+)]
+pub(super) struct OpenApi;

@@ -4,6 +4,7 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -14,7 +15,7 @@ table! {
     }
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = helm_tag_formats)]
 #[pagination]
 pub struct HelmTagFormat {
@@ -68,7 +69,7 @@ impl HelmTagFormat {
     }
 }
 
-#[derive(Debug, Deserialize, Insertable)]
+#[derive(Debug, Deserialize, Insertable, ToSchema)]
 #[diesel(table_name = helm_tag_formats)]
 pub struct NewHelmTagFormat {
     pub pattern: String,

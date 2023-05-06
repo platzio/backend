@@ -5,6 +5,7 @@ use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
@@ -27,7 +28,7 @@ table! {
     }
 }
 
-#[derive(Debug, Clone, Identifiable, Queryable, Serialize, DieselFilter)]
+#[derive(Debug, Clone, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = k8s_clusters)]
 #[pagination]
 pub struct K8sCluster {
@@ -104,7 +105,7 @@ impl K8sCluster {
     }
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = k8s_clusters)]
 pub struct NewK8sCluster {
     pub provider_id: String,
@@ -149,7 +150,7 @@ impl UpdateK8sClusterStatus {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = k8s_clusters)]
 pub struct UpdateK8sCluster {
     #[serde(default, with = "::serde_with::rust::double_option")]

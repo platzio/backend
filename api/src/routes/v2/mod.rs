@@ -18,6 +18,7 @@ mod users;
 mod ws;
 
 use actix_web::web;
+use utoipa::OpenApi;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(auth::me);
@@ -78,4 +79,32 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(users::get_one);
     cfg.service(users::update);
     cfg.service(web::scope("/ws").configure(ws::config));
+}
+
+#[derive(OpenApi)]
+#[openapi()]
+pub(super) struct ApiV2;
+
+impl ApiV2 {
+    pub fn openapi() -> utoipa::openapi::OpenApi {
+        let mut openapi = <ApiV2 as OpenApi>::openapi();
+        openapi.merge(auth::OpenApi::openapi());
+        openapi.merge(deployment_permissions::OpenApi::openapi());
+        openapi.merge(deployment_resource_types::OpenApi::openapi());
+        openapi.merge(deployment_resources::OpenApi::openapi());
+        openapi.merge(deployment_tasks::OpenApi::openapi());
+        openapi.merge(deployments::OpenApi::openapi());
+        openapi.merge(env_user_permissions::OpenApi::openapi());
+        openapi.merge(envs::OpenApi::openapi());
+        openapi.merge(helm_charts::OpenApi::openapi());
+        openapi.merge(helm_registries::OpenApi::openapi());
+        openapi.merge(helm_tag_formats::OpenApi::openapi());
+        openapi.merge(k8s_clusters::OpenApi::openapi());
+        openapi.merge(k8s_resources::OpenApi::openapi());
+        openapi.merge(secrets::OpenApi::openapi());
+        openapi.merge(server::OpenApi::openapi());
+        openapi.merge(user_tokens::OpenApi::openapi());
+        openapi.merge(users::OpenApi::openapi());
+        openapi
+    }
 }

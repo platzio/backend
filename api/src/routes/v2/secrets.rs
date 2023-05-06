@@ -4,23 +4,71 @@ use crate::result::ApiResult;
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Secret, SecretFilters,
+    DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Paginated, Secret, SecretFilters,
     UpdateSecret,
 };
 use serde::Deserialize;
 use serde_json::json;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Secrets",
+    operation_id = "allSecrets",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    params(SecretFilters),
+    responses(
+        (
+            status = OK,
+            body = inline(Paginated<Secret>),
+        ),
+    ),
+)]
 #[get("/secrets")]
 async fn get_all(_identity: ApiIdentity, filters: web::Query<SecretFilters>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Secret::all_filtered(filters.into_inner()).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Secrets",
+    operation_id = "getSecret",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = OK,
+            body = Secret,
+        ),
+    ),
+)]
 #[get("/secrets/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(Secret::find(id.into_inner()).await?))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Secrets",
+    operation_id = "createSecret",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = NewSecret,
+    responses(
+        (
+            status = CREATED,
+            body = Secret,
+        ),
+    ),
+)]
 #[post("/secrets")]
 async fn create(identity: ApiIdentity, new_secret: web::Json<NewSecret>) -> ApiResult {
     let new_secret = new_secret.into_inner();
@@ -28,7 +76,7 @@ async fn create(identity: ApiIdentity, new_secret: web::Json<NewSecret>) -> ApiR
     Ok(HttpResponse::Created().json(new_secret.insert().await?))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 struct UpdateSecretApi {
     name: Option<String>,
     contents: Option<String>,
@@ -40,6 +88,22 @@ impl From<UpdateSecretApi> for UpdateSecret {
     }
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Secrets",
+    operation_id = "updateSecret",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = UpdateSecretApi,
+    responses(
+        (
+            status = OK,
+            body = Secret,
+        ),
+    ),
+)]
 #[put("/secrets/{id}")]
 async fn update(
     identity: ApiIdentity,
@@ -64,6 +128,20 @@ async fn update(
     Ok(HttpResponse::Ok().json(new))
 }
 
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Secrets",
+    operation_id = "deleteSecret",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = NO_CONTENT,
+        ),
+    ),
+)]
 #[delete("/secrets/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let id = id.into_inner();
@@ -82,3 +160,24 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     secret.delete().await?;
     Ok(HttpResponse::NoContent().finish())
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Secrets",
+        description = "\
+Secrets are stored in envs and can be referenced by chart inputs by using the
+`secrets` collection.
+
+Kubernetes secrets are created during deployment as defined in the chart
+extensions. See chart extensions documentation for more information.
+        ",
+    )),
+    paths(get_all, get_one, create, update, delete),
+    components(schemas(
+        Secret,
+        NewSecret,
+        UpdateSecretApi,
+    )),
+)]
+pub(super) struct OpenApi;
