@@ -10,6 +10,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 #[derive(Debug, Parser)]
+#[group(skip)]
 pub struct Config {
     #[clap(long, env = "PLATZ_ECR_EVENTS_QUEUE")]
     ecr_events_queue: String,

@@ -2905,6 +2905,7 @@ dependencies = [
  "chrono",
  "clap",
  "env_logger",
+ "futures",
  "itertools",
  "log",
  "platz-chart-ext",

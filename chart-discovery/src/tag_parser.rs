@@ -4,7 +4,7 @@ use platz_db::{db_events, DbTable, HelmChart, HelmChartFilters, HelmChartTagInfo
 use regex::Regex;
 
 pub async fn run() -> Result<()> {
-    info!("Starting tar parser task");
+    info!("Starting tag parser task");
     let mut db_rx = db_events();
 
     update_all_charts().await?;

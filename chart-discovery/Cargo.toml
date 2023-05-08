@@ -13,6 +13,7 @@ aws-types = "0.55.0"
 chrono = {version = "0.4", features = ["std", "serde"]}
 clap = {version = "4.0.32", features = ["derive", "env"]}
 env_logger = "0.10.0"
+futures = "0.3.28"
 itertools = "0.10.1"
 log = "0.4.14"
 platz-chart-ext = "0.5.1"
