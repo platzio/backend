@@ -33,8 +33,7 @@ pub async fn _main() -> Result<()> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::Builder::new()
-        .filter(Some(env!("CARGO_PKG_NAME")), CONFIG.log_level())
-        .filter(None, CONFIG.all_log_level())
+        .filter(None, log::LevelFilter::Debug)
         .init();
 
     info!("Starting K8S worker");

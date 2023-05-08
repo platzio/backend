@@ -1,12 +1,10 @@
-mod config;
 mod task;
 
-use crate::config::Config;
 use crate::task::{monitor_deployment_resource_changes, scrub_deployment_resources};
 use anyhow::Result;
 use log::*;
 
-pub async fn _main(_config: Config) -> Result<()> {
+pub async fn _main() -> Result<()> {
     platz_db::init_db(false).await?;
 
     let fut = tokio::spawn(monitor_deployment_resource_changes());
@@ -20,13 +18,11 @@ pub async fn _main(_config: Config) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let config = Config::default();
     env_logger::Builder::new()
-        .filter(Some(env!("CARGO_PKG_NAME")), config.log_level())
-        .filter(None, config.all_log_level())
+        .filter(None, log::LevelFilter::Debug)
         .init();
 
     info!("Starting deployment resource sync worker");
 
-    _main(config).await
+    _main().await
 }
