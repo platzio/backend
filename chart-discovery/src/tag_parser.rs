@@ -70,6 +70,12 @@ impl CompiledTagFormats {
 
 async fn update_all_charts() -> Result<()> {
     let formats = CompiledTagFormats::new().await?;
+
+    if formats.0.is_empty() {
+        warn!("No tag formats found, not updating charts");
+        return Ok(());
+    }
+
     info!(
         "Testing all charts for changes against {} formats",
         formats.0.len()
