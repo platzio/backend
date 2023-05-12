@@ -1,13 +1,16 @@
-name: Release
+name: ⎈ Release Version
 
 on:
   push:
     tags:
       - v**
 
+env:
+  DOCKER_REPO: platzio/backend
+
 jobs:
   test:
-    name: 🧪 Test
+    name: 🧪 Run Tests
     runs-on: ubuntu-latest
     steps:
       - name: 🛎️ Checkout
@@ -44,11 +47,13 @@ jobs:
         run: |
           cargo test --release
 
-  build:
-    name: 🚀 Build & Push to DockerHub
+  image:
+    name: 🐳 Publish Image
     runs-on: ubuntu-latest
     needs:
       - test
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: 🛎️ Checkout
         uses: actions/checkout@v3
@@ -56,7 +61,7 @@ jobs:
       - name: 🏷 Get tag
         id: tag
         run: |
-          echo ::set-output name=tag::${GITHUB_REF#refs/tags/}
+          echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: 🐳 Login to DockerHub
         uses: docker/login-action@v2
@@ -76,6 +81,46 @@ jobs:
           build-args: BASE_IMAGE=platzio/base:v5
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: platzio/backend:${{ steps.tag.outputs.tag }}
+          tags: ${{ env.DOCKER_REPO }}:${{ steps.tag.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    name: 🚀 Create Release
+    runs-on: ubuntu-latest
+    needs:
+      - image
+    steps:
+      - name: 🏗️ Generate OpenAPI schema
+        run: |
+          docker run --rm \
+            ${{ env.DOCKER_REPO }}:${{ needs.image.outputs.tag }} \
+            /root/platz-api openapi schema \
+            > openapi.yaml
+
+      - name: ✨ Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: true
+          tag_name: ${{ needs.image.outputs.tag }}
+          release_name: ${{ needs.image.outputs.tag }}
+
+      - name: 📦 Upload OpenAPI schema
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: openapi.yaml
+          asset_name: openapi.yaml
+          asset_content_type: application/vnd.oai.openapi
+
+      - name: 🚀 Publish release
+        uses: StuYarrow/publish-release@v1.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          id: ${{ steps.create_release.outputs.id }}
