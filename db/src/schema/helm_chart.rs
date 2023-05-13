@@ -45,9 +45,13 @@ pub struct HelmChart {
     pub image_digest: String,
     pub image_tag: String,
     pub available: bool,
+    #[schema(value_type = Option<UiSchema>)]
     pub values_ui: Option<serde_json::Value>,
+    #[schema(value_type = Option<ChartExtActions>)]
     pub actions_schema: Option<serde_json::Value>,
+    #[schema(value_type = Option<ChartExtFeatures>)]
     pub features: Option<serde_json::Value>,
+    #[schema(value_type = Option<ChartExtResourceTypes>)]
     pub resource_types: Option<serde_json::Value>,
     pub error: Option<String>,
     pub tag_format_id: Option<Uuid>,

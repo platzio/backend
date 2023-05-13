@@ -2921,9 +2921,9 @@ dependencies = [
 
 [[package]]
 name = "platz-chart-ext"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "797db333b99439a43646f3065b7001d1664ac5eacd588b1f92cc265fbbe631ef"
+checksum = "855109addd6f0e90e50d240da0823b136313afc8c6c4afed7e140ae5f787ca3a"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2936,6 +2936,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
+ "utoipa",
  "uuid",
 ]
 

@@ -4,7 +4,7 @@ use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_filter::{DieselFilter, Paginate};
-use platz_chart_ext::resource_types::v1beta1::ChartExtResourceTypeSpec;
+use platz_chart_ext::resource_types::v1beta1::ChartExtResourceTypeV1Beta1Spec;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -32,6 +32,7 @@ pub struct DeploymentResourceType {
     pub deployment_kind: String,
     #[filter]
     pub key: String,
+    #[schema(value_type = ChartExtResourceTypeV1Beta1Spec)]
     pub spec: serde_json::Value,
 }
 
@@ -117,7 +118,7 @@ impl DeploymentResourceType {
             .await?)
     }
 
-    pub fn spec(&self) -> DbResult<ChartExtResourceTypeSpec> {
+    pub fn spec(&self) -> DbResult<ChartExtResourceTypeV1Beta1Spec> {
         serde_json::from_value(self.spec.clone()).map_err(DbError::HelmChartResourceTypesParseError)
     }
 

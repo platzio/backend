@@ -86,7 +86,7 @@ pub struct Deployment {
     pub description_md: Option<String>,
     pub reason: Option<String>,
     pub revision_id: Option<Uuid>,
-    #[schema(value_type = DeploymentReportedStatus)]
+    #[schema(value_type = Option<DeploymentReportedStatus>)]
     pub reported_status: Option<Json<DeploymentReportedStatus>>,
     pub helm_chart_id: Uuid,
     pub config: serde_json::Value,

@@ -206,7 +206,7 @@ impl DeploymentTask {
             .expect("Trying to apply deployment resources when a cluster has no env_id");
         let chart = self.helm_chart().await?;
         let types = chart.resource_types()?;
-        for typ in types.inner.into_iter() {
+        for typ in types.0.into_iter() {
             let ChartExtResourceType::V1Beta1(typ) = typ;
             NewDeploymentResourceType {
                 env_id: if typ.spec.global { None } else { Some(env_id) },

@@ -1,6 +1,8 @@
 use anyhow::{anyhow, Result};
 use log::*;
-use platz_chart_ext::resource_types::v1beta1::{ChartExtResourceLifecycle, ResourceLifecycle};
+use platz_chart_ext::resource_types::v1beta1::{
+    ChartExtResourceLifecycleActionV1Beta1, ChartExtResourceLifecycleV1Beta1,
+};
 use platz_db::{
     db_events, DbEventOperation, DbTable, DeploymentResource, DeploymentResourceSyncStatus,
     DeploymentResourceType, UpdateDeploymentResourceSyncStatus,
@@ -64,7 +66,7 @@ async fn call_lifecycle_target<F>(
     get_lifecycle_action: F,
 ) -> Result<bool>
 where
-    F: FnOnce(&ChartExtResourceLifecycle) -> Option<&ResourceLifecycle>,
+    F: FnOnce(&ChartExtResourceLifecycleV1Beta1) -> Option<&ChartExtResourceLifecycleActionV1Beta1>,
 {
     let resource_type = DeploymentResourceType::find(resource.type_id).await?;
     let resource_spec = resource_type.spec()?;

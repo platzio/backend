@@ -16,7 +16,7 @@ humantime = "2.1.0"
 itertools = "0.10.0"
 lazy_static = "1.4.0"
 log = "0.4.14"
-platz-chart-ext = "0.5.1"
+platz-chart-ext = {version = "0.5.2", features = ["utoipa"]}
 prometheus = "0.13.3"
 regex = "1.5.6"
 serde = {version = "1", features = ["derive"]}
