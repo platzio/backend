@@ -2921,9 +2921,9 @@ dependencies = [
 
 [[package]]
 name = "platz-chart-ext"
-version = "0.5.2"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "855109addd6f0e90e50d240da0823b136313afc8c6c4afed7e140ae5f787ca3a"
+checksum = "62ba70e3c794f421fc297428da531d9ba0855dde2fc305ce7c4e60862a4d4420"
 dependencies = [
  "anyhow",
  "async-trait",
