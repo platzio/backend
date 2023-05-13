@@ -18,6 +18,7 @@ mod users;
 mod ws;
 
 use actix_web::web;
+use platz_db::{DbTable, DbTableOrDeploymentResource};
 use utoipa::OpenApi;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -82,7 +83,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 }
 
 #[derive(OpenApi)]
-#[openapi()]
+#[openapi(components(schemas(DbTable, DbTableOrDeploymentResource)))]
 pub(super) struct ApiV2;
 
 impl ApiV2 {

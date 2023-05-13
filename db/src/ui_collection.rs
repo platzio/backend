@@ -1,9 +1,10 @@
 use crate::{DbError, DbTable, DeploymentResource, DeploymentResourceType};
 use platz_chart_ext::{UiSchemaCollections, UiSchemaInputError};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, ToSchema)]
 #[serde(untagged)]
 pub enum DbTableOrDeploymentResource {
     DbTable(DbTable),
