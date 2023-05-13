@@ -4,6 +4,13 @@ use crate::result::ApiResult;
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
+use platz_db::DeploymentRepootedMetric;
+use platz_db::DeploymentReportedNotice;
+use platz_db::DeploymentReportedNoticeLevel;
+use platz_db::DeploymentReportedStatus;
+use platz_db::DeploymentReportedStatusColor;
+use platz_db::DeploymentReportedStatusContent;
+use platz_db::DeploymentReportedStatusSummary;
 use platz_db::{
     DbTable, DbTableOrDeploymentResource, Deployment, DeploymentFilters, DeploymentStatus,
     DeploymentTask, HelmChart, NewDeployment, Paginated, UpdateDeployment,
@@ -254,6 +261,13 @@ This collection contains deployments of Helm chart into envs.
         NewDeployment,
         UpdateDeployment,
         DeploymentStatus,
+        DeploymentReportedStatus,
+        DeploymentReportedStatusContent,
+        DeploymentReportedNotice,
+        DeploymentReportedNoticeLevel,
+        DeploymentRepootedMetric,
+        DeploymentReportedStatusSummary,
+        DeploymentReportedStatusColor,
     )),
 )]
 pub(super) struct OpenApi;

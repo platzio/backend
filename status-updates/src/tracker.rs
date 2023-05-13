@@ -1,12 +1,12 @@
 use crate::status_config::StatusConfig;
 use anyhow::Result;
-use chrono::prelude::{DateTime, Utc};
 use futures_util::TryFutureExt;
 use log::*;
-use platz_db::{Deployment, UpdateDeploymentReportedStatus};
-use serde::Serialize;
+use platz_db::{
+    Deployment, DeploymentReportedStatus, DeploymentReportedStatusContent,
+    UpdateDeploymentReportedStatus,
+};
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -38,12 +38,10 @@ impl StatusTracker {
             );
             self.remove(deployment.id).await;
             if deployment.reported_status.is_some() {
-                UpdateDeploymentReportedStatus {
-                    reported_status: Some(None),
-                }
-                .save(deployment.id)
-                .await
-                .unwrap();
+                UpdateDeploymentReportedStatus::new(None)
+                    .save(deployment.id)
+                    .await
+                    .unwrap();
             }
             return;
         }
@@ -97,7 +95,7 @@ impl StatusTracker {
     }
 }
 
-async fn get_deployment_reported_status(url: &Url) -> Result<serde_json::Value> {
+async fn get_deployment_reported_status(url: &Url) -> Result<DeploymentReportedStatusContent> {
     Ok(reqwest::Client::new()
         .get(url.to_owned())
         .timeout(Duration::from_secs(10))
@@ -121,45 +119,12 @@ async fn periodic_deployment_status_update(deployment: Deployment, status_config
             )
             .await;
 
-        let update_result = UpdateDeploymentReportedStatus {
-            reported_status: Some(Some(serde_json::to_value(reported_status).unwrap())),
-        }
-        .save(deployment.id)
-        .await;
+        let update_result = UpdateDeploymentReportedStatus::new(Some(reported_status))
+            .save(deployment.id)
+            .await;
 
         if let Err(err) = update_result {
             error!("Error updating deployment: {}", err);
-        }
-    }
-}
-
-#[derive(Serialize)]
-struct DeploymentReportedStatus {
-    timestamp: DateTime<Utc>,
-    get_successful: bool,
-    content: Option<serde_json::Value>,
-    error: Option<String>,
-}
-
-impl DeploymentReportedStatus {
-    fn new(content: serde_json::Value) -> Self {
-        Self {
-            timestamp: Utc::now(),
-            get_successful: true,
-            content: Some(content),
-            error: None,
-        }
-    }
-
-    fn new_error<E>(error: E) -> Self
-    where
-        E: Display,
-    {
-        Self {
-            timestamp: Utc::now(),
-            get_successful: false,
-            content: None,
-            error: Some(error.to_string()),
         }
     }
 }

@@ -1,3 +1,4 @@
+use super::deployment_status::DeploymentReportedStatus;
 use crate::DbTableOrDeploymentResource;
 use crate::DeploymentTask;
 use crate::HelmChart;
@@ -10,6 +11,7 @@ use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
+use diesel_json::Json;
 use platz_chart_ext::actions::{
     ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver,
 };
@@ -84,7 +86,8 @@ pub struct Deployment {
     pub description_md: Option<String>,
     pub reason: Option<String>,
     pub revision_id: Option<Uuid>,
-    pub reported_status: Option<serde_json::Value>,
+    #[schema(value_type = DeploymentReportedStatus)]
+    pub reported_status: Option<Json<DeploymentReportedStatus>>,
     pub helm_chart_id: Uuid,
     pub config: serde_json::Value,
     pub values_override: Option<serde_json::Value>,
@@ -435,10 +438,16 @@ impl UpdateDeploymentStatus {
 #[derive(AsChangeset)]
 #[diesel(table_name = deployments)]
 pub struct UpdateDeploymentReportedStatus {
-    pub reported_status: Option<Option<serde_json::Value>>,
+    reported_status: Option<Option<Json<DeploymentReportedStatus>>>,
 }
 
 impl UpdateDeploymentReportedStatus {
+    pub fn new(reported_status: Option<DeploymentReportedStatus>) -> Self {
+        Self {
+            reported_status: Some(reported_status.map(Json)),
+        }
+    }
+
     pub async fn save(self, id: Uuid) -> DbResult<Deployment> {
         Ok(
             diesel::update(deployments::table.filter(deployments::id.eq(id)))
