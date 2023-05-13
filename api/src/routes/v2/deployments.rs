@@ -4,7 +4,7 @@ use crate::result::ApiResult;
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
-use platz_db::DeploymentRepootedMetric;
+use platz_db::DeploymentReportedMetric;
 use platz_db::DeploymentReportedNotice;
 use platz_db::DeploymentReportedNoticeLevel;
 use platz_db::DeploymentReportedStatus;
@@ -265,7 +265,7 @@ This collection contains deployments of Helm chart into envs.
         DeploymentReportedStatusContent,
         DeploymentReportedNotice,
         DeploymentReportedNoticeLevel,
-        DeploymentRepootedMetric,
+        DeploymentReportedMetric,
         DeploymentReportedStatusSummary,
         DeploymentReportedStatusColor,
     )),

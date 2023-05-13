@@ -37,8 +37,8 @@ impl DeploymentReportedStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentReportedStatusContent {
     pub status: DeploymentReportedStatusSummary,
-    pub primary_metric: Option<DeploymentRepootedMetric>,
-    pub metrics: Option<Vec<DeploymentRepootedMetric>>,
+    pub primary_metric: Option<DeploymentReportedMetric>,
+    pub metrics: Option<Vec<DeploymentReportedMetric>>,
     pub notices: Vec<DeploymentReportedNotice>,
 }
 
@@ -59,7 +59,7 @@ pub struct DeploymentReportedStatusSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct DeploymentRepootedMetric {
+pub struct DeploymentReportedMetric {
     pub value: Decimal,
     pub unit: String,
     pub short_description: String,
