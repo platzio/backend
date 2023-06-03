@@ -1,7 +1,6 @@
 {
     "recommendations": [
         "bungcip.better-toml",
-        "serayuzgur.crates",
         "ms-azuretools.vscode-docker",
         "me-dutour-mathieu.vscode-github-actions",
         "esbenp.prettier-vscode",
