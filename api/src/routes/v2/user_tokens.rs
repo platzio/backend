@@ -95,8 +95,8 @@ pub struct CreateUserToken {
     pub user_id: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct TokenCreationResponse {
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CreatedUserToken {
     created_token: String,
 }
 
@@ -112,7 +112,7 @@ pub struct TokenCreationResponse {
     responses(
         (
             status = CREATED,
-            body = UserToken,
+            body = CreatedUserToken,
         ),
     ),
 )]
@@ -131,7 +131,7 @@ async fn create(identity: ApiIdentity, new_user_token: web::Json<CreateUserToken
     .save()
     .await?;
 
-    Ok(HttpResponse::Created().json(TokenCreationResponse {
+    Ok(HttpResponse::Created().json(CreatedUserToken {
         created_token: user_token_info.token_value,
     }))
 }
@@ -174,6 +174,7 @@ User tokens are passed in the `x-platz-token` header.
     components(schemas(
         UserToken,
         CreateUserToken,
+        CreatedUserToken,
     )),
 )]
 pub(super) struct OpenApi;
