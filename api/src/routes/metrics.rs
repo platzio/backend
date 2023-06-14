@@ -1,9 +1,10 @@
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
-use platz_db::{Deployment, DeploymentTask, K8sCluster};
+use platz_db::{Deployment, DeploymentStatus, DeploymentTask, DeploymentTaskStatus, K8sCluster};
 use prometheus::{register_int_gauge_vec, IntGaugeVec};
 use std::collections::HashMap;
 use std::time::Duration;
+use strum::IntoEnumIterator;
 use tokio::time;
 
 lazy_static! {
@@ -25,6 +26,14 @@ async fn update_metrics() -> Result<()> {
     let task_status_counts = DeploymentTask::get_status_counters()
         .await
         .context("Failed updating prometheus metrics of deployment tasks")?;
+
+    TASK_STATUS_COUNTERS.reset();
+    for status in DeploymentTaskStatus::iter() {
+        TASK_STATUS_COUNTERS
+            .with_label_values(&[status.as_ref()])
+            .set(0);
+    }
+
     for stat in task_status_counts.iter() {
         TASK_STATUS_COUNTERS
             .with_label_values(&[stat.status.as_ref()])
@@ -41,6 +50,13 @@ async fn update_metrics() -> Result<()> {
     let deployment_status_counts = Deployment::get_status_counters()
         .await
         .context("Failed updating prometheus metrics deployments")?;
+
+    DEPLOYMENT_STATUS_COUNTERS.reset();
+    for status in DeploymentStatus::iter() {
+        DEPLOYMENT_STATUS_COUNTERS
+            .with_label_values(&[status.as_ref()])
+            .set(0);
+    }
     for stat in deployment_status_counts.into_iter() {
         let cluster_name = cluster_id_to_cluster_name
             .get(&stat.cluster_id)
