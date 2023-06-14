@@ -18,7 +18,7 @@ use platz_chart_ext::actions::{
 use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
 use serde::{Deserialize, Serialize};
 use strum::AsRefStr;
-use strum::{Display, EnumString};
+use strum::{Display, EnumIter, EnumString};
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -50,6 +50,7 @@ table! {
     Eq,
     Serialize,
     Deserialize,
+    EnumIter,
     EnumString,
     AsRefStr,
     Display,
