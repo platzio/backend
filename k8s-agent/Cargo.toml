@@ -24,7 +24,7 @@ kube = {version = "0.82.2", default-features = false, features = ["client", "gzi
 lazy_static = "1"
 log = "0.4.14"
 maplit = "1"
-platz-chart-ext = "0.5.4"
+platz-chart-ext = "0.5.5"
 platz-sdk = "0.5.0"
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"

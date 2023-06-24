@@ -15,7 +15,7 @@ itertools = "0.10.1"
 lazy_static = "1"
 log = "0.4.14"
 maplit = "1"
-platz-chart-ext = {version = "0.5.4", features = ["utoipa"]}
+platz-chart-ext = {version = "0.5.5", features = ["utoipa"]}
 postgres = "0.19.0"
 r2d2 = "0.8.9"
 rust_decimal = {version = "1.14.0", features = ["db-diesel-postgres"]}

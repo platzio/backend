@@ -4,7 +4,7 @@ use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_filter::{DieselFilter, Paginate};
-use platz_chart_ext::resource_types::v1beta1::ChartExtResourceTypeV1Beta1Spec;
+use platz_chart_ext::resource_types::ChartExtResourceTypeV1Beta1Spec;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;

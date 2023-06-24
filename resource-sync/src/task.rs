@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use log::*;
-use platz_chart_ext::resource_types::v1beta1::{
+use platz_chart_ext::resource_types::{
     ChartExtResourceLifecycleActionV1Beta1, ChartExtResourceLifecycleV1Beta1,
 };
 use platz_db::{
