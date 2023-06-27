@@ -1,4 +1,4 @@
-use crate::{pool, DbTableOrDeploymentResource, Paginated, DEFAULT_PAGE_SIZE};
+use crate::{pool, DbTableOrDeploymentResource, DeploymentKind, Paginated, DEFAULT_PAGE_SIZE};
 use crate::{DbError, DbResult};
 use async_diesel::*;
 use chrono::prelude::*;
@@ -15,6 +15,7 @@ table! {
         created_at -> Timestamptz,
         env_id -> Nullable<Uuid>,
         deployment_kind -> VarChar,
+        deployment_kind_id -> Uuid,
         key -> Varchar,
         spec -> Jsonb,
     }
@@ -30,6 +31,8 @@ pub struct DeploymentResourceType {
     pub env_id: Option<Uuid>,
     #[filter(insensitive)]
     pub deployment_kind: String,
+    #[filter]
+    pub deployment_kind_id: Uuid,
     #[filter]
     pub key: String,
     #[schema(value_type = ChartExtResourceTypeV1Beta1Spec)]
@@ -86,8 +89,9 @@ impl DeploymentResourceType {
         deployment_kind: String,
         key: String,
     ) -> DbResult<Self> {
+        let kind_obj = DeploymentKind::find_by_name(deployment_kind).await?;
         Ok(deployment_resource_types::table
-            .filter(deployment_resource_types::deployment_kind.eq(deployment_kind))
+            .filter(deployment_resource_types::deployment_kind_id.eq(kind_obj.id))
             .filter(deployment_resource_types::key.eq(key))
             .filter(
                 deployment_resource_types::env_id
@@ -99,8 +103,9 @@ impl DeploymentResourceType {
     }
 
     pub async fn find_by_kind_and_key(deployment_kind: String, key: String) -> DbResult<Self> {
+        let kind_obj = DeploymentKind::find_by_name(deployment_kind).await?;
         Ok(deployment_resource_types::table
-            .filter(deployment_resource_types::deployment_kind.eq(deployment_kind))
+            .filter(deployment_resource_types::deployment_kind_id.eq(kind_obj.id))
             .filter(deployment_resource_types::key.eq(key))
             .get_result_async(pool())
             .await?)
@@ -122,9 +127,10 @@ impl DeploymentResourceType {
         serde_json::from_value(self.spec.clone()).map_err(DbError::HelmChartResourceTypesParseError)
     }
 
-    pub fn as_db_collection(&self) -> DbTableOrDeploymentResource {
+    pub async fn as_db_collection(&self) -> DbTableOrDeploymentResource {
+        let kind_obj = DeploymentKind::find(self.deployment_kind_id).await.unwrap();
         DbTableOrDeploymentResource::DeploymentResourceType {
-            deployment: self.deployment_kind.clone(),
+            deployment: kind_obj.name,
             r#type: self.key.clone(),
         }
     }
@@ -138,7 +144,7 @@ impl DeploymentResourceType {
 #[diesel(table_name = deployment_resource_types)]
 pub struct NewDeploymentResourceType {
     pub env_id: Option<Uuid>,
-    pub deployment_kind: String,
+    pub deployment_kind_id: Uuid,
     pub key: String,
     pub spec: serde_json::Value,
 }

@@ -22,7 +22,7 @@ pub async fn apply_secrets(
     {
         apply_secret(
             deployment.cluster_id,
-            &deployment.namespace_name(),
+            &deployment.namespace_name().await,
             &secret.name,
             secret.attrs,
         )

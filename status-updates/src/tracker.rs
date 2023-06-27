@@ -72,7 +72,7 @@ impl StatusTracker {
         info!(
             "Starting to update status for deployment {} ({})",
             deployment.id,
-            deployment.namespace_name()
+            deployment.namespace_name().await
         );
 
         configs.insert(deployment.id, new_config.clone());

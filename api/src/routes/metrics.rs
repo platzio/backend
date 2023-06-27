@@ -1,11 +1,14 @@
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
-use platz_db::{Deployment, DeploymentStatus, DeploymentTask, DeploymentTaskStatus, K8sCluster};
+use platz_db::{
+    Deployment, DeploymentKind, DeploymentStatus, DeploymentTask, DeploymentTaskStatus, K8sCluster,
+};
 use prometheus::{register_int_gauge_vec, IntGaugeVec};
 use std::collections::HashMap;
 use std::time::Duration;
 use strum::IntoEnumIterator;
 use tokio::time;
+use uuid::Uuid;
 
 lazy_static! {
     pub static ref TASK_STATUS_COUNTERS: IntGaugeVec = register_int_gauge_vec!(
@@ -26,6 +29,12 @@ async fn update_metrics() -> Result<()> {
     let task_status_counts = DeploymentTask::get_status_counters()
         .await
         .context("Failed updating prometheus metrics of deployment tasks")?;
+    let kind_id_to_name: HashMap<Uuid, String> = DeploymentKind::all()
+        .await
+        .context("Failed fetching deployment kinds")?
+        .into_iter()
+        .map(|deploy_kind| (deploy_kind.id, deploy_kind.name))
+        .collect();
 
     TASK_STATUS_COUNTERS.reset();
     for status in DeploymentTaskStatus::iter() {
@@ -54,24 +63,25 @@ async fn update_metrics() -> Result<()> {
     DEPLOYMENT_STATUS_COUNTERS.reset();
     for kind in deployment_status_counts
         .iter()
-        .map(|stat| stat.kind.as_str())
+        .map(|stat| kind_id_to_name[&stat.kind_id].clone())
     {
         for status in DeploymentStatus::iter() {
             for cluster_name in cluster_id_to_cluster_name.values() {
                 DEPLOYMENT_STATUS_COUNTERS
-                    .with_label_values(&[kind, status.as_ref(), cluster_name])
+                    .with_label_values(&[&kind, status.as_ref(), cluster_name])
                     .set(0);
             }
         }
     }
 
     for stat in deployment_status_counts.into_iter() {
+        let kind_name = kind_id_to_name[&stat.kind_id].clone();
         let cluster_name = cluster_id_to_cluster_name
             .get(&stat.cluster_id)
             .cloned()
             .unwrap_or("");
         DEPLOYMENT_STATUS_COUNTERS
-            .with_label_values(&[stat.kind.as_str(), stat.status.as_ref(), cluster_name])
+            .with_label_values(&[kind_name.as_str(), stat.status.as_ref(), cluster_name])
             .set(stat.count);
     }
 

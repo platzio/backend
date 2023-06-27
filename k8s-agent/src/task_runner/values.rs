@@ -4,7 +4,9 @@ use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use log::*;
 use platz_chart_ext::{insert_into_map, UiSchema};
-use platz_db::{DbTableOrDeploymentResource, Deployment, DeploymentTask, Env, K8sCluster};
+use platz_db::{
+    DbTableOrDeploymentResource, Deployment, DeploymentKind, DeploymentTask, Env, K8sCluster,
+};
 use serde::Serialize;
 use url::Url;
 use uuid::Uuid;
@@ -115,6 +117,7 @@ pub async fn create_values_and_secrets(
     let features = chart
         .features()
         .map_err(|err| anyhow!("Error parsing chart features: {}", err))?;
+    let kind_obj = DeploymentKind::find(deployment.kind_id).await?;
 
     let platz_info = PlatzInfo {
         env_id: env.id,
@@ -124,7 +127,7 @@ pub async fn create_values_and_secrets(
         cluster: &db_cluster,
         deployment_id: deployment.id,
         deployment_name: deployment.name.to_owned(),
-        deployment_kind: deployment.kind.to_owned(),
+        deployment_kind: kind_obj.name.to_owned(),
         revision_id: task.id,
         own_url: OWN_URL.to_owned(),
     };

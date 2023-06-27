@@ -7,6 +7,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum DbTable {
+    DeploymentKinds,
     DeploymentResources,
     DeploymentResourceTypes,
     Deployments,
@@ -39,12 +40,13 @@ impl UiSchemaCollections for DbTable {
             Self::Deployments => {
                 // TODO: Return Option from Deployment::find and convert to UiSchemaInputError::CollectionItemNotFound when None
                 let deployment = crate::schema::Deployment::find(id).await?;
+                let kind_obj = crate::schema::DeploymentKind::find(deployment.kind_id).await?;
                 // TODO: Check deployment is in env_id
                 match property {
                     "id" => Ok(deployment.id.to_string().into()),
                     "created_at" => Ok(deployment.created_at.to_string().into()),
                     "name" => Ok(deployment.name.into()),
-                    "kind" => Ok(deployment.kind.into()),
+                    "kind" => Ok(kind_obj.name.into()),
                     "cluster_id" => Ok(deployment.cluster_id.to_string().into()),
                     "enabled" => Ok(deployment.enabled.into()),
                     _ => Err(UiSchemaInputError::UnknownProperty(

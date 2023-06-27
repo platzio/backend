@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 pub async fn verify_deployment_owner<I>(
     cluster_id: Uuid,
-    kind: &str,
+    kind_id: Uuid,
     identity: &I,
 ) -> Result<(), ApiError>
 where
@@ -20,7 +20,7 @@ where
         Err(ApiError::NoPermission) => match identity.borrow().user_id() {
             None => Err(ApiError::NoPermission),
             Some(user_id) => {
-                match DeploymentPermission::find_user_role(env_id, user_id, kind.to_owned()).await?
+                match DeploymentPermission::find_user_role(env_id, user_id, kind_id).await?
                 {
                     Some(platz_db::UserDeploymentRole::Owner) => Ok(()),
                     _ => Err(ApiError::NoPermission),
@@ -33,7 +33,7 @@ where
 
 pub async fn verify_deployment_maintainer<I>(
     cluster_id: Uuid,
-    kind: &str,
+    kind_id: Uuid,
     identity: &I,
 ) -> Result<(), ApiError>
 where
@@ -50,7 +50,7 @@ where
                 match DeploymentPermission::find_user_role(
                     env_id,
                     user_id.to_owned(),
-                    kind.to_owned(),
+                    kind_id,
                 )
                 .await?
                 {
