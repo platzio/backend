@@ -8,6 +8,7 @@ members = [
   "resource-sync",
   "status-updates",
 ]
+resolver = "2"
 
 [profile.release]
 debug = true

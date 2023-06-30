@@ -8,11 +8,11 @@ anyhow = {version = "1", features = ["backtrace"]}
 async-trait = "0.1.48"
 aws-arn = "0.3.1"
 aws-config = "0.55.0"
-aws-sdk-ec2 = "0.27.0"
-aws-sdk-eks = "0.27.0"
+aws-sdk-ec2 = "0.28.0"
+aws-sdk-eks = "0.28.0"
 aws-types = "0.55.0"
 base64 = "0.21.0"
-chrono = {version = "0.4", features = ["std", "serde"]}
+chrono = {version = "0.4", default-features = false, features = ["std", "serde"]}
 clap = {version = "4.0.32", features = ["derive", "env"]}
 env_logger = "0.10.0"
 futures = "0.3.13"

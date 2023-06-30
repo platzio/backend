@@ -11,7 +11,7 @@ default = []
 actix-web = {version = "4.0.0", features = ["rustls"], optional = true}
 actix-web-httpauth = {version = "0.8.0", optional = true}
 base64 = "0.21.0"
-chrono = {version = "0.4", features = ["std", "serde"]}
+chrono = {version = "0.4", default-features = false, features = ["std", "serde"]}
 clap = "4.2.4"
 futures = {version = "0.3.21", optional = true}
 jsonwebtoken = "8.0.1"
