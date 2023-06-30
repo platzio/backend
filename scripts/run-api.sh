@@ -23,4 +23,4 @@ export OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-"secret"}
 
 echo "[${SCRIPT}] 🚀 Running API server"
 args=("$@")
-exec cargo watch -x "run --bin=platz-api -- --debug ${args[*]}"
+exec cargo watch -x "run --bin=platz-api -- run ${args[*]}"
