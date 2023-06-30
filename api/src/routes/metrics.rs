@@ -52,11 +52,19 @@ async fn update_metrics() -> Result<()> {
         .context("Failed updating prometheus metrics deployments")?;
 
     DEPLOYMENT_STATUS_COUNTERS.reset();
-    for status in DeploymentStatus::iter() {
-        DEPLOYMENT_STATUS_COUNTERS
-            .with_label_values(&[status.as_ref()])
-            .set(0);
+    for kind in deployment_status_counts
+        .iter()
+        .map(|stat| stat.kind.as_str())
+    {
+        for status in DeploymentStatus::iter() {
+            for cluster_name in cluster_id_to_cluster_name.values() {
+                DEPLOYMENT_STATUS_COUNTERS
+                    .with_label_values(&[kind, status.as_ref(), cluster_name])
+                    .set(0);
+            }
+        }
     }
+
     for stat in deployment_status_counts.into_iter() {
         let cluster_name = cluster_id_to_cluster_name
             .get(&stat.cluster_id)
