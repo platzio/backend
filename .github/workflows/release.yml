@@ -58,6 +58,12 @@ jobs:
       - name: 🛎️ Checkout
         uses: actions/checkout@v3
 
+      - name: 🗽 Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          docker-images: false
+
       - name: 🏷 Get tag
         id: tag
         run: |
