@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use strum::Display;
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -42,7 +43,7 @@ pub struct DeploymentReportedStatusContent {
     pub notices: Vec<DeploymentReportedNotice>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, Display, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum DeploymentReportedStatusColor {
     Primary,

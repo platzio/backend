@@ -10,8 +10,10 @@ use kube::api::{Api, ListParams, WatchEvent, WatchParams};
 use kube::ResourceExt;
 use lazy_static::lazy_static;
 use log::*;
-use platz_db::{DeploymentStatus, K8sResource, NewK8sCluster, UpdateK8sClusterStatus};
-use platz_sdk::StatusColor;
+use platz_db::{
+    DeploymentReportedStatusColor, DeploymentStatus, K8sResource, NewK8sCluster,
+    UpdateK8sClusterStatus,
+};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::{broadcast, watch, RwLock};
@@ -340,7 +342,7 @@ where
     T: k8s_openapi::Resource
         + k8s_openapi::Metadata<Ty = k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta>
         + std::fmt::Debug,
-    G: Fn(&T) -> Vec<StatusColor>,
+    G: Fn(&T) -> Vec<DeploymentReportedStatusColor>,
 {
     let (resource, is_create) = match event {
         WatchEvent::Added(resource) | WatchEvent::Modified(resource) => (resource, true),
@@ -430,7 +432,9 @@ async fn set_cluster_status(id: Uuid, is_ok: bool, reason: Option<String>) -> Re
     Ok(())
 }
 
-fn k8s_deployment_status(deployment: &k8s_openapi::api::apps::v1::Deployment) -> Vec<StatusColor> {
+fn k8s_deployment_status(
+    deployment: &k8s_openapi::api::apps::v1::Deployment,
+) -> Vec<DeploymentReportedStatusColor> {
     let status = match &deployment.status {
         Some(status) => status,
         None => return Vec::new(),
@@ -439,15 +443,15 @@ fn k8s_deployment_status(deployment: &k8s_openapi::api::apps::v1::Deployment) ->
     let available = status.available_replicas.unwrap_or_default() as usize;
     let unavailable = status.unavailable_replicas.unwrap_or_default() as usize;
 
-    std::iter::repeat(StatusColor::Success)
+    std::iter::repeat(DeploymentReportedStatusColor::Success)
         .take(available)
-        .chain(std::iter::repeat(StatusColor::Danger).take(unavailable))
+        .chain(std::iter::repeat(DeploymentReportedStatusColor::Danger).take(unavailable))
         .collect()
 }
 
 fn k8s_statefulset_status(
     statefulset: &k8s_openapi::api::apps::v1::StatefulSet,
-) -> Vec<StatusColor> {
+) -> Vec<DeploymentReportedStatusColor> {
     let status = match &statefulset.status {
         Some(status) => status,
         None => return Vec::new(),
@@ -456,26 +460,27 @@ fn k8s_statefulset_status(
     let replicas = status.replicas as usize;
     let ready = status.ready_replicas.unwrap_or_default() as usize;
 
-    std::iter::repeat(StatusColor::Success)
+    std::iter::repeat(DeploymentReportedStatusColor::Success)
         .take(ready)
-        .chain(std::iter::repeat(StatusColor::Danger).take(replicas - ready))
+        .chain(std::iter::repeat(DeploymentReportedStatusColor::Danger).take(replicas - ready))
         .collect()
 }
 
-fn k8s_job_status(job: &k8s_openapi::api::batch::v1::Job) -> Vec<StatusColor> {
+fn k8s_job_status(job: &k8s_openapi::api::batch::v1::Job) -> Vec<DeploymentReportedStatusColor> {
     let status = match &job.status {
         Some(status) => status,
         None => return Vec::new(),
     };
 
-    std::iter::repeat(StatusColor::Primary)
+    std::iter::repeat(DeploymentReportedStatusColor::Primary)
         .take(status.active.unwrap_or_default() as usize)
         .chain(
-            std::iter::repeat(StatusColor::Success)
+            std::iter::repeat(DeploymentReportedStatusColor::Success)
                 .take(status.succeeded.unwrap_or_default() as usize),
         )
         .chain(
-            std::iter::repeat(StatusColor::Danger).take(status.failed.unwrap_or_default() as usize),
+            std::iter::repeat(DeploymentReportedStatusColor::Danger)
+                .take(status.failed.unwrap_or_default() as usize),
         )
         .collect()
 }
