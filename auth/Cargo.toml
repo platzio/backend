@@ -8,24 +8,24 @@ actix = ["actix-web", "actix-web-httpauth", "futures"]
 default = []
 
 [dependencies]
-actix-web = {version = "4.0.0", features = ["rustls"], optional = true}
+actix-web = {version = "4.3.1", features = ["rustls"], optional = true}
 actix-web-httpauth = {version = "0.8.0", optional = true}
-base64 = "0.21.0"
-chrono = {version = "0.4", default-features = false, features = ["std", "serde"]}
-clap = "4.2.4"
-futures = {version = "0.3.21", optional = true}
-jsonwebtoken = "8.0.1"
+base64 = "0.21.2"
+chrono = {version = "0.4.26", default-features = false, features = ["std", "serde"]}
+clap = "4.3.11"
+futures = {version = "0.3.28", optional = true}
+jsonwebtoken = "8.3.0"
 lazy_static = "1.4.0"
 openid = {version = "0.12.0", default-features = false, features = ["rustls"]}
-rand = "0.8.4"
-serde = {version = "1", features = ["derive"]}
-serde_json = "1"
-sha2 = "0.10.6"
-thiserror = "1"
-tokio = {version = "1"}
-url = "2"
+rand = "0.8.5"
+serde = {version = "1.0.171", features = ["derive"]}
+serde_json = "1.0.100"
+sha2 = "0.10.7"
+thiserror = "1.0.43"
+tokio = "1.29.1"
+url = "2.4.0"
 utoipa = {version = "3.3.0", features = ["preserve_order"]}
-uuid = {version = "1", features = ["serde", "v4"]}
+uuid = {version = "1.4.0", features = ["serde", "v4"]}
 
 [dependencies.platz-db]
 path = "../db"
