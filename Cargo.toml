@@ -12,3 +12,7 @@ resolver = "2"
 
 [profile.release]
 debug = true
+
+[workspace.dependencies.platz-chart-ext]
+features = ["utoipa"]
+version = "0.5.7"
