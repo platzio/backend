@@ -12,8 +12,8 @@ use platz_db::DeploymentReportedStatusColor;
 use platz_db::DeploymentReportedStatusContent;
 use platz_db::DeploymentReportedStatusSummary;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentFilters, DeploymentStatus,
-    DeploymentTask, HelmChart, NewDeployment, Paginated, UpdateDeployment,
+    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentExtraFilters, DeploymentFilters,
+    DeploymentStatus, DeploymentTask, HelmChart, NewDeployment, Paginated, UpdateDeployment,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -35,8 +35,13 @@ use uuid::Uuid;
     ),
 )]
 #[get("/deployments")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<DeploymentFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Deployment::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<DeploymentFilters>,
+    extra_filters: web::Query<DeploymentExtraFilters>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(Deployment::all_filtered(filters.into_inner(), extra_filters.into_inner()).await?))
 }
 
 #[utoipa::path(

@@ -88,6 +88,7 @@ pub struct DeploymentTask {
 pub struct DeploymentTaskExtraFilters {
     active_only: Option<bool>,
     created_from: Option<DateTime<Utc>>,
+    env_id: Option<Uuid>,
 }
 
 #[derive(QueryableByName)]
@@ -110,6 +111,17 @@ impl DeploymentTask {
         let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
+            Some(
+                K8sCluster::find_by_env_id(env_id)
+                    .await?
+                    .iter()
+                    .map(|cluster| cluster.id)
+                    .collect(),
+            )
+        } else {
+            None
+        };
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             let mut filtered = Self::filter(&filters);
             if extra_filters.active_only.unwrap_or(false) {
@@ -121,6 +133,9 @@ impl DeploymentTask {
             }
             if let Some(from_date_time) = extra_filters.created_from {
                 filtered = filtered.filter(deployment_tasks::created_at.ge(from_date_time))
+            }
+            if let Some(cluster_ids) = allowed_cluster_ids {
+                filtered = filtered.filter(deployment_tasks::cluster_id.eq_any(cluster_ids))
             }
             filtered
                 .order_by(deployment_tasks::created_at.desc())

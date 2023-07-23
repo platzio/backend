@@ -106,17 +106,40 @@ pub struct DeploymentStat {
     pub cluster_id: Uuid,
 }
 
+#[derive(Debug, Default, Deserialize, ToSchema)]
+pub struct DeploymentExtraFilters {
+    env_id: Option<Uuid>,
+}
+
 impl Deployment {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployments::table.get_results_async(pool()).await?)
     }
 
-    pub async fn all_filtered(filters: DeploymentFilters) -> DbResult<Paginated<Self>> {
+    pub async fn all_filtered(
+        filters: DeploymentFilters,
+        extra_filters: DeploymentExtraFilters,
+    ) -> DbResult<Paginated<Self>> {
         let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
+        let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
+            Some(
+                K8sCluster::find_by_env_id(env_id)
+                    .await?
+                    .iter()
+                    .map(|cluster| cluster.id)
+                    .collect(),
+            )
+        } else {
+            None
+        };
         let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
+            let mut filtered = Self::filter(&filters);
+            if let Some(cluster_ids) = allowed_cluster_ids {
+                filtered = filtered.filter(deployments::cluster_id.eq_any(cluster_ids))
+            }
+            filtered
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn)
