@@ -38,7 +38,7 @@ impl FromRequest for AccessToken {
 impl super::ApiIdentity {
     async fn validate(self) -> Result<Self, AuthError> {
         match self.inner() {
-            Identity::User(user_id) => match User::find(user_id.to_owned()).await {
+            Identity::User(user_id) => match User::find_only_active(user_id.to_owned()).await {
                 Err(err) => Err(err.into()),
                 Ok(None) => Err(AuthError::UserNotFound),
                 Ok(Some(_)) => Ok(self),

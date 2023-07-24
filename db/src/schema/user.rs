@@ -17,6 +17,7 @@ table! {
         display_name -> Varchar,
         email -> Varchar,
         is_admin -> Bool,
+        is_active -> Bool,
     }
 }
 
@@ -31,6 +32,12 @@ pub struct User {
     #[filter(insensitive, substring)]
     pub email: String,
     pub is_admin: bool,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Default, Deserialize, ToSchema)]
+pub struct UserExtraFilters {
+    include_inactive: Option<bool>,
 }
 
 impl User {
@@ -38,12 +45,19 @@ impl User {
         Ok(users::table.get_results_async(pool()).await?)
     }
 
-    pub async fn all_filtered(filters: UserFilters) -> DbResult<Paginated<Self>> {
+    pub async fn all_filtered(
+        filters: UserFilters,
+        extra_filters: UserExtraFilters,
+    ) -> DbResult<Paginated<Self>> {
         let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
+            let mut filtered = Self::filter(&filters);
+            if !extra_filters.include_inactive.unwrap_or(false) {
+                filtered = filtered.filter(users::is_active.eq(true))
+            }
+            filtered
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn)
@@ -56,6 +70,15 @@ impl User {
             num_total,
             items,
         })
+    }
+
+    pub async fn find_only_active(id: Uuid) -> DbResult<Option<Self>> {
+        Ok(users::table
+            .filter(users::id.eq(id))
+            .filter(users::is_active.eq(true))
+            .get_result_async(pool())
+            .await
+            .optional()?)
     }
 
     pub async fn find(id: Uuid) -> DbResult<Option<Self>> {
@@ -110,6 +133,7 @@ impl NewUser {
 #[diesel(table_name = users)]
 pub struct UpdateUser {
     pub is_admin: Option<bool>,
+    pub is_active: Option<bool>,
 }
 
 impl UpdateUser {
