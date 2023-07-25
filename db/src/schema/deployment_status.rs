@@ -40,6 +40,7 @@ pub struct DeploymentReportedStatusContent {
     pub status: DeploymentReportedStatusSummary,
     pub primary_metric: Option<DeploymentReportedMetric>,
     pub metrics: Option<Vec<DeploymentReportedMetric>>,
+    #[serde(default)]
     pub notices: Vec<DeploymentReportedNotice>,
 }
 
