@@ -17,6 +17,7 @@ table! {
         display_name -> Varchar,
         email -> Varchar,
         is_admin -> Bool,
+        is_active -> Bool,
     }
 }
 
@@ -31,6 +32,8 @@ pub struct User {
     #[filter(insensitive, substring)]
     pub email: String,
     pub is_admin: bool,
+    #[filter]
+    pub is_active: bool,
 }
 
 impl User {
@@ -56,6 +59,15 @@ impl User {
             num_total,
             items,
         })
+    }
+
+    pub async fn find_only_active(id: Uuid) -> DbResult<Option<Self>> {
+        Ok(users::table
+            .filter(users::id.eq(id))
+            .filter(users::is_active.eq(true))
+            .get_result_async(pool())
+            .await
+            .optional()?)
     }
 
     pub async fn find(id: Uuid) -> DbResult<Option<Self>> {
@@ -110,6 +122,7 @@ impl NewUser {
 #[diesel(table_name = users)]
 pub struct UpdateUser {
     pub is_admin: Option<bool>,
+    pub is_active: Option<bool>,
 }
 
 impl UpdateUser {

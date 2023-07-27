@@ -13,11 +13,13 @@ fn ensure_user_id(identity: &ApiIdentity) -> Result<Uuid, ApiError> {
 }
 
 async fn ensure_user(identity: &ApiIdentity) -> Result<User, ApiError> {
-    User::find(ensure_user_id(identity)?).await?.ok_or_else(|| {
-        ApiError::from(AuthError::BearerAuthenticationError(
-            "Unknown user".to_owned(),
-        ))
-    })
+    User::find_only_active(ensure_user_id(identity)?)
+        .await?
+        .ok_or_else(|| {
+            ApiError::from(AuthError::BearerAuthenticationError(
+                "Unknown user".to_owned(),
+            ))
+        })
 }
 
 #[utoipa::path(

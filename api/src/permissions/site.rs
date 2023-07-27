@@ -8,7 +8,7 @@ where
     match identity.borrow().user_id() {
         None => Err(ApiError::NoPermission),
         Some(user_id) => {
-            match User::find(user_id)
+            match User::find_only_active(user_id)
                 .await?
                 .ok_or(ApiError::NoPermission)?
                 .is_admin
