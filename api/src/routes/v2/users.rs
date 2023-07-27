@@ -2,7 +2,7 @@ use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{get, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{Paginated, UpdateUser, User, UserExtraFilters, UserFilters};
+use platz_db::{Paginated, UpdateUser, User, UserFilters};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -23,13 +23,8 @@ use uuid::Uuid;
     ),
 )]
 #[get("/users")]
-async fn get_all(
-    _identity: ApiIdentity,
-    filters: web::Query<UserFilters>,
-    extra_filters: web::Query<UserExtraFilters>,
-) -> ApiResult {
-    Ok(HttpResponse::Ok()
-        .json(User::all_filtered(filters.into_inner(), extra_filters.into_inner()).await?))
+async fn get_all(_identity: ApiIdentity, filters: web::Query<UserFilters>) -> ApiResult {
+    Ok(HttpResponse::Ok().json(User::all_filtered(filters.into_inner()).await?))
 }
 
 #[utoipa::path(

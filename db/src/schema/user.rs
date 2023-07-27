@@ -32,12 +32,8 @@ pub struct User {
     #[filter(insensitive, substring)]
     pub email: String,
     pub is_admin: bool,
+    #[filter]
     pub is_active: bool,
-}
-
-#[derive(Debug, Default, Deserialize, ToSchema)]
-pub struct UserExtraFilters {
-    include_inactive: Option<bool>,
 }
 
 impl User {
@@ -45,19 +41,12 @@ impl User {
         Ok(users::table.get_results_async(pool()).await?)
     }
 
-    pub async fn all_filtered(
-        filters: UserFilters,
-        extra_filters: UserExtraFilters,
-    ) -> DbResult<Paginated<Self>> {
+    pub async fn all_filtered(filters: UserFilters) -> DbResult<Paginated<Self>> {
         let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let (items, num_total) = tokio::task::spawn_blocking(move || {
-            let mut filtered = Self::filter(&filters);
-            if !extra_filters.include_inactive.unwrap_or(false) {
-                filtered = filtered.filter(users::is_active.eq(true))
-            }
-            filtered
+            Self::filter(&filters)
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn)
