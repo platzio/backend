@@ -1,4 +1,4 @@
-use crate::{pool, DbResult, Paginated, DEFAULT_PAGE_SIZE};
+use crate::{pool, DbResult, K8sCluster, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
 use diesel::prelude::*;
@@ -59,6 +59,14 @@ impl Env {
 
     pub async fn find(id: Uuid) -> DbResult<Self> {
         Ok(envs::table.find(id).get_result_async(pool()).await?)
+    }
+
+    pub async fn delete(&self) -> DbResult<()> {
+        K8sCluster::detach_from_env(self.id).await?;
+        diesel::delete(envs::table.find(self.id))
+            .execute_async(pool())
+            .await?;
+        Ok(())
     }
 }
 

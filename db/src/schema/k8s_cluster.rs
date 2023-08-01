@@ -103,6 +103,22 @@ impl K8sCluster {
             .await?;
         Ok(())
     }
+
+    pub async fn detach_from_env(env_id: Uuid) -> DbResult<()> {
+        diesel::update(k8s_clusters::table.filter(k8s_clusters::env_id.eq(env_id)))
+            .set(UpdateK8sCluster {
+                env_id: Some(None),
+                ignore: None,
+                ingress_class: None,
+                ingress_domain: None,
+                ingress_tls_secret_name: None,
+                grafana_url: None,
+                grafana_datasource_name: None,
+            })
+            .execute_async(pool())
+            .await?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Insertable, Deserialize, ToSchema)]

@@ -1,11 +1,13 @@
+use super::deployments::using_error;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
-use actix_web::{get, post, put, web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use itertools::Itertools;
 use platz_auth::ApiIdentity;
 use platz_db::{
     Deployment, Env, EnvFilters, EnvUserRole, NewEnv, NewEnvUserPermission, Paginated, UpdateEnv,
 };
+use serde_json::json;
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -81,6 +83,35 @@ async fn create(identity: ApiIdentity, new_env: web::Json<NewEnv>) -> ApiResult 
     .await?;
     Ok(HttpResponse::Created().json(env))
 }
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Envs",
+    operation_id = "deleteEnv",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    responses(
+        (
+            status = NO_CONTENT,
+        ),
+    ),
+)]
+#[delete("/envs/{id}")]
+async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    verify_site_admin(&identity).await?;
+    let env = Env::find(id.into_inner()).await?;
+
+    let dependents = Deployment::find_by_env_id(env.id).await?;
+    if !dependents.is_empty() {
+        return Ok(HttpResponse::Conflict().json(json!({
+            "message": using_error("This environment can't be deleted because it has active deployments", dependents),
+        })));
+    }
+
+    env.delete().await?;
+    Ok(HttpResponse::NoContent().finish())
+}
 
 #[utoipa::path(
     context_path = "/api/v2",
@@ -133,7 +164,7 @@ Envs contain deployments and all related settings resources for those
 deployments, such as deployment permissions.
         ",
     )),
-    paths(get_all, get_one, create, update),
+    paths(get_all, get_one, create, update, delete),
     components(schemas(
         Env,
         NewEnv,

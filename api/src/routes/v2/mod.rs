@@ -52,6 +52,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(envs::get_one);
     cfg.service(envs::create);
     cfg.service(envs::update);
+    cfg.service(envs::delete);
     cfg.service(helm_charts::get_all);
     cfg.service(helm_charts::get_one);
     cfg.service(helm_registries::get_all);
