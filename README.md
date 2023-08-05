@@ -8,21 +8,29 @@ This repo contains Platz's backend. It's written in Rust 🦀 and is broken down
 * `platz-chart-discovery`
 * `platz-status-updates`
 
-## How to Develop
-
-Usually each crate is developed individually, since they each do very different things, and have different requirements.
-
-For example, `platz-api` needs information about OpenID Connect (OIDC) server and database connectivity, while `platz-k8s-agent` needs access to the Kubernetes clusters and to AWS EKS.
-
-In general, you can develop the backend against the production database or using a local copy. The former is relevant when adding/fixing API endpoints, the latter is a better method for when adding new features or doing something risky.
-
-### Running API Locally
+## Running Locally
 
 ```bash
-./scripts/run-api.sh
+docker compose up
 ```
 
-### Developing Against Production Database
+The `docker-compose.yaml` in this repo will set up a database, OIDC provider and run the API server.
+
+**👉 For a list of users and their passwords see [.dev/oidc-users.json](.dev/oidc-users.json).**
+
+Forwarded ports:
+
+* Port `3000`: API server
+* Port `9000`: OIDC provider
+* Port `15432`: Postgres database
+
+To connect to the development database:
+
+```bash
+PGHOST=127.0.0.1 PGPORT=15432 PGUSER=postgres PGPASSWORD=postgres psql
+```
+
+## Developing Against Production Database
 
 > ⚠️ This is potentially dangerous, don't use this method after large or dangerous changes.
 
@@ -36,7 +44,7 @@ Then run any of the workers with the `DATABASE_URL` environment variable set fro
 
 ```bash
 cd api
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/platz cargo run
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/platz cargo run -- api
 ```
 
 ## Crates Overview

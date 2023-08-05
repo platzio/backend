@@ -1,0 +1,35 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 15432:5432
+  idp:
+    image: qlik/simple-oidc-provider
+    environment:
+      CONFIG_FILE: /etc/oidc-config.json
+      USERS_FILE: /etc/oidc-users.json
+    volumes:
+      - ./.dev/oidc-config.json:/etc/oidc-config.json:ro
+      - ./.dev/oidc-users.json:/etc/oidc-users.json:ro
+    ports:
+      - 9000:9000
+  platz-api:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: platzio/base:v5
+    command:
+      - /root/platz-api
+      - run
+    environment:
+      ADMIN_EMAILS: admin@example.com
+      DATABASE_URL: postgres://postgres:postgres@db:5432
+      OIDC_SERVER_URL: http://idp:9000
+      OIDC_CLIENT_ID: foo
+      OIDC_CLIENT_SECRET: bar
+      PLATZ_OWN_URL: https://localhost:8080
+    ports:
+      - 3000:3000

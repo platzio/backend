@@ -1,0 +1,25 @@
+{
+    "idp_name": "http://idp:9000",
+    "port": 9000,
+    "client_config": [
+        {
+            "client_id": "foo",
+            "client_secret": "bar",
+            "redirect_uris": [
+                "https://localhost:8080/auth/google/callback"
+            ]
+        }
+    ],
+    "claim_mapping": {
+        "openid": [
+            "sub"
+        ],
+        "email": [
+            "email",
+            "email_verified"
+        ],
+        "profile": [
+            "name"
+        ]
+    }
+}
