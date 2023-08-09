@@ -2937,6 +2937,7 @@ dependencies = [
  "serde_yaml",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "tryhard",
  "url",

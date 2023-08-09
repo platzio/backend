@@ -6,6 +6,9 @@ use kube::api::{Api, AttachedProcess, ResourceExt};
 use kube::runtime::watcher;
 use log::*;
 use std::{fmt, time::Duration};
+use tokio::select;
+use tokio::time::Instant;
+use tokio_stream::wrappers::IntervalStream;
 
 #[derive(Debug, thiserror::Error)]
 pub struct PodExecutionResult {
@@ -27,6 +30,7 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
     let pod_name = pod.metadata.name.clone().unwrap();
 
     let create_params = Default::default();
+    debug!("Creating {}", pod_name);
     tryhard::retry_fn(|| pods.create(&create_params, &pod))
         .retries(10)
         .fixed_backoff(Duration::from_millis(500))
@@ -47,61 +51,117 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
         });
 
     match result {
-        Ok(exe_result) => Ok(exe_result.output),
-        Err(exe_result) => Err(exe_result),
+        Ok(exe_result) => {
+            debug!("{} deletion succeed", pod_name);
+            Ok(exe_result.output)
+        }
+        Err(exe_result) => {
+            debug!("{} deletion failed", pod_name);
+            Err(exe_result)
+        }
     }
 }
 
-async fn wait_for_pod_phase<S, F>(mut stream: S, pred: F) -> Result<()>
+async fn create_interval_stream(duration: Duration) -> IntervalStream {
+    let interval = tokio::time::interval_at(Instant::now() + duration, duration);
+    IntervalStream::new(interval)
+}
+
+async fn wait_for_pod_phase<S, F>(
+    mut stream: S,
+    pred: F,
+    timeout_duration: Duration,
+) -> Result<String>
 where
     S: futures::Stream<
             Item = Result<kube::runtime::watcher::Event<Pod>, kube::runtime::watcher::Error>,
         > + Unpin,
     F: Fn(&str) -> bool,
 {
-    while let Some(status) = stream.next().await {
-        match status {
-            Ok(status) => {
-                for pod in status.into_iter_applied() {
-                    let status = match pod.status.as_ref() {
-                        Some(status) => status,
-                        None => continue,
-                    };
-                    match &status.phase {
-                        Some(phase) => {
-                            if pred(phase) {
-                                return Ok(());
+    let mut logs_timer_stream = create_interval_stream(Duration::from_secs(60)).await;
+    let mut timeout_timer_stream = create_interval_stream(timeout_duration).await;
+    loop {
+        select! {
+            biased;
+            Some(status) = stream.next() => {
+                match status {
+                    Ok(status) => {
+                        for pod in status.into_iter_applied() {
+                            let status = match pod.status.as_ref() {
+                                Some(status) => status,
+                                None => continue,
+                            };
+                            match &status.phase {
+                                Some(phase) => {
+                                    if pred(phase) {
+                                        log::debug!("Reached {} phase", &phase);
+                                        return Ok(phase.clone());
+                                    }
+                                }
+                                None => continue,
                             }
                         }
-                        None => continue,
                     }
+                    Err(e) => log::debug!("Recovering from watcher error: {e:?}"),
                 }
+            },
+            _ = timeout_timer_stream.next() => {
+                log::debug!("Failed waiting for pod to reach phase");
+                return Err(anyhow!("Failed waiting for pod to reach phase"))
+            },
+            _ = logs_timer_stream.next() => {
+                log::debug!("Still waiting for pod phase");
             }
-            Err(e) => log::debug!("Recovering from watcher error: {e:?}"),
         }
     }
-    Err(anyhow!("Failed waiting for pod to reach phase"))
 }
 
 async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionResult> {
+    log::debug!("Waiting for pod {}", pod_name);
     let watcher_config = watcher::Config::default()
         .fields(&format!("metadata.name={pod_name}"))
         .timeout(5);
 
     let mut pod_events = watcher::watcher(pods.clone(), watcher_config).boxed();
+    let is_pod_finished =
+        |phase_name: &str| -> bool { phase_name == "Succeeded" || phase_name == "Failed" };
 
-    wait_for_pod_phase(&mut pod_events, |p| p == "Running")
+    let mut pod_phase = wait_for_pod_phase(
+        &mut pod_events,
+        |p| p == "Running" || is_pod_finished(p),
+        Duration::from_secs(60),
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "Failed waiting for Helm pod {} to reach Running phase",
+            pod_name
+        )
+    })?;
+    info!("Ready to attach to {} (phase: {})", pod_name, pod_phase);
+
+    let output = if is_pod_finished(&pod_phase) {
+        "<N/A>".into()
+    } else {
+        debug!("Attaching to pod {}", pod_name);
+        let attached = pods.attach(pod_name, &Default::default()).await?;
+        let output = get_pod_output(attached).await?;
+
+        pod_phase = wait_for_pod_phase(
+            &mut pod_events,
+            is_pod_finished,
+            Duration::from_secs(60 * 10),
+        )
         .await
-        .context("Failed waiting for Helm pod to reach Running phase")?;
-    info!("Ready to attach to {}", pod_name);
-
-    let attached = pods.attach(pod_name, &Default::default()).await?;
-    let output = get_pod_output(attached).await?;
-
-    wait_for_pod_phase(&mut pod_events, |p| p == "Succeeded" || p == "Failed")
-        .await
-        .context("Failed waiting for Helm pod to reach Succeeded or Failed phase")?;
-    info!("Pod {} terminated", pod_name);
+        .with_context(|| {
+            format!(
+                "Failed waiting for Helm pod {} to reach Succeeded or Failed phase",
+                pod_name
+            )
+        })?;
+        output
+    };
+    info!("Pod {} terminated (phase: {})", pod_name, pod_phase);
 
     let pod_status = pods.get_status(pod_name).await?;
     let container_status = pod_status
