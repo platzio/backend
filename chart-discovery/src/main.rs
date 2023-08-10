@@ -21,9 +21,7 @@ pub struct Config {
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = Config::parse();
-    env_logger::Builder::new()
-        .filter(None, log::LevelFilter::Debug)
-        .init();
+    env_logger::init();
 
     platz_db::init_db(false).await?;
     kind::update_all_registries().await?;

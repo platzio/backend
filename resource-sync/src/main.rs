@@ -18,9 +18,7 @@ pub async fn _main() -> Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::Builder::new()
-        .filter(None, log::LevelFilter::Debug)
-        .init();
+    env_logger::init();
 
     info!("Starting deployment resource sync worker");
 
