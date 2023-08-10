@@ -45,9 +45,7 @@ async fn main() -> anyhow::Result<()> {
             auth_config,
             prometheus_update_interval,
         } => {
-            env_logger::Builder::new()
-                .filter(None, log::LevelFilter::Debug)
-                .init();
+            env_logger::init();
 
             init_db(true).await?;
 

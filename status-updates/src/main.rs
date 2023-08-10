@@ -8,9 +8,7 @@ use log::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::Builder::new()
-        .filter(None, log::LevelFilter::Debug)
-        .init();
+    env_logger::init();
 
     info!("Starting status updates worker");
 
