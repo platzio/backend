@@ -59,10 +59,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: 🗽 Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          docker-images: false
+        uses: ShubhamTatvamasi/free-disk-space-action@master
 
       - name: 🏷 Get tag
         id: tag
