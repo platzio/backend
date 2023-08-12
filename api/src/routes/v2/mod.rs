@@ -108,6 +108,7 @@ impl ApiV2 {
         openapi.merge(server::OpenApi::openapi());
         openapi.merge(user_tokens::OpenApi::openapi());
         openapi.merge(users::OpenApi::openapi());
+        openapi.merge(ws::OpenApi::openapi());
         openapi
     }
 }

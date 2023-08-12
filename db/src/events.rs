@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tokio::task;
 use tokio::time;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub enum DbEventOperation {
     #[serde(rename = "INSERT")]
     Insert,
@@ -19,12 +20,12 @@ pub enum DbEventOperation {
     Delete,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct DbEventData {
     pub id: Uuid,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct DbEvent {
     pub operation: DbEventOperation,
     pub table: DbTable,

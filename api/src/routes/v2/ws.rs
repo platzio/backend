@@ -2,7 +2,7 @@ use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use log::*;
-use platz_db::{db_events, DbEvent};
+use platz_db::{db_events, DbEvent, DbEventData, DbEventOperation};
 use std::time::Duration;
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
@@ -59,3 +59,13 @@ async fn connect_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpRespon
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("", web::get().to(connect_ws));
 }
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    tags((
+        name = "Events",
+        description = "Events sent through the Websocket.",
+    )),
+    components(schemas(DbEvent, DbEventOperation, DbEventData)),
+)]
+pub(super) struct OpenApi;
