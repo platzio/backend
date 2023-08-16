@@ -6,6 +6,7 @@ use kube::api::{Api, AttachedProcess, ResourceExt};
 use kube::runtime::watcher;
 use log::*;
 use std::{fmt, time::Duration};
+use tap::TapFallible;
 use tokio::select;
 use tokio::time::Instant;
 use tokio_stream::wrappers::IntervalStream;
@@ -30,7 +31,7 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
     let pod_name = pod.metadata.name.clone().unwrap();
 
     let create_params = Default::default();
-    debug!("Creating {}", pod_name);
+    debug!("Creating {pod_name}");
     tryhard::retry_fn(|| pods.create(&create_params, &pod))
         .retries(10)
         .fixed_backoff(Duration::from_millis(500))
@@ -39,7 +40,7 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
 
     let result = wait_for_pod(&pods, &pod_name).await;
 
-    debug!("Deleting {}", pod_name);
+    debug!("Deleting {pod_name}");
     let delete_params = Default::default();
     tryhard::retry_fn(|| pods.delete(&pod_name, &delete_params))
         .retries(10)
@@ -50,19 +51,15 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
             assert_eq!(pdel.name_any(), pod_name);
         });
 
-    match result {
-        Ok(exe_result) => {
-            debug!("{} deletion succeed", pod_name);
-            Ok(exe_result.output)
-        }
-        Err(exe_result) => {
-            debug!("{} deletion failed", pod_name);
-            Err(exe_result)
-        }
-    }
+    result
+        .map(|exe_result| {
+            debug!("{pod_name} deletion succeed");
+            exe_result.output
+        })
+        .tap_err(|e| log::error!("{pod_name} deletion failed: {e:?}"))
 }
 
-async fn create_interval_stream(duration: Duration) -> IntervalStream {
+fn create_interval_stream(duration: Duration) -> IntervalStream {
     let interval = tokio::time::interval_at(Instant::now() + duration, duration);
     IntervalStream::new(interval)
 }
@@ -78,8 +75,10 @@ where
         > + Unpin,
     F: Fn(&str) -> bool,
 {
-    let mut logs_timer_stream = create_interval_stream(Duration::from_secs(60)).await;
-    let mut timeout_timer_stream = create_interval_stream(timeout_duration).await;
+    let mut logs_timer_stream = create_interval_stream(Duration::from_secs(60));
+    let timeout_sleep = tokio::time::sleep(timeout_duration);
+    tokio::pin!(timeout_sleep);
+
     loop {
         select! {
             biased;
@@ -94,7 +93,7 @@ where
                             match &status.phase {
                                 Some(phase) => {
                                     if pred(phase) {
-                                        log::debug!("Reached {} phase", &phase);
+                                        log::debug!("Reached {phase} phase");
                                         return Ok(phase.clone());
                                     }
                                 }
@@ -105,7 +104,7 @@ where
                     Err(e) => log::debug!("Recovering from watcher error: {e:?}"),
                 }
             },
-            _ = timeout_timer_stream.next() => {
+            () = &mut timeout_sleep => {
                 log::debug!("Failed waiting for pod to reach phase");
                 return Err(anyhow!("Failed waiting for pod to reach phase"))
             },
@@ -117,51 +116,41 @@ where
 }
 
 async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionResult> {
-    log::debug!("Waiting for pod {}", pod_name);
+    log::debug!("Waiting for pod {pod_name}");
     let watcher_config = watcher::Config::default()
         .fields(&format!("metadata.name={pod_name}"))
         .timeout(5);
 
     let mut pod_events = watcher::watcher(pods.clone(), watcher_config).boxed();
-    let is_pod_finished =
-        |phase_name: &str| -> bool { phase_name == "Succeeded" || phase_name == "Failed" };
+    let is_pod_finished = |phase_name: &str| -> bool {
+        phase_name.eq_ignore_ascii_case("Succeeded") || phase_name.eq_ignore_ascii_case("Failed")
+    };
 
     let mut pod_phase = wait_for_pod_phase(
         &mut pod_events,
-        |p| p == "Running" || is_pod_finished(p),
+        |p| !p.eq_ignore_ascii_case("Pending") && !p.eq_ignore_ascii_case("Unknown"),
         Duration::from_secs(60),
     )
     .await
-    .with_context(|| {
-        format!(
-            "Failed waiting for Helm pod {} to reach Running phase",
-            pod_name
-        )
-    })?;
-    info!("Ready to attach to {} (phase: {})", pod_name, pod_phase);
+    .with_context(|| format!("Failed waiting for Helm pod {pod_name} to start running"))?;
+    info!("Ready to attach to {pod_name} (phase: {pod_phase})");
 
-    let output = if is_pod_finished(&pod_phase) {
-        "<N/A>".into()
-    } else {
-        debug!("Attaching to pod {}", pod_name);
-        let attached = pods.attach(pod_name, &Default::default()).await?;
-        let output = get_pod_output(attached).await?;
-
-        pod_phase = wait_for_pod_phase(
-            &mut pod_events,
-            is_pod_finished,
-            Duration::from_secs(60 * 10),
-        )
+    debug!("Attaching to pod {pod_name}");
+    let attached = pods.attach(pod_name, &Default::default()).await?;
+    let output = get_pod_output(attached)
         .await
-        .with_context(|| {
-            format!(
-                "Failed waiting for Helm pod {} to reach Succeeded or Failed phase",
-                pod_name
-            )
-        })?;
-        output
-    };
-    info!("Pod {} terminated (phase: {})", pod_name, pod_phase);
+        .unwrap_or_else(|_| "<Output N/A>".to_string());
+
+    pod_phase = wait_for_pod_phase(
+        &mut pod_events,
+        is_pod_finished,
+        Duration::from_secs(60 * 10),
+    )
+    .await
+    .with_context(|| {
+        format!("Failed waiting for Helm pod {pod_name} to reach Succeeded or Failed phase",)
+    })?;
+    info!("Pod {pod_name} terminated (phase: {pod_phase})");
 
     let pod_status = pods.get_status(pod_name).await?;
     let container_status = pod_status

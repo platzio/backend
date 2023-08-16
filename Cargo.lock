@@ -2935,6 +2935,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "tap",
  "thiserror",
  "tokio",
  "tokio-stream",
