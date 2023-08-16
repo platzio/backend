@@ -33,6 +33,7 @@ table! {
 #[pagination]
 pub struct K8sCluster {
     pub id: Uuid,
+    #[filter]
     pub env_id: Option<Uuid>,
     pub provider_id: String,
     pub created_at: DateTime<Utc>,
