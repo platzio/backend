@@ -203,24 +203,27 @@ impl HelmChart {
         let (items, num_total) = tokio::task::spawn_blocking(move || {
             match (extra_filters.in_use.unwrap_or_default(), extra_filters.kind) {
                 (true, Some(kind)) => InUseHelmCharts(HelmChartsByKind {
-                    query: Self::filter(&filters),
+                    query: Self::filter(&filters).order_by(helm_charts::created_at.desc()),
                     kind,
                 })
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn),
-                (true, None) => InUseHelmCharts(Self::filter(&filters))
-                    .paginate(Some(page))
-                    .per_page(Some(per_page))
-                    .load_and_count::<Self>(&mut conn),
+                (true, None) => {
+                    InUseHelmCharts(Self::filter(&filters).order_by(helm_charts::created_at.desc()))
+                        .paginate(Some(page))
+                        .per_page(Some(per_page))
+                        .load_and_count::<Self>(&mut conn)
+                }
                 (false, Some(kind)) => HelmChartsByKind {
-                    query: Self::filter(&filters),
+                    query: Self::filter(&filters).order_by(helm_charts::created_at.desc()),
                     kind,
                 }
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn),
                 (false, None) => Self::filter(&filters)
+                    .order_by(helm_charts::created_at.desc())
                     .paginate(Some(page))
                     .per_page(Some(per_page))
                     .load_and_count::<Self>(&mut conn),
