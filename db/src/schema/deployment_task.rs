@@ -347,7 +347,6 @@ pub struct DeploymentUpgradeTask {
     pub helm_chart_id: Uuid,
     pub prev_helm_chart_id: Option<Uuid>,
     pub config_inputs: serde_json::Value,
-    #[schema(value_type = Object)]
     pub config_delta: Option<JsonDiff>,
     pub values_override: Option<serde_json::Value>,
 }

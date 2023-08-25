@@ -19,7 +19,7 @@ pub use schema::*;
 mod events;
 pub use events::*;
 
-mod json_diff;
+pub mod json_diff;
 
 pub use async_diesel::*;
 use diesel::pg::PgConnection;

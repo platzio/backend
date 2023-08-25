@@ -2,6 +2,7 @@ use crate::result::ApiResult;
 use actix_web::{get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
+    json_diff::{JsonDiff, JsonDiffPair},
     DbError, DbTableOrDeploymentResource, Deployment, DeploymentInstallTask,
     DeploymentInvokeActionTask, DeploymentRecreaseTask, DeploymentReinstallTask,
     DeploymentRestartK8sResourceTask, DeploymentTask, DeploymentTaskExtraFilters,
@@ -177,6 +178,8 @@ their status.
         DeploymentRestartK8sResourceTask,
         DeploymentTaskStatus,
         CreateDeploymentTask,
+        JsonDiff,
+        JsonDiffPair,
     )),
 )]
 pub(super) struct OpenApi;
