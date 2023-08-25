@@ -94,7 +94,7 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
 async fn download_chart(event: &EcrEvent) -> Result<PathBuf> {
     info!("Downloading chart");
     let path = PathBuf::from(TEMP_DOWNLOAD_PATH);
-    let script = vec![
+    let script = [
         "rm -rf $TEMP_DOWNLOAD_PATH",
         "mkdir -p $TEMP_DOWNLOAD_PATH",
         "cd $TEMP_DOWNLOAD_PATH",

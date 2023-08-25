@@ -44,7 +44,7 @@ async fn helm_pod(
     let chart = task.helm_chart().await?;
     let registry = HelmRegistry::find(chart.helm_registry_id).await?;
 
-    let script = vec![
+    let script = [
         "mkdir -p /root/.kube",
         "echo $KUBECONFIG_BASE64 | base64 --decode > /root/.kube/config",
         "chmod 400 /root/.kube/config",
