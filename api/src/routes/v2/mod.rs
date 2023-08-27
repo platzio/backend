@@ -63,9 +63,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(helm_tag_formats::create);
     cfg.service(helm_tag_formats::delete);
     cfg.service(k8s_clusters::get_all);
-    cfg.service(k8s_resources::get_all);
+    cfg.service(k8s_clusters::get_one);
     cfg.service(k8s_clusters::update);
     cfg.service(k8s_clusters::delete);
+    cfg.service(k8s_resources::get_all);
     cfg.service(k8s_resources::get_one);
     cfg.service(secrets::get_all);
     cfg.service(secrets::get_one);
