@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use k8s_openapi::api::core::v1::Namespace;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::Api;
+use log::debug;
 use platz_db::{
     Deployment, DeploymentInstallTask, DeploymentRecreaseTask, DeploymentReinstallTask,
     DeploymentStatus, DeploymentTask, DeploymentUninstallTask, DeploymentUpgradeTask,
@@ -138,7 +139,9 @@ fn deployment_to_namespace(deployment: &Deployment) -> Namespace {
     }
 }
 
+#[tracing::instrument(err, skip(namespace), fields(namespace=namespace.metadata.name))]
 async fn create_namespace(cluster_id: Uuid, namespace: Namespace) -> Result<()> {
+    debug!("creating");
     let api = Api::all(
         K8S_TRACKER
             .get_cluster(cluster_id)
@@ -147,10 +150,13 @@ async fn create_namespace(cluster_id: Uuid, namespace: Namespace) -> Result<()> 
             .await?,
     );
     api.create(&Default::default(), &namespace).await?;
+    debug!("created");
     Ok(())
 }
 
+#[tracing::instrument(err)]
 async fn delete_namespace(cluster_id: Uuid, namespace_name: &str) -> Result<()> {
+    debug!("Deleting");
     let api = Api::<Namespace>::all(
         K8S_TRACKER
             .get_cluster(cluster_id)
@@ -159,9 +165,11 @@ async fn delete_namespace(cluster_id: Uuid, namespace_name: &str) -> Result<()> 
             .await?,
     );
     if let Err(e) = api.delete(namespace_name, &Default::default()).await {
+        tracing::error!(?e);
         if let kube::Error::Api(kube::core::ErrorResponse { code, .. }) = e {
             if http::StatusCode::NOT_FOUND == code {
                 // If it's not found, I guess it is... *drums roll* DELETED *cymbals*
+                debug!("Namespace not found - ignoring");
                 return Ok(());
             }
         }

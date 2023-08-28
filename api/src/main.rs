@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
             auth_config,
             prometheus_update_interval,
         } => {
-            env_logger::init();
+            tracing_subscriber::fmt::init();
 
             init_db(true).await?;
 

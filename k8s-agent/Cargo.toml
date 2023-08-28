@@ -14,7 +14,6 @@ aws-types = "0.56.1"
 base64 = "0.21.2"
 chrono = {version = "0.4.26", default-features = false, features = ["std", "serde"]}
 clap = {version = "4.4.0", features = ["derive", "env"]}
-env_logger = "0.10.0"
 futures = "0.3.28"
 http = "0.2.9"
 humantime = "2.1.0"
@@ -33,6 +32,8 @@ thiserror = "1.0.47"
 tokio = {version = "1.32.0", features = ["full"]}
 tokio-stream = "0.1.14"
 tokio-util = "0.7.8"
+tracing = {version = "0.1.37"}
+tracing-subscriber = {workspace=true}
 tryhard = "0.5.1"
 url = {version = "2.4.0", features = ["serde"]}
 uuid = {version = "1.4.1", features = ["serde", "v4"]}

@@ -96,7 +96,7 @@ impl K8s {
     pub fn base64_kubeconfig(&self) -> Result<String> {
         let kubeconfig = kube::config::Kubeconfig::try_from(self)?;
         let yaml_kubeconfig = serde_yaml::to_string(&kubeconfig)?;
-        warn!("Generated yaml kubeconfig:\n{}", yaml_kubeconfig);
+        debug!("Generated yaml kubeconfig:\n{}", yaml_kubeconfig);
         Ok(BASE64_STANDARD.encode(yaml_kubeconfig))
     }
 }

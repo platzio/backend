@@ -6,7 +6,6 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1.0.75"
 clap = {version = "4.4.0", features = ["derive"]}
-env_logger = "0.10.0"
 itertools = "0.11.0"
 log = "0.4.20"
 platz-chart-ext = {workspace = true}
@@ -14,6 +13,7 @@ reqwest = {version = "0.11.20", default-features = false, features = ["rustls-tl
 serde = {version = "1.0.186", features = ["derive"]}
 serde_json = "1.0.105"
 tokio = {version = "1.32.0", features = ["full"]}
+tracing-subscriber = {workspace=true}
 
 [dependencies.platz-db]
 path = "../db"
