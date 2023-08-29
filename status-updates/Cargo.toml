@@ -7,7 +7,6 @@ version = "0.1.0"
 anyhow = "1.0.75"
 chrono = {version = "0.4.26", default-features = false, features = ["std", "serde"]}
 clap = {version = "4.4.0", features = ["derive"]}
-env_logger = "0.10.0"
 futures = "0.3.28"
 futures-util = "0.3.28"
 log = "0.4.20"
@@ -16,6 +15,7 @@ reqwest = {version = "0.11.20", default-features = false, features = ["rustls-tl
 serde = {version = "1.0.186", features = ["derive"]}
 serde_json = "1.0.105"
 tokio = {version = "1.32.0", features = ["full"]}
+tracing-subscriber = {workspace=true}
 url = "2.4.0"
 uuid = {version = "1.4.1", features = ["serde", "v4"]}
 

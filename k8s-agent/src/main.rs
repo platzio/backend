@@ -32,9 +32,9 @@ pub async fn _main() -> Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
-    info!("Starting K8S worker");
+    info!("Starting K8S Agent");
 
     _main().await
 }

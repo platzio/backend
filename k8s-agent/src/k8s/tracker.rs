@@ -17,7 +17,7 @@ use platz_db::{
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::{broadcast, watch, RwLock};
-use tokio::{select, task, time};
+use tokio::{select, task};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -41,7 +41,7 @@ impl K8sTracker {
     pub fn new() -> Self {
         let (inbound_requests_tx, _) = broadcast::channel(64);
         let (outbound_notifications_tx, outbound_notifications_rx) = watch::channel(());
-        let this = Self {
+        let tracker = Self {
             inner: Arc::new(RwLock::new(Inner {
                 inbound_requests_tx,
                 outbound_notifications_tx,
@@ -50,9 +50,9 @@ impl K8sTracker {
                 tasks: Default::default(),
             })),
         };
-        let this2 = this.clone();
-        task::spawn(async move { this2.run().await });
-        this
+        let tracker_clone = tracker.clone();
+        task::spawn(async move { tracker_clone.run().await });
+        tracker
     }
 
     pub async fn inbound_requests_tx(&self) -> broadcast::Sender<Arc<K8s>> {
@@ -75,22 +75,32 @@ impl K8sTracker {
         }
     }
 
+    #[tracing::instrument(skip_all, name = "k8s-tracker")]
     async fn run(&self) {
         let mut rx = self.inner.read().await.inbound_requests_tx.subscribe();
-        while let Ok(cluster) = rx.recv().await {
+        loop {
+            debug!("Waiting for cluster updates...");
+
+            let Ok(cluster) = rx.recv().await else {
+                debug!("cluster updates terminated");
+                break;
+            };
+            tracing::debug!(cluster_name=?cluster, "Got cluster update");
             let db_cluster = match NewK8sCluster::from(cluster.as_ref()).insert().await {
                 Ok(db_cluster) => {
-                    debug!("  Updated in database: {:?}", db_cluster);
+                    debug!("Updated in database: {:?}", db_cluster);
                     db_cluster
                 }
                 Err(err) => {
-                    error!("  Failed updating cluster in database: {:?}", err);
+                    error!("Failed updating cluster in database: {:?}", err);
                     continue;
                 }
             };
             if db_cluster.ignore {
+                tracing::debug!(cluster_id=?db_cluster.id, "Stopping watch");
                 self.stop_watching_cluster(db_cluster.id).await
             } else {
+                tracing::debug!(cluster_id=?db_cluster.id, "Going to start watching");
                 self.start_watching_cluster(db_cluster.id, cluster).await
             }
             self.inner
@@ -102,22 +112,21 @@ impl K8sTracker {
         }
     }
 
-    async fn start_watching_cluster(&self, id: Uuid, cluster: Arc<K8s>) {
+    async fn start_watching_cluster(&self, cluster_id: Uuid, cluster: Arc<K8s>) {
         let mut inner = self.inner.write().await;
-        inner.clusters.insert(id, cluster);
+        inner.clusters.insert(cluster_id, cluster);
 
-        inner.tasks.entry(id).or_insert_with(|| {
+        inner.tasks.entry(cluster_id).or_insert_with(|| {
             let self_ = self.clone();
             task::spawn(async move {
                 loop {
-                    debug!("Starting cluster watch task for {}", id);
-                    match self_.watch_cluster(id).await {
-                        Ok(_) => (),
-                        Err(err) => {
-                            error!("Cluster watch task {} finished with error: {:?}", id, err);
-                        }
-                    }
-                    time::sleep(time::Duration::from_secs(5)).await;
+                    tracing::debug!(%cluster_id, "Starting cluster watch task");
+                    let _ = self_.watch_cluster(cluster_id).await;
+                    let duration = tokio::time::Duration::from_secs(5);
+                    debug!(
+                        "Going to sleep for {duration:?} before resuming watch on {cluster_id}..."
+                    );
+                    tokio::time::sleep(duration).await;
                 }
             })
         });
@@ -138,8 +147,9 @@ impl K8sTracker {
         }
     }
 
+    #[tracing::instrument(err, skip_all, fields(%cluster_id))]
     async fn watch_cluster(&self, cluster_id: Uuid) -> Result<()> {
-        debug!("Starting to watch cluster {}", cluster_id);
+        debug!("starting");
 
         let client = self
             .inner
@@ -165,6 +175,7 @@ impl K8sTracker {
 }
 
 async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Result<()> {
+    debug!("watching");
     let start_time = Utc::now();
     let ns_api = Api::<k8s_openapi::api::core::v1::Namespace>::all(client.clone());
     let mut namespaces = Api::<k8s_openapi::api::core::v1::Namespace>::all(client.clone())
@@ -188,15 +199,17 @@ async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Re
         .boxed();
 
     // Delete unfamiliar resources after 1 minute of successfully getting updates from k8s
-    let mut delete_resources_timeout = time::sleep(time::Duration::from_secs(60)).fuse().boxed();
+    let mut delete_resources_timeout = tokio::time::sleep(tokio::time::Duration::from_secs(60))
+        .fuse()
+        .boxed();
 
     loop {
         select! {
             result = namespaces.try_next() => {
                 match result? {
                     Some(event) => {
-                        info!("Namespace event in cluster {}: {:?}", cluster_id, event);
-                        handle_namespace_event(event, ).await?;
+                        tracing::debug!(namespace_event=?event);
+                        handle_namespace_event(event).await?;
                     }
                     None => break,
                 }
@@ -204,7 +217,7 @@ async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Re
             result = deployments.try_next() => {
                 match result? {
                     Some(event) => {
-                        info!("Deployment event in cluster {}: {:?}", cluster_id, event);
+                        tracing::debug!(deployment_event=?event);
                         handle_resource_event(cluster_id, event, &ns_api, k8s_deployment_status).await?;
                     }
                     None => break,
@@ -213,7 +226,7 @@ async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Re
             result = statefulsets.try_next() => {
                 match result? {
                     Some(event) => {
-                        info!("Statefulset event in cluster {}: {:?}", cluster_id, event);
+                        tracing::debug!(statefulset_event=?event);
                         handle_resource_event(cluster_id, event, &ns_api, k8s_statefulset_status).await?;
                     }
                     None => break,
@@ -222,16 +235,16 @@ async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Re
             result = jobs.try_next() => {
                 match result? {
                     Some(event) => {
-                        info!("Job event in cluster {}: {:?}", cluster_id, event);
+                        tracing::debug!(job_event=?event);
                         handle_resource_event(cluster_id, event, &ns_api, k8s_job_status).await?;
                     }
                     None => break,
                 }
             }
             _ = delete_resources_timeout.as_mut() => {
-                info!("Deleting old K8sResources");
+                debug!("Deleting old K8sResources");
                 for resource in K8sResource::find_older_than(cluster_id, start_time).await? {
-                    debug!("Deleting {:?}", resource);
+                    tracing::debug!(?resource);
                     resource.delete().await?;
                 }
             }
@@ -241,10 +254,12 @@ async fn watch_for_cluster_changes(cluster_id: Uuid, client: kube::Client) -> Re
     Ok(())
 }
 
+#[tracing::instrument(err, skip_all, fields(%cluster_id))]
 pub async fn handle_already_cleared_namespaces(
     cluster_id: Uuid,
     client: kube::Client,
 ) -> Result<()> {
+    debug!("fetching namespaces");
     let managed_namespaces = Api::<k8s_openapi::api::core::v1::Namespace>::all(client.clone())
         .list(&ListParams::default().labels(&DEPLOYMENT_NAMESPACE_LABELS_SELECTOR))
         .await?;
@@ -260,19 +275,21 @@ pub async fn handle_already_cleared_namespaces(
         platz_db::Deployment::all_with_ongoing_clearing_status_in_cluster(cluster_id).await?;
 
     for deployment in deployments {
-        debug!(
-            "handle_already_cleared_namespaces is examining {} ({})",
-            deployment.namespace_name(),
-            deployment.id
-        );
+        let namespace = deployment.namespace_name();
+        let span = tracing::debug_span!("dep", namespace=namespace, id = %deployment.id);
+
+        tracing::debug!(parent: &span, "examining...");
 
         if !existing_deployment_ids.contains(&deployment.id.to_string()) {
-            warn!(
-                "Found deployment {} with status {} with no living namespace, considering its clearance as completed",                
-                deployment.namespace_name(),
-                deployment.status
+            tracing::warn!(
+                parent: &span,
+                status = %deployment.status,
+                "deployment with no living namespace. Considering completed",
+
             );
+
             deployment_removal_completed(deployment).await?;
+            tracing::debug!(parent: &span, "removed");
         }
     }
 
@@ -288,9 +305,10 @@ async fn handle_namespace_event(
                 Some(_deployment) => {}
                 None => {
                     // TODO: Alert
-                    error!(
-                        "Found an annotated namespace but not its deployment: {:?}",
-                        ns
+                    tracing::error!(
+                        namespace=?ns.metadata.name,
+                        "Added/modified annotated namespace with no matching deployment",
+
                     );
                 }
             };
@@ -303,9 +321,9 @@ async fn handle_namespace_event(
                 }
                 None => {
                     // TODO: Alert
-                    error!(
-                        "Found an annotated namespace but not its deployment: {:?}",
-                        ns
+                    tracing::error!(
+                        namespace=?ns.metadata.name,
+                        "Deleted namespace with no matching deployment",
                     );
                 }
             };
@@ -332,6 +350,7 @@ async fn deployment_removal_completed(deployment: platz_db::Deployment) -> Resul
     Ok(())
 }
 
+#[tracing::instrument(err, skip_all, fields(%cluster_id))]
 async fn handle_resource_event<T, G>(
     cluster_id: Uuid,
     event: WatchEvent<T>,
@@ -356,19 +375,16 @@ where
     let namespace = match metadata.namespace.as_ref() {
         Some(ns) => ns_api.get(ns).await?,
         None => {
-            warn!(
-                "[cluster {}] Resource has no namespace: {:?}",
-                cluster_id, resource
-            );
+            tracing::warn!(?resource, "Resource has no namespace");
             return Ok(());
         }
     };
 
     let deployment = match find_deployment_from_namespace(&namespace).await? {
         None => {
-            warn!(
-                "[cluster {}] Could not find deployment for namespace {:?}",
-                cluster_id, namespace
+            tracing::warn!(
+                namespace=?namespace.metadata.name,
+                "Could not find deployment for namespace"
             );
             return Ok(());
         }
@@ -411,10 +427,10 @@ where
         .await?;
     } else {
         match K8sResource::delete_by_id(id).await {
-            Ok(_) => debug!("[cluster {}] Deleted K8sResource {}", cluster_id, id),
-            Err(err) => error!(
-                "[cluster {}] Failed deleting K8sResource {}: {:?}",
-                cluster_id, id, err,
+            Ok(_) => tracing::debug!(%id, "Deleted K8sResource"),
+            Err(err) => tracing::error!(
+                %id, ?err,
+                "Failed deleting K8sResource"
             ),
         }
     }

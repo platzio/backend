@@ -31,6 +31,7 @@ pub async fn apply_secrets(
     Ok(())
 }
 
+#[tracing::instrument(err, skip_all, fields(%cluster_id, namespace, name))]
 pub async fn apply_secret(
     cluster_id: Uuid,
     namespace: &str,
@@ -58,6 +59,7 @@ pub async fn apply_secret(
 
     let params = PatchParams::apply(name);
     let patch = Patch::Apply(&secret);
+    log::debug!("applying...");
     api.patch(name, &params, &patch).await?;
     Ok(())
 }

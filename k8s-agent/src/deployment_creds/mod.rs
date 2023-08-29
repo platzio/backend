@@ -12,8 +12,9 @@ use tokio::time::interval;
 
 const CREDS_SECRET_NAME: &str = "platz-creds";
 
+#[tracing::instrument(err, name = "d-creds")]
 pub async fn start() -> Result<()> {
-    info!("Deployment credentials task starting");
+    debug!("starting");
     let refresh_every = *DEPLOYMENT_TOKEN_DURATION / 2;
     let mut interval = interval(refresh_every.to_std()?);
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
@@ -21,22 +22,24 @@ pub async fn start() -> Result<()> {
     loop {
         select! {
             _ = interval.tick() => {
-                info!("Interval tick");
+                debug!("interval");
             }
             k8s_event = k8s_events_rx.changed() => {
-                info!("Got K8S_TRACKER event: {:?}", k8s_event);
+                tracing::debug!(?k8s_event);
                 k8s_event?;
             }
         }
 
-        info!("Refreshing deployment credentials");
         if let Err(err) = refresh_credentials().await {
             error!("Error refreshing credentials: {:?}", err);
         }
     }
 }
 
+#[tracing::instrument(err, name = "refresh")]
 async fn refresh_credentials() -> Result<()> {
+    debug!("started");
+
     let cluster_ids = K8S_TRACKER.get_ids().await;
 
     try_join_all(
@@ -51,7 +54,9 @@ async fn refresh_credentials() -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(err, fields(deployment=%deployment.id), name="apply-d-creds")]
 pub(crate) async fn apply_deployment_credentials(deployment: &Deployment) -> Result<()> {
+    debug!("applying");
     let access_token = AccessToken::from(deployment);
     apply_secret(
         deployment.cluster_id,

@@ -8,7 +8,7 @@ use log::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     info!("Starting status updates worker");
 

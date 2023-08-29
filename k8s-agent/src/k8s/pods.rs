@@ -27,20 +27,23 @@ impl fmt::Display for PodExecutionResult {
     }
 }
 
+#[tracing::instrument(err, skip_all, fields(pod_name=?pod.metadata.name))]
 pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
     let pod_name = pod.metadata.name.clone().unwrap();
 
     let create_params = Default::default();
-    debug!("Creating {pod_name}");
+    debug!("Creating pod...");
     tryhard::retry_fn(|| pods.create(&create_params, &pod))
         .retries(10)
         .fixed_backoff(Duration::from_millis(500))
         .await
         .context("Failed creating pod for running Helm")?;
 
+    debug!("Pod created");
+
     let result = wait_for_pod(&pods, &pod_name).await;
 
-    debug!("Deleting {pod_name}");
+    debug!("Deleting pod...");
     let delete_params = Default::default();
     tryhard::retry_fn(|| pods.delete(&pod_name, &delete_params))
         .retries(10)
@@ -50,6 +53,8 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
         .map_left(|pdel| {
             assert_eq!(pdel.name_any(), pod_name);
         });
+
+    debug!("Pod deleted");
 
     result
         .map(|exe_result| {
@@ -115,32 +120,40 @@ where
     }
 }
 
+#[tracing::instrument(err, skip(pods))]
 async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionResult> {
-    log::debug!("Waiting for pod {pod_name}");
     let watcher_config = watcher::Config::default()
         .fields(&format!("metadata.name={pod_name}"))
         .timeout(5);
 
     let mut pod_events = watcher::watcher(pods.clone(), watcher_config).boxed();
     let is_pod_finished = |phase_name: &str| -> bool {
-        phase_name.eq_ignore_ascii_case("Succeeded") || phase_name.eq_ignore_ascii_case("Failed")
+        let result = phase_name.eq_ignore_ascii_case("Succeeded")
+            || phase_name.eq_ignore_ascii_case("Failed");
+
+        tracing::debug!(phase_name, result, "is_pod_finished");
+        result
     };
 
+    log::debug!("Waiting for pod to be ready");
     let mut pod_phase = wait_for_pod_phase(
         &mut pod_events,
-        |p| !p.eq_ignore_ascii_case("Pending") && !p.eq_ignore_ascii_case("Unknown"),
+        |p| {
+            let result = !p.eq_ignore_ascii_case("Pending") && !p.eq_ignore_ascii_case("Unknown");
+            tracing::debug!(phase_name = p, result, "pod_started");
+            result
+        },
         Duration::from_secs(60),
     )
     .await
     .with_context(|| format!("Failed waiting for Helm pod {pod_name} to start running"))?;
-    info!("Ready to attach to {pod_name} (phase: {pod_phase})");
-
-    debug!("Attaching to pod {pod_name}");
+    debug!("Attaching to {pod_name} (phase: {pod_phase})");
     let attached = pods.attach(pod_name, &Default::default()).await?;
     let output = get_pod_output(attached)
         .await
         .unwrap_or_else(|_| "<Output N/A>".to_string());
 
+    debug!("Waiting for pod to finish");
     pod_phase = wait_for_pod_phase(
         &mut pod_events,
         is_pod_finished,
@@ -150,7 +163,7 @@ async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionRes
     .with_context(|| {
         format!("Failed waiting for Helm pod {pod_name} to reach Succeeded or Failed phase",)
     })?;
-    info!("Pod {pod_name} terminated (phase: {pod_phase})");
+    tracing::debug!(phase = pod_phase, "Terminated");
 
     let pod_status = pods.get_status(pod_name).await?;
     let container_status = pod_status
@@ -191,7 +204,7 @@ async fn get_pod_output(mut attached: AttachedProcess) -> Result<String> {
         .map(|res| match res {
             Ok(bytes) => {
                 let line = String::from_utf8_lossy(&bytes).to_string();
-                debug!("LINE: {}", line);
+                tracing::debug!(line);
                 line
             }
             Err(_) => String::new(),

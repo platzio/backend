@@ -7,6 +7,7 @@ use base64::prelude::*;
 use k8s_openapi::api::core::v1::{Container, EnvVar, Pod, PodSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::Api;
+use log::debug;
 use platz_db::{Deployment, DeploymentTask, HelmRegistry};
 
 // -------------------------------------------------------------------------
@@ -16,11 +17,13 @@ use platz_db::{Deployment, DeploymentTask, HelmRegistry};
 // Helm will run with a kubeconfig containing only the target cluster.
 // -------------------------------------------------------------------------
 
+#[tracing::instrument(err, skip_all, fields(task=%task.id))]
 pub async fn run_helm(
     command: &str,
     deployment: &Deployment,
     task: &DeploymentTask,
 ) -> Result<String> {
+    debug!("cmd={command}");
     let values = create_values_and_secrets(deployment, task).await?;
     let client = kube::Client::try_default().await?;
     execute_pod(
