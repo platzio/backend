@@ -1,6 +1,7 @@
 use super::runnable_task::RunnableDeploymentOperation;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use log::debug;
 use platz_db::{
     DbError, DbTableOrDeploymentResource, Deployment, DeploymentInvokeActionTask, DeploymentTask,
     K8sCluster,
@@ -8,8 +9,11 @@ use platz_db::{
 
 #[async_trait]
 impl RunnableDeploymentOperation for DeploymentInvokeActionTask {
+    #[tracing::instrument(err, ret, name = "invoke_action", skip_all, task_id=%task.id)]
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
+        debug!("Loading chart...");
         let chart = task.helm_chart().await?;
+        debug!("Loading cluster...");
         let cluster = K8sCluster::find(deployment.cluster_id).await?;
         let env_id = cluster.env_id.ok_or_else(|| {
             anyhow!("Can't invoke action for a deployment in a cluster with no env_id")
@@ -23,6 +27,7 @@ impl RunnableDeploymentOperation for DeploymentInvokeActionTask {
             .generate_body::<DbTableOrDeploymentResource>(env_id, self.body.clone())
             .await?;
 
+        debug!("Requesting...");
         action_schema.target.call(deployment, body).await
     }
 }
