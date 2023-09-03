@@ -17,7 +17,7 @@ use platz_db::{Deployment, DeploymentTask, HelmRegistry};
 // Helm will run with a kubeconfig containing only the target cluster.
 // -------------------------------------------------------------------------
 
-#[tracing::instrument(err, skip_all, fields(task=%task.id))]
+#[tracing::instrument(err, skip_all)]
 pub async fn run_helm(
     command: &str,
     deployment: &Deployment,

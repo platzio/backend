@@ -27,7 +27,7 @@ impl fmt::Display for PodExecutionResult {
     }
 }
 
-#[tracing::instrument(err, skip_all, fields(pod_name=?pod.metadata.name))]
+#[tracing::instrument(err, skip_all)]
 pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
     let pod_name = pod.metadata.name.clone().unwrap();
 
@@ -140,7 +140,7 @@ async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionRes
         &mut pod_events,
         |p| {
             let result = !p.eq_ignore_ascii_case("Pending") && !p.eq_ignore_ascii_case("Unknown");
-            tracing::debug!(phase_name = p, result, "pod_started");
+            tracing::debug!(phase_name = p, result, "pod started?");
             result
         },
         Duration::from_secs(60),
