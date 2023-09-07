@@ -8,9 +8,12 @@ use maplit::btreemap;
 use platz_auth::{AccessToken, DEPLOYMENT_TOKEN_DURATION};
 use platz_db::Deployment;
 use tokio::select;
+use tokio::time;
 use tokio::time::interval;
 
 const CREDS_SECRET_NAME: &str = "platz-creds";
+const REFRESH_CREDS_CHUNK_SIZE: usize = 10;
+const REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_secs(1);
 
 #[tracing::instrument(err, name = "d-creds")]
 pub async fn start() -> Result<()> {
@@ -42,14 +45,19 @@ async fn refresh_credentials() -> Result<()> {
 
     let cluster_ids = K8S_TRACKER.get_ids().await;
 
-    try_join_all(
-        Deployment::find_by_cluster_ids(cluster_ids)
-            .await?
-            .iter()
-            .filter(|deployment| deployment.enabled)
-            .map(apply_deployment_credentials),
-    )
-    .await?;
+    for deploy_chunk in Deployment::find_by_cluster_ids(cluster_ids)
+        .await?
+        .chunks(REFRESH_CREDS_CHUNK_SIZE)
+    {
+        try_join_all(
+            deploy_chunk
+                .iter()
+                .filter(|deployment| deployment.enabled)
+                .map(apply_deployment_credentials),
+        )
+        .await?;
+        time::sleep(REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS).await;
+    }
 
     Ok(())
 }
