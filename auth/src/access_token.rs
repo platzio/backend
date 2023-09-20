@@ -47,9 +47,8 @@ impl AccessToken {
     }
 
     pub fn expires_at(&self) -> Result<DateTime<Utc>, AuthError> {
-        let naive = NaiveDateTime::from_timestamp_opt(self.exp as i64, 0)
-            .ok_or_else(|| AuthError::NaiveDateTimeConvertOverflow(self.exp))?;
-        Ok(DateTime::from_utc(naive, Utc))
+        DateTime::from_timestamp(self.exp as i64, 0)
+            .ok_or_else(|| AuthError::NaiveDateTimeConvertOverflow(self.exp))
     }
 }
 

@@ -15,7 +15,7 @@ debug = true
 
 [workspace.dependencies.platz-chart-ext]
 features = ["utoipa"]
-version = "0.5.7"
+version = "0.5.8"
 
 [workspace.dependencies.tracing-subscriber]
 version = "0.3.17"
