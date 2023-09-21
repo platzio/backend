@@ -2,7 +2,7 @@
 use anyhow::{anyhow, Context, Result};
 use futures::{stream, StreamExt};
 use k8s_openapi::api::core::v1::Pod;
-use kube::api::{Api, AttachedProcess, ResourceExt};
+use kube::api::{Api, AttachedProcess, DeleteParams, PostParams, ResourceExt};
 use kube::runtime::watcher;
 use log::*;
 use std::{fmt, time::Duration};
@@ -10,6 +10,8 @@ use tap::TapFallible;
 use tokio::select;
 use tokio::time::Instant;
 use tokio_stream::wrappers::IntervalStream;
+
+use crate::config::CONFIG;
 
 #[derive(Debug, thiserror::Error)]
 pub struct PodExecutionResult {
@@ -27,13 +29,40 @@ impl fmt::Display for PodExecutionResult {
     }
 }
 
-#[tracing::instrument(err, skip_all, fields(pod_name=?pod.metadata.name))]
-pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
+async fn client() -> Result<Api<Pod>> {
+    let client = kube::Client::try_default()
+        .await
+        .context("Failed initializing kube client")?;
+    Ok(Api::namespaced(client, CONFIG.self_namespace()))
+}
+
+async fn create_pod(create_params: &PostParams, pod: &Pod) -> Result<()> {
+    let client = client().await?;
+    client
+        .create(create_params, pod)
+        .await
+        .context("pods.create failed")
+        .map(drop)
+}
+
+async fn delete_pod(
+    pod_name: &str,
+    delete_params: &DeleteParams,
+) -> Result<either::Either<Pod, kube::core::Status>> {
+    let client: Api<Pod> = client().await?;
+    client
+        .delete(pod_name, delete_params)
+        .await
+        .context("pods.delete failed")
+}
+
+#[tracing::instrument(err, skip_all)]
+pub async fn execute_pod(pod: Pod) -> Result<String> {
     let pod_name = pod.metadata.name.clone().unwrap();
 
     let create_params = Default::default();
     debug!("Creating pod...");
-    tryhard::retry_fn(|| pods.create(&create_params, &pod))
+    tryhard::retry_fn(|| create_pod(&create_params, &pod))
         .retries(10)
         .fixed_backoff(Duration::from_millis(500))
         .await
@@ -41,11 +70,11 @@ pub async fn execute_pod(pods: Api<Pod>, pod: Pod) -> Result<String> {
 
     debug!("Pod created");
 
-    let result = wait_for_pod(&pods, &pod_name).await;
+    let result = wait_for_pod(&client().await?, &pod_name).await;
 
     debug!("Deleting pod...");
     let delete_params = Default::default();
-    tryhard::retry_fn(|| pods.delete(&pod_name, &delete_params))
+    tryhard::retry_fn(|| delete_pod(&pod_name, &delete_params))
         .retries(10)
         .fixed_backoff(Duration::from_millis(500))
         .await
@@ -140,7 +169,7 @@ async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionRes
         &mut pod_events,
         |p| {
             let result = !p.eq_ignore_ascii_case("Pending") && !p.eq_ignore_ascii_case("Unknown");
-            tracing::debug!(phase_name = p, result, "pod_started");
+            tracing::debug!(phase_name = p, result, "pod started?");
             result
         },
         Duration::from_secs(60),
