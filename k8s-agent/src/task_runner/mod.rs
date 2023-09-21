@@ -39,6 +39,7 @@ pub async fn start() -> Result<()> {
     debug!("starting poll loop");
 
     loop {
+        run_pending_tasks().await?;
         debug!("polling...");
         select! {
 
@@ -55,12 +56,10 @@ pub async fn start() -> Result<()> {
             db_event = db_events_rx.changed() => {
                 debug!("db task event received");
                 db_event?;
-                run_pending_tasks().await?;
             }
             k8s_event = k8s_events_rx.changed() => {
                 tracing::debug!("k8s event received");
                 k8s_event?;
-                run_pending_tasks().await?;
             }
         }
     }
