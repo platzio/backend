@@ -10,11 +10,13 @@ pub trait RunnableDeploymentTask: Send + Sync {
 
 #[async_trait]
 impl RunnableDeploymentTask for DeploymentTask {
+    #[tracing::instrument(ret, err, ignore_all, name = "RDT.run")]
     async fn run(self) -> Result<()> {
-        debug!("Running DeploymentTask {}", self.id);
+        debug!("fetching deployment...");
         let deployment = Deployment::find(self.deployment_id).await?;
-
+        debug!("updating status to Started...");
         self.set_status(DeploymentTaskStatus::Started, None).await?;
+        debug!("status updated");
 
         let result = match &self.operation {
             Json(DeploymentTaskOperation::Install(inner)) => inner.run(&deployment, &self).await,

@@ -18,6 +18,7 @@ use uuid::Uuid;
 #[async_trait]
 impl RunnableDeploymentOperation for DeploymentInstallTask {
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
+        debug!("Setting status to installing");
         deployment
             .set_status(DeploymentStatus::Installing, None)
             .await?;
@@ -45,6 +46,7 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
 #[async_trait]
 impl RunnableDeploymentOperation for DeploymentUpgradeTask {
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
+        debug!("Setting status to upgrading");
         deployment
             .set_status(DeploymentStatus::Upgrading, None)
             .await?;

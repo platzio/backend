@@ -1,5 +1,5 @@
 use crate::k8s::K8S_TRACKER;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, Patch, PatchParams};
@@ -31,7 +31,7 @@ pub async fn apply_secrets(
     Ok(())
 }
 
-#[tracing::instrument(err, skip_all, fields(%cluster_id, namespace, name))]
+#[tracing::instrument(err, skip_all, fields(%cluster_id, %namespace, %name))]
 pub async fn apply_secret(
     cluster_id: Uuid,
     namespace: &str,
@@ -60,6 +60,8 @@ pub async fn apply_secret(
     let params = PatchParams::apply(name);
     let patch = Patch::Apply(&secret);
     log::debug!("applying...");
-    api.patch(name, &params, &patch).await?;
+    api.patch(name, &params, &patch)
+        .await
+        .context("Failed applying secrets")?;
     Ok(())
 }
