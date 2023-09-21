@@ -20,3 +20,6 @@ version = "0.5.8"
 [workspace.dependencies.tracing-subscriber]
 version = "0.3.17"
 features = ["env-filter", "fmt"]
+
+[workspace.dependencies.prometheus]
+version = "0.13.3"

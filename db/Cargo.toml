@@ -17,6 +17,7 @@ log = "0.4.20"
 maplit = "1.0.2"
 platz-chart-ext = {workspace = true}
 postgres = "0.19.7"
+prometheus = {workspace = true}
 r2d2 = "0.8.10"
 rust_decimal = {version = "1.32.0", default-features = false, features = ["db-diesel-postgres"]}
 serde = {version = "1.0.188", features = ["derive"]}
