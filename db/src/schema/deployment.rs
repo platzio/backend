@@ -69,7 +69,7 @@ pub enum DeploymentStatus {
     Deleting,
 }
 
-#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
+#[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema, Clone)]
 #[diesel(table_name = deployments)]
 #[pagination]
 pub struct Deployment {
