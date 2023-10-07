@@ -27,6 +27,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 pub use diesel_json::Json;
 use lazy_static::lazy_static;
 use log::*;
+use prometheus::{register_gauge, Gauge};
 use tokio::task;
 
 mod pagination;
@@ -34,6 +35,29 @@ pub use pagination::{Paginated, DEFAULT_PAGE_SIZE};
 
 mod identity;
 pub use identity::Identity;
+
+lazy_static! {
+    pub static ref DB_CHECKOUT_WAIT_DURATION_SUM: Gauge = register_gauge!(
+        "platz_db_checkout_wait_duration_sum_seconds",
+        "Number of total seconds spent waiting for db connection checkout"
+    )
+    .unwrap();
+    pub static ref DB_CHECKOUT_DURATION_SUM: Gauge = register_gauge!(
+        "platz_db_checkout_duration_sum_seconds",
+        "Number of total seconds spent with checked out db connections"
+    )
+    .unwrap();
+    pub static ref DB_NUM_CHECKOUTS: Gauge = register_gauge!(
+        "platz_db_num_checked_out_connections",
+        "Number of total checkouts that took place"
+    )
+    .unwrap();
+    pub static ref DB_NUM_CHECKINS: Gauge = register_gauge!(
+        "platz_db_num_checked_in_connections",
+        "Number of total checkins that took place"
+    )
+    .unwrap();
+}
 
 type PoolManager = ConnectionManager<PgConnection>;
 
@@ -48,9 +72,27 @@ impl Db {
     fn new() -> Self {
         let url = database_url();
         info!("Connecting to {}", url);
-        let pool = Pool::builder().build(PoolManager::new(url)).unwrap();
+        let pool = Pool::builder()
+            .event_handler(Box::new(MetricEventHandler))
+            .build(PoolManager::new(url))
+            .unwrap();
         let events = Default::default();
         Self { pool, events }
+    }
+}
+
+#[derive(Debug)]
+struct MetricEventHandler;
+
+impl r2d2::event::HandleEvent for MetricEventHandler {
+    fn handle_checkout(&self, event: r2d2::event::CheckoutEvent) {
+        DB_NUM_CHECKOUTS.inc();
+        DB_CHECKOUT_WAIT_DURATION_SUM.add(event.duration().as_secs_f64());
+    }
+
+    fn handle_checkin(&self, event: r2d2::event::CheckinEvent) {
+        DB_NUM_CHECKINS.inc();
+        DB_CHECKOUT_DURATION_SUM.add(event.duration().as_secs_f64());
     }
 }
 

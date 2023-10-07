@@ -3,17 +3,23 @@ use anyhow::Result;
 use futures::future::join_all;
 use log::*;
 use platz_db::{db_events, DbEventOperation, DbTable, Deployment};
+use tokio::time;
+
+const DEPLOYMENT_CHUNK_SIZE: usize = 10;
+const DEPLOYMENT_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_secs(1);
 
 pub async fn watch_deployments(tracker: StatusTracker) -> Result<()> {
     let mut db_rx = db_events();
 
-    join_all(
-        Deployment::all()
-            .await?
-            .into_iter()
-            .map(|deployment| tracker.add(deployment)),
-    )
-    .await;
+    for deploy_chunk in Deployment::all().await?.chunks(DEPLOYMENT_CHUNK_SIZE) {
+        join_all(
+            deploy_chunk
+                .iter()
+                .map(|deployment| tracker.add(deployment.clone())),
+        )
+        .await;
+        time::sleep(DEPLOYMENT_SLEEP_BETWEEN_CHUNKS).await;
+    }
 
     loop {
         let event = db_rx.recv().await?;

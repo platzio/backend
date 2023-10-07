@@ -35,9 +35,11 @@ pub async fn start() -> Result<()> {
         }
         .instrument(tracing::debug_span!("db-events")),
     );
-    debug!("starting");
+
+    debug!("starting poll loop");
 
     loop {
+        run_pending_tasks().await?;
         debug!("polling...");
         select! {
 
@@ -54,12 +56,10 @@ pub async fn start() -> Result<()> {
             db_event = db_events_rx.changed() => {
                 debug!("db task event received");
                 db_event?;
-                run_pending_tasks().await?;
             }
             k8s_event = k8s_events_rx.changed() => {
                 tracing::debug!("k8s event received");
                 k8s_event?;
-                run_pending_tasks().await?;
             }
         }
     }
@@ -71,10 +71,20 @@ fn is_new_task(event: &DbEvent) -> bool {
 
 #[tracing::instrument(err)]
 async fn run_pending_tasks() -> Result<()> {
-    debug!("fetching tasks...");
+    use std::time::Instant;
+
+    debug!("fetching clusters...");
     let cluster_ids = K8S_TRACKER.get_ids().await;
+    debug!("fetching tasks...");
+    let mut fetch_start_time = Instant::now();
     while let Some(task) = DeploymentTask::next_pending(&cluster_ids).await? {
         let task_id = task.id;
+
+        debug!(
+            "Fetched task {task_id}, fetch took {:?}",
+            Instant::now().duration_since(fetch_start_time)
+        );
+
         let span = tracing::debug_span!("task", task_id = %task_id);
 
         async move {
@@ -85,7 +95,9 @@ async fn run_pending_tasks() -> Result<()> {
             }
         }
         .instrument(span)
-        .await
+        .await;
+        fetch_start_time = Instant::now();
+        debug!("Fetching tasks...");
     }
     debug!("No pending tasks");
     Ok(())
