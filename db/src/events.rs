@@ -35,6 +35,23 @@ pub struct DbEvent {
 pub type DbEventSender = broadcast::Sender<DbEvent>;
 pub type DbEventReceiver = broadcast::Receiver<DbEvent>;
 
+pub struct NotificationListeningOpts {
+    channel_name: String,
+}
+
+impl NotificationListeningOpts {
+    pub fn on_table(table_name: &str) -> Self {
+        Self {
+            channel_name: format!("db_{table_name}_notifications"),
+        }
+    }
+    pub fn all() -> Self {
+        Self {
+            channel_name: "db_notifications".to_string(),
+        }
+    }
+}
+
 pub struct DbEventBroadcast {
     tx: DbEventSender,
 }
@@ -51,11 +68,14 @@ impl DbEventBroadcast {
         self.tx.subscribe()
     }
 
-    pub async fn run(&self) {
+    pub async fn run(&self, opts: NotificationListeningOpts) {
+        let channel_name = &opts.channel_name;
         loop {
-            debug!("Listening for db_notifications");
+            let listen_to = channel_name.clone();
+            debug!("Listening for {}", &listen_to);
             let tx = self.tx.clone();
-            match task::spawn_blocking(move || Self::listen_for_notifications(tx)).await {
+            match task::spawn_blocking(move || Self::listen_for_notifications(tx, &listen_to)).await
+            {
                 Ok(Ok(())) => continue,
                 Ok(Err(err)) => {
                     error!("Error listening for notifications: {:?}", err);
@@ -69,10 +89,13 @@ impl DbEventBroadcast {
         }
     }
 
-    fn listen_for_notifications(tx: broadcast::Sender<DbEvent>) -> DbResult<()> {
+    fn listen_for_notifications(
+        tx: broadcast::Sender<DbEvent>,
+        channel_name: &str,
+    ) -> DbResult<()> {
         let mut client =
             postgres::Client::connect(&crate::config::database_url(), postgres::NoTls)?;
-        client.execute("LISTEN db_notifications", &[])?;
+        client.execute(&format!("LISTEN {}", channel_name), &[])?;
 
         loop {
             let mut notifications = client.notifications();

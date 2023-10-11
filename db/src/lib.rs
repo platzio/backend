@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 
 mod ui_collection;
+
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub use ui_collection::DbTableOrDeploymentResource;
 
@@ -102,14 +103,14 @@ lazy_static! {
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-pub async fn init_db(run_migrations: bool) -> DbResult<()> {
+pub async fn init_db(run_migrations: bool, opts: NotificationListeningOpts) -> DbResult<()> {
     if run_migrations {
         info!("Running database migrations");
         let mut conn = DB.pool.get()?;
         conn.run_pending_migrations(MIGRATIONS).unwrap();
         info!("Finished running migrations");
     }
-    task::spawn(DB.events.run());
+    task::spawn(DB.events.run(opts));
     Ok(())
 }
 

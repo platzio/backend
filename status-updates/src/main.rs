@@ -12,6 +12,10 @@ async fn main() -> Result<()> {
 
     info!("Starting status updates worker");
 
-    platz_db::init_db(false).await?;
+    platz_db::init_db(
+        false,
+        platz_db::NotificationListeningOpts::on_table("deployments"),
+    )
+    .await?;
     events::watch_deployments(StatusTracker::new()).await
 }

@@ -5,7 +5,11 @@ use anyhow::Result;
 use log::*;
 
 pub async fn _main() -> Result<()> {
-    platz_db::init_db(false).await?;
+    platz_db::init_db(
+        false,
+        platz_db::NotificationListeningOpts::on_table("deployment_resources"),
+    )
+    .await?;
 
     let fut = tokio::spawn(monitor_deployment_resource_changes());
 
