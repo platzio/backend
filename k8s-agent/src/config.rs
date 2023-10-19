@@ -24,6 +24,9 @@ pub struct Config {
 
     #[clap(long, env = "PLATZ_HELM_IMAGE")]
     helm_image: String,
+
+    #[clap(long, default_value = "false")]
+    disable_deployment_credentials: bool,
 }
 
 impl Default for Config {
@@ -47,5 +50,9 @@ impl Config {
 
     pub fn helm_image(&self) -> &str {
         &self.helm_image
+    }
+
+    pub fn should_refresh_deployment_credintials(&self) -> bool {
+        !self.disable_deployment_credentials
     }
 }

@@ -16,7 +16,7 @@ const REFRESH_CREDS_CHUNK_SIZE: usize = 10;
 const REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_secs(1);
 
 #[tracing::instrument(err, name = "d-creds")]
-pub async fn start() -> Result<()> {
+pub async fn start(should_refresh_deployment_credentials: bool) -> Result<()> {
     debug!("starting");
     let refresh_every = *DEPLOYMENT_TOKEN_DURATION / 2;
     let mut interval = interval(refresh_every.to_std()?);
@@ -33,8 +33,10 @@ pub async fn start() -> Result<()> {
             }
         }
 
-        if let Err(err) = refresh_credentials().await {
-            error!("Error refreshing credentials: {:?}", err);
+        if should_refresh_deployment_credentials {
+            if let Err(err) = refresh_credentials().await {
+                error!("Error refreshing credentials: {:?}", err);
+            }
         }
     }
 }
