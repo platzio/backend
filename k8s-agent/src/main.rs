@@ -26,7 +26,7 @@ pub async fn _main() -> Result<()> {
             result?;
         }
 
-        result = deployment_creds::start() => {
+        result = deployment_creds::start(CONFIG.should_refresh_deployment_credintials()) => {
             warn!("Deployment creds task finished");
             result?;
         }
