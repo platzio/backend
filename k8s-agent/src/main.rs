@@ -6,9 +6,14 @@ mod task_runner;
 use crate::config::CONFIG;
 use anyhow::Result;
 use log::*;
+use platz_db::DbTable;
 
 pub async fn _main() -> Result<()> {
-    platz_db::init_db(false).await?;
+    platz_db::init_db(
+        false,
+        platz_db::NotificationListeningOpts::on_table(DbTable::DeploymentTasks),
+    )
+    .await?;
 
     tokio::select! {
         result = k8s::scan_for_new_clusters(CONFIG.k8s_refresh_interval()) => {

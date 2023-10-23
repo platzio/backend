@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use log::*;
-use platz_db::init_db;
+use platz_db::{init_db, NotificationListeningOpts};
 use routes::openapi::SchemaFormat;
 
 mod permissions;
@@ -47,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
         } => {
             tracing_subscriber::fmt::init();
 
-            init_db(true).await?;
+            init_db(true, NotificationListeningOpts::all()).await?;
 
             let oidc_login = auth_config.into();
 

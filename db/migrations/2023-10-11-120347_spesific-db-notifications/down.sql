@@ -1,0 +1,6 @@
+drop trigger notify_deployment_tasks_changes on deployment_tasks;
+drop trigger notify_deployment_resources_changes on deployment_resources;
+drop trigger notify_deployments_changes on deployments;
+drop trigger notify_helm_tag_formats_changes on helm_tag_formats;
+
+drop function notify_specific_trigger_name;

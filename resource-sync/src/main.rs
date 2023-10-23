@@ -3,9 +3,14 @@ mod task;
 use crate::task::{monitor_deployment_resource_changes, scrub_deployment_resources};
 use anyhow::Result;
 use log::*;
+use platz_db::DbTable;
 
 pub async fn _main() -> Result<()> {
-    platz_db::init_db(false).await?;
+    platz_db::init_db(
+        false,
+        platz_db::NotificationListeningOpts::on_table(DbTable::DeploymentResources),
+    )
+    .await?;
 
     let fut = tokio::spawn(monitor_deployment_resource_changes());
 

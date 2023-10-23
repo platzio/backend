@@ -1,5 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
+use platz_db::DbTable;
+use platz_db::NotificationListeningOpts;
 use tokio::select;
 
 mod charts;
@@ -22,7 +24,11 @@ pub struct Config {
 async fn main() -> Result<()> {
     let config = Config::parse();
 
-    platz_db::init_db(false).await?;
+    platz_db::init_db(
+        false,
+        NotificationListeningOpts::on_table(DbTable::HelmTagFormats),
+    )
+    .await?;
     kind::update_all_registries().await?;
 
     let tag_parser_fut = async {
