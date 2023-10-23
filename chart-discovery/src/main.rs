@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
+use platz_db::DbTable;
 use platz_db::NotificationListeningOpts;
 use tokio::select;
 
@@ -25,7 +26,7 @@ async fn main() -> Result<()> {
 
     platz_db::init_db(
         false,
-        NotificationListeningOpts::on_table("helm_tag_formats"),
+        NotificationListeningOpts::on_table(DbTable::HelmTagFormats),
     )
     .await?;
     kind::update_all_registries().await?;

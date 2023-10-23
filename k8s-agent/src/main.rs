@@ -6,11 +6,12 @@ mod task_runner;
 use crate::config::CONFIG;
 use anyhow::Result;
 use log::*;
+use platz_db::DbTable;
 
 pub async fn _main() -> Result<()> {
     platz_db::init_db(
         false,
-        platz_db::NotificationListeningOpts::on_table("deployment_tasks"),
+        platz_db::NotificationListeningOpts::on_table(DbTable::DeploymentTasks),
     )
     .await?;
 

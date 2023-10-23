@@ -40,7 +40,7 @@ pub struct NotificationListeningOpts {
 }
 
 impl NotificationListeningOpts {
-    pub fn on_table(table_name: &str) -> Self {
+    pub fn on_table(table_name: DbTable) -> Self {
         Self {
             channel_name: format!("db_{table_name}_notifications"),
         }

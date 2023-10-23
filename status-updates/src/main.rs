@@ -5,6 +5,7 @@ mod tracker;
 use crate::tracker::StatusTracker;
 use anyhow::Result;
 use log::*;
+use platz_db::DbTable;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -14,7 +15,7 @@ async fn main() -> Result<()> {
 
     platz_db::init_db(
         false,
-        platz_db::NotificationListeningOpts::on_table("deployments"),
+        platz_db::NotificationListeningOpts::on_table(DbTable::Deployments),
     )
     .await?;
     events::watch_deployments(StatusTracker::new()).await
