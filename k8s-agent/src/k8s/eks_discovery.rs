@@ -33,7 +33,7 @@ async fn load_clusters() -> Result<()> {
 #[tracing::instrument(err, ret)]
 async fn discover_clusters() -> Result<Vec<K8s>> {
     debug!("starting...");
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let ec2 = aws_sdk_ec2::Client::new(&shared_config);
     debug!("discovering regions...");
     let regions = ec2
@@ -54,7 +54,7 @@ async fn discover_clusters() -> Result<Vec<K8s>> {
 #[tracing::instrument(err, fields(region=%region))]
 async fn get_clusters(region: Region) -> Result<Vec<K8s>> {
     debug!("started");
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let client_config = aws_sdk_eks::config::Builder::from(&shared_config)
         .region(Some(region.clone()))
         .build();

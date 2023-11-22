@@ -137,7 +137,7 @@ pub async fn run(config: &Config) -> Result<()> {
     info!("Starting to watch for ECR events");
     let region = Region::new(config.ecr_events_region.to_owned());
 
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let ecr_config = aws_sdk_ecr::config::Builder::from(&shared_config)
         .region(region.clone())
         .build();

@@ -5,39 +5,39 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = {version = "1.0.75", features = ["backtrace"]}
-async-trait = "0.1.73"
+async-trait = "0.1.74"
 aws-arn = "0.3.1"
-aws-config = "0.56.1"
-aws-sdk-ec2 = "0.31.0"
-aws-sdk-eks = "0.31.0"
-aws-types = "0.56.1"
-base64 = "0.21.4"
+aws-config = "1.0.0"
+aws-sdk-ec2 = "0.39.1"
+aws-sdk-eks = "0.39.0"
+aws-types = "1.0.0"
+base64 = "0.21.5"
 chrono = {version = "0.4.31", default-features = false, features = ["std", "serde"]}
-clap = {version = "4.4.4", features = ["derive", "env"]}
+clap = {version = "4.4.8", features = ["derive", "env"]}
 either = "1.9.0"
-futures = "0.3.28"
-http = "0.2.9"
+futures = "0.3.29"
+http = "1.0.0"
 humantime = "2.1.0"
-itertools = "0.11.0"
+itertools = "0.12.0"
 k8s-openapi = {version = "0.20.0", default-features = false, features = ["v1_22"]}
-kube = {version = "0.86.0", default-features = false, features = ["client", "gzip", "ws", "runtime", "rustls-tls"]}
+kube = {version = "0.87.1", default-features = false, features = ["client", "gzip", "ws", "runtime", "rustls-tls"]}
 lazy_static = "1.4.0"
 log = "0.4.20"
 maplit = "1.0.2"
 platz-chart-ext = {workspace = true}
-serde = {version = "1.0.188", features = ["derive"]}
-serde_json = "1.0.107"
-serde_yaml = "0.9.25"
+serde = {version = "1.0.193", features = ["derive"]}
+serde_json = "1.0.108"
+serde_yaml = "0.9.27"
 tap = "1.0.1"
-thiserror = "1.0.48"
-tokio = {version = "1.32.0", features = ["full"]}
+thiserror = "1.0.50"
+tokio = {version = "1.34.0", features = ["full"]}
 tokio-stream = "0.1.14"
-tokio-util = "0.7.8"
-tracing = {version = "0.1.37"}
+tokio-util = "0.7.10"
+tracing = {version = "0.1.40"}
 tracing-subscriber = {workspace = true}
 tryhard = "0.5.1"
 url = {version = "2.4.1", features = ["serde"]}
-uuid = {version = "1.4.1", features = ["serde", "v4"]}
+uuid = {version = "1.6.1", features = ["serde", "v4"]}
 
 [dependencies.platz-db]
 path = "../db"

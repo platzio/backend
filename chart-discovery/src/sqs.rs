@@ -17,7 +17,7 @@ where
     F: Fn(T) -> Fut,
     Fut: Future<Output = Result<()>> + Send + 'a,
 {
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let sqs_config = aws_sdk_sqs::config::Builder::from(&shared_config)
         .region(queue_region)
         .build();

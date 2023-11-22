@@ -8,25 +8,25 @@ actix = "0.13.1"
 actix-web = {version = "4.4.0", features = ["rustls"]}
 actix-web-actors = "4.2.0"
 anyhow = {version = "1.0.75", features = ["backtrace"]}
-clap = {version = "4.4.4", features = ["derive", "env"]}
+clap = {version = "4.4.8", features = ["derive", "env"]}
 dotenvy = "0.15.7"
-futures = "0.3.28"
+futures = "0.3.29"
 humantime = "2.1.0"
-itertools = "0.11.0"
+itertools = "0.12.0"
 lazy_static = "1.4.0"
 log = "0.4.20"
 platz-chart-ext = {workspace = true}
 prometheus = {workspace = true}
-regex = "1.9.5"
-serde = {version = "1.0.188", features = ["derive"]}
-serde_json = "1.0.107"
+regex = "1.10.2"
+serde = {version = "1.0.193", features = ["derive"]}
+serde_json = "1.0.108"
 strum = "0.25.0"
-thiserror = "1.0.48"
-tokio = {version = "1.32.0", features = ["full"]}
+thiserror = "1.0.50"
+tokio = {version = "1.34.0", features = ["full"]}
 tokio-stream = {version = "0.1.14", features = ["sync"]}
 tracing-subscriber = {workspace = true}
 url = "2.4.1"
-utoipa = {version = "3.5.0", features = [
+utoipa = {version = "4.1.0", features = [
   "actix_extras",
   "chrono",
   "decimal",
@@ -34,7 +34,7 @@ utoipa = {version = "3.5.0", features = [
   "uuid",
   "yaml",
 ]}
-uuid = {version = "1.4.1", features = ["serde", "v4"]}
+uuid = {version = "1.6.1", features = ["serde", "v4"]}
 
 [dependencies.platz-db]
 path = "../db"

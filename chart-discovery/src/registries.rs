@@ -8,7 +8,7 @@ use log::*;
 use platz_db::{HelmRegistry, NewHelmRegistry};
 
 pub async fn find_and_save_ecr_repo(region: Region, repo_name: &str) -> Result<HelmRegistry> {
-    let shared_config = aws_config::load_from_env().await;
+    let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let config = aws_sdk_ecr::config::Builder::from(&shared_config)
         .region(region)
         .build();
