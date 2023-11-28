@@ -51,6 +51,7 @@ async fn create(identity: ApiIdentity, task: web::Json<ApiNewDeploymentTask>) ->
         acting_deployment_id: identity.inner().deployment_id(),
         operation: Json(task.operation),
         status: Default::default(),
+        execute_at: None,
     };
 
     Ok(match &task.operation {

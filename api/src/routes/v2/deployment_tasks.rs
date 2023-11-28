@@ -1,5 +1,6 @@
 use crate::result::ApiResult;
 use actix_web::{get, post, web, HttpResponse};
+use chrono::prelude::*;
 use platz_auth::ApiIdentity;
 use platz_db::{
     json_diff::{JsonDiff, JsonDiffPair},
@@ -65,6 +66,7 @@ async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
 pub struct CreateDeploymentTask {
     pub deployment_id: Uuid,
     pub operation: DeploymentTaskOperation,
+    pub execute_at: Option<DateTime<Utc>>,
 }
 
 #[utoipa::path(
@@ -104,6 +106,7 @@ async fn create(identity: ApiIdentity, task: web::Json<CreateDeploymentTask>) ->
         acting_deployment_id: identity.inner().deployment_id(),
         operation: Json(task.operation),
         status: Default::default(),
+        execute_at: task.execute_at,
     };
 
     Ok(match &task.operation {

@@ -22,6 +22,7 @@ table! {
     deployment_tasks(id) {
         id -> Uuid,
         created_at -> Timestamptz,
+        execute_at -> Timestamptz,
         first_attempted_at -> Nullable<Timestamptz>,
         started_at -> Nullable<Timestamptz>,
         finished_at -> Nullable<Timestamptz>,
@@ -69,6 +70,7 @@ impl Default for DeploymentTaskStatus {
 pub struct DeploymentTask {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
+    pub execute_at: DateTime<Utc>,
     pub first_attempted_at: Option<DateTime<Utc>>,
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
@@ -171,6 +173,7 @@ impl DeploymentTask {
         Ok(deployment_tasks::table
             .filter(deployment_tasks::status.eq(DeploymentTaskStatus::Pending))
             .filter(deployment_tasks::cluster_id.eq_any(cluster_ids.to_owned()))
+            .filter(deployment_tasks::execute_at.le(diesel::dsl::now))
             .order_by(deployment_tasks::created_at.asc())
             .get_result_async(pool())
             .await
@@ -270,6 +273,7 @@ pub struct NewDeploymentTask {
     #[schema(value_type = DeploymentTaskOperation)]
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
+    pub execute_at: Option<DateTime<Utc>>,
 }
 
 impl NewDeploymentTask {
@@ -336,6 +340,7 @@ impl DeploymentTask {
                 values_override: deployment.values_override.clone(),
             })),
             status: Default::default(),
+            execute_at: None,
         }
         .insert()
         .await
@@ -373,6 +378,7 @@ impl DeploymentTask {
                 values_override: new_deployment.values_override.clone(),
             })),
             status: Default::default(),
+            execute_at: None,
         }
         .insert()
         .await
@@ -404,6 +410,7 @@ impl DeploymentTask {
                 },
             )),
             status: Default::default(),
+            execute_at: None,
         }
         .insert()
         .await
@@ -440,6 +447,7 @@ impl DeploymentTask {
                 new_namespace: new_deployment.namespace_name(),
             })),
             status: Default::default(),
+            execute_at: None,
         }
         .insert()
         .await
@@ -463,6 +471,7 @@ impl DeploymentTask {
                 DeploymentUninstallTask {},
             )),
             status: Default::default(),
+            execute_at: None,
         }
         .insert()
         .await
