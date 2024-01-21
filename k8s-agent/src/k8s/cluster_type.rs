@@ -86,9 +86,9 @@ impl K8s {
     pub async fn kube_config(&self) -> Result<kube::Config> {
         let kubeconfig = kube::config::Kubeconfig::try_from(self)?;
         let kubeconfig_options = kube::config::KubeConfigOptions {
-            context: Some(kubeconfig.contexts.get(0).unwrap().name.clone()),
-            cluster: Some(kubeconfig.clusters.get(0).unwrap().name.clone()),
-            user: Some(kubeconfig.auth_infos.get(0).unwrap().name.clone()),
+            context: Some(kubeconfig.contexts.first().unwrap().name.clone()),
+            cluster: Some(kubeconfig.clusters.first().unwrap().name.clone()),
+            user: Some(kubeconfig.auth_infos.first().unwrap().name.clone()),
         };
         Ok(kube::Config::from_custom_kubeconfig(kubeconfig, &kubeconfig_options).await?)
     }
@@ -151,6 +151,8 @@ impl TryFrom<&K8s> for kube::config::Kubeconfig {
                         interactive_mode: Some(ExecInteractiveMode::Never),
                         env: None,
                         drop_env: None,
+                        provide_cluster_info: false,
+                        cluster: None,
                     }),
                     ..Default::default()
                 }),

@@ -202,7 +202,7 @@ async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionRes
         .container_statuses
         .as_ref()
         .unwrap()
-        .get(0)
+        .first()
         .unwrap();
     let container_state = container_status
         .state

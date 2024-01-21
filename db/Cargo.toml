@@ -4,9 +4,9 @@ name = "platz-db"
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.75"
+anyhow = "1.0.79"
 async-diesel = {git = "https://github.com/vmalloc/async-diesel2.git", branch = "diesel-2.0"}
-async-trait = "0.1.74"
+async-trait = "0.1.77"
 chrono = {version = "0.4.31", default-features = false, features = ["std", "serde"]}
 diesel_enum_derive = {git = "https://github.com/popen2/diesel-enum-derive", default-features = false, features = ["plain"]}
 diesel_json = "0.2.1"
@@ -20,15 +20,15 @@ postgres = "0.19.7"
 prometheus = {workspace = true}
 r2d2 = "0.8.10"
 rust_decimal = {version = "1.33.1", default-features = false, features = ["db-diesel-postgres"]}
-serde = {version = "1.0.193", features = ["derive"]}
-serde_json = "1.0.108"
-serde_with = "3.4.0"
+serde = {version = "1.0.195", features = ["derive"]}
+serde_json = "1.0.111"
+serde_with = "3.5.0"
 strum = {version = "0.25.0", features = ["derive"]}
-thiserror = "1.0.50"
-tokio = {version = "1.34.0", features = ["full"]}
-url = "2.4.1"
-utoipa = {version = "4.1.0", features = ["chrono", "decimal", "preserve_order", "uuid"]}
-uuid = {version = "1.6.1", features = ["serde", "v4"]}
+thiserror = "1.0.56"
+tokio = {version = "1.35.1", features = ["full"]}
+url = "2.5.0"
+utoipa = {version = "4.2.0", features = ["chrono", "decimal", "preserve_order", "uuid"]}
+uuid = {version = "1.7.0", features = ["serde", "v4"]}
 
 [dependencies.diesel]
 features = [
