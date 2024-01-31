@@ -8,10 +8,9 @@ use log::*;
 use std::{fmt, time::Duration};
 use tap::TapFallible;
 use tokio::select;
-use tokio::time::Instant;
-use tokio_stream::wrappers::IntervalStream;
 
 use crate::config::CONFIG;
+use crate::utils::create_interval_stream;
 
 #[derive(Debug, thiserror::Error)]
 pub struct PodExecutionResult {
@@ -91,11 +90,6 @@ pub async fn execute_pod(pod: Pod) -> Result<String> {
             exe_result.output
         })
         .tap_err(|e| log::error!("{pod_name} deletion failed: {e:?}"))
-}
-
-fn create_interval_stream(duration: Duration) -> IntervalStream {
-    let interval = tokio::time::interval_at(Instant::now() + duration, duration);
-    IntervalStream::new(interval)
 }
 
 async fn wait_for_pod_phase<S, F>(

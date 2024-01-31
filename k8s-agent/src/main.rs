@@ -2,6 +2,7 @@ mod config;
 mod deployment_creds;
 mod k8s;
 mod task_runner;
+mod utils;
 
 use crate::config::CONFIG;
 use anyhow::Result;
