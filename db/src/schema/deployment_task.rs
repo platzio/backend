@@ -174,7 +174,7 @@ impl DeploymentTask {
             .filter(deployment_tasks::status.eq(DeploymentTaskStatus::Pending))
             .filter(deployment_tasks::cluster_id.eq_any(cluster_ids.to_owned()))
             .filter(deployment_tasks::execute_at.le(diesel::dsl::now))
-            .order_by(deployment_tasks::created_at.asc())
+            .order_by(deployment_tasks::execute_at.asc())
             .get_result_async(pool())
             .await
             .optional()?)
