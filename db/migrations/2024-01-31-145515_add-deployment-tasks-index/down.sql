@@ -1,1 +1,1 @@
-DROP INDEX kdeployment_tasks__execute_at;
+DROP INDEX deployment_tasks__execute_at;
