@@ -84,7 +84,7 @@ async fn update(
 
     if let Some(reason) = reason {
         Deployment::reinstall_all_using(
-            &resource_type.as_db_collection(),
+            &resource_type.as_db_collection().await,
             id,
             &identity,
             reason.clone(),

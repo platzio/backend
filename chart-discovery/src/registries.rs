@@ -1,4 +1,4 @@
-use crate::kind::get_kind;
+use crate::kind::get_or_create_kind;
 use anyhow::{anyhow, Result};
 use aws_sdk_ecr::types::Repository;
 use aws_smithy_types_convert::date_time::DateTimeExt;
@@ -50,7 +50,7 @@ async fn save_ecr_repo_in_db(repo: Repository) -> Result<HelmRegistry> {
         created_at,
         domain_name: domain_name.to_owned(),
         repo_name: repo_name.to_owned(),
-        kind: get_kind(repo_name),
+        kind_id: get_or_create_kind(repo_name).await?.id,
     };
     info!("Saving {:?}", new_registry);
     Ok(new_registry.insert().await?)

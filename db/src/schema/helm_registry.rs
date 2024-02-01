@@ -16,6 +16,7 @@ table! {
         domain_name -> Varchar,
         repo_name -> Varchar,
         kind -> Varchar,
+        kind_id -> Uuid,
         available -> Bool,
         fa_icon -> Varchar,
     }
@@ -32,6 +33,8 @@ pub struct HelmRegistry {
     pub repo_name: String,
     #[filter]
     pub kind: String,
+    #[filter]
+    pub kind_id: Uuid,
     pub available: bool,
     pub fa_icon: String,
 }
@@ -96,7 +99,7 @@ pub struct NewHelmRegistry {
     pub created_at: DateTime<Utc>,
     pub domain_name: String,
     pub repo_name: String,
-    pub kind: String,
+    pub kind_id: Uuid,
 }
 
 impl NewHelmRegistry {
@@ -136,7 +139,7 @@ impl UpdateHelmRegistry {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = helm_registries)]
 pub struct UpdateHelmRegistryKind {
-    pub kind: String,
+    pub kind_id: Uuid,
 }
 
 impl UpdateHelmRegistryKind {

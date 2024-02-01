@@ -275,7 +275,7 @@ pub async fn handle_already_cleared_namespaces(
         platz_db::Deployment::all_with_ongoing_clearing_status_in_cluster(cluster_id).await?;
 
     for deployment in deployments {
-        let namespace = deployment.namespace_name();
+        let namespace = deployment.namespace_name().await;
         let span = tracing::debug_span!("dep", namespace=namespace, id = %deployment.id);
 
         tracing::debug!(parent: &span, "examining...");

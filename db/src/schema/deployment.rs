@@ -1,5 +1,7 @@
+use super::deployment_kinds;
 use super::deployment_status::DeploymentReportedStatus;
 use crate::DbTableOrDeploymentResource;
+use crate::DeploymentKind;
 use crate::DeploymentTask;
 use crate::HelmChart;
 use crate::Identity;
@@ -29,6 +31,7 @@ table! {
         created_at -> Timestamptz,
         name -> Varchar,
         kind -> Varchar,
+        kind_id -> Uuid,
         cluster_id -> Uuid,
         enabled -> Bool,
         status -> Varchar,
@@ -80,6 +83,8 @@ pub struct Deployment {
     #[filter(insensitive)]
     pub kind: String,
     #[filter]
+    pub kind_id: Uuid,
+    #[filter]
     pub cluster_id: Uuid,
     #[filter]
     pub enabled: bool,
@@ -98,8 +103,8 @@ pub struct Deployment {
 pub struct DeploymentStat {
     #[diesel(sql_type = diesel::sql_types::BigInt)]
     pub count: i64,
-    #[diesel(sql_type = diesel::sql_types::Varchar)]
-    pub kind: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub kind_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Varchar)]
     pub status: DeploymentStatus,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -167,8 +172,12 @@ impl Deployment {
     }
 
     pub async fn find_by_kind(kind: String) -> DbResult<Vec<Self>> {
+        let kind_obj: DeploymentKind = deployment_kinds::table
+            .filter(deployment_kinds::name.eq(kind))
+            .first_async(pool())
+            .await?;
         Ok(deployments::table
-            .filter(deployments::kind.eq(kind))
+            .filter(deployments::kind_id.eq(kind_obj.id))
             .get_results_async(pool())
             .await?)
     }
@@ -289,15 +298,20 @@ impl Deployment {
     }
 
     pub async fn find_by_cluster_and_kind(cluster_id: Uuid, kind: String) -> DbResult<Vec<Self>> {
+        let kind_obj: DeploymentKind = deployment_kinds::table
+            .filter(deployment_kinds::name.eq(kind))
+            .first_async(pool())
+            .await?;
         Ok(deployments::table
             .filter(deployments::cluster_id.eq(cluster_id))
-            .filter(deployments::kind.eq(kind))
+            .filter(deployments::kind_id.eq(kind_obj.id))
             .get_results_async(pool())
             .await?)
     }
 
-    pub fn namespace_name(&self) -> String {
-        let kind = self.kind.to_string().to_lowercase();
+    pub async fn namespace_name(&self) -> String {
+        let kind_obj = DeploymentKind::find(self.kind_id).await.unwrap();
+        let kind = kind_obj.name.to_lowercase();
         if self.name.is_empty() {
             kind
         } else {
@@ -314,7 +328,7 @@ impl Deployment {
             "{}.{}",
             match hostname_format {
                 ChartExtIngressHostnameFormat::Name => self.name.clone(),
-                ChartExtIngressHostnameFormat::KindAndName => self.namespace_name(),
+                ChartExtIngressHostnameFormat::KindAndName => self.namespace_name().await,
             },
             cluster
                 .ingress_domain
@@ -389,7 +403,7 @@ impl Deployment {
 
     pub async fn get_status_counters() -> DbResult<Vec<DeploymentStat>> {
         Ok(diesel::sql_query(
-            "SELECT count(*) as count, kind, status, cluster_id FROM deployments GROUP BY kind, status, cluster_id",
+            "SELECT count(*) as count, kind, status, cluster_id FROM deployments GROUP BY kind_id, status, cluster_id",
         )
         .load_async::<DeploymentStat>(pool())
         .await?)
@@ -402,6 +416,7 @@ pub struct NewDeployment {
     #[serde(default)]
     pub name: String,
     pub kind: String,
+    pub kind_id: Uuid,
     pub cluster_id: Uuid,
     pub helm_chart_id: Uuid,
     pub config: Option<serde_json::Value>,

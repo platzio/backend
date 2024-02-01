@@ -1,4 +1,5 @@
 mod deployment;
+mod deployment_kind;
 mod deployment_permission;
 mod deployment_resource;
 mod deployment_resource_type;
@@ -17,6 +18,7 @@ mod user;
 mod user_token;
 
 pub use deployment::*;
+pub use deployment_kind::*;
 pub use deployment_permission::*;
 pub use deployment_resource::*;
 pub use deployment_resource_type::*;
@@ -36,6 +38,7 @@ pub use user_token::*;
 
 diesel::allow_tables_to_appear_in_same_query!(
     deployments,
+    deployment_kinds,
     deployment_permissions,
     deployment_resources,
     deployment_resource_types,

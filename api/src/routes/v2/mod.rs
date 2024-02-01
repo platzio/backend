@@ -1,4 +1,5 @@
 mod auth;
+mod deployment_kinds;
 mod deployment_permissions;
 mod deployment_resource_types;
 mod deployment_resources;
@@ -25,6 +26,9 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(auth::me);
     cfg.service(auth::start_google_login);
     cfg.service(auth::finish_google_login);
+    cfg.service(deployment_kinds::get_all);
+    cfg.service(deployment_kinds::get_one);
+    cfg.service(deployment_kinds::update);
     cfg.service(deployment_permissions::get_all);
     cfg.service(deployment_permissions::get_one);
     cfg.service(deployment_permissions::create);

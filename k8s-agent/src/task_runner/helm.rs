@@ -35,7 +35,7 @@ async fn helm_pod(
     deployment: &Deployment,
     values: serde_json::Value,
 ) -> Result<Pod> {
-    let namespace_name = deployment.namespace_name();
+    let namespace_name = deployment.namespace_name().await;
 
     let cluster = K8S_TRACKER.get_cluster(deployment.cluster_id).await?;
     let kubeconfig = cluster.base64_kubeconfig()?;
