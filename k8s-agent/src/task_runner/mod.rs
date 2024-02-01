@@ -7,7 +7,9 @@ mod secrets;
 mod values;
 
 use crate::k8s::K8S_TRACKER;
+use crate::utils::create_interval_stream;
 use anyhow::Result;
+use futures::StreamExt;
 use log::*;
 use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
 use runnable_task::RunnableDeploymentTask;
@@ -37,11 +39,13 @@ pub async fn start() -> Result<()> {
     );
 
     debug!("starting poll loop");
+    let mut updates_interval_stream = create_interval_stream(std::time::Duration::from_secs(60));
 
     loop {
         run_pending_tasks().await?;
         debug!("polling...");
         select! {
+            biased;
 
             _ = term.recv() => {
                 info!("SIGTERM");
@@ -60,6 +64,10 @@ pub async fn start() -> Result<()> {
             k8s_event = k8s_events_rx.changed() => {
                 tracing::debug!("k8s event received");
                 k8s_event?;
+            }
+
+            _ = updates_interval_stream.next() => {
+                // Stop waiting for events, pull pending tasks
             }
         }
     }
