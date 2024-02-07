@@ -140,7 +140,7 @@ impl DeploymentTask {
                 filtered = filtered.filter(deployment_tasks::cluster_id.eq_any(cluster_ids))
             }
             filtered
-                .order_by(deployment_tasks::created_at.desc())
+                .order_by(deployment_tasks::execute_at.desc())
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn)
