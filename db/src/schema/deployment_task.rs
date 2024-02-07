@@ -55,6 +55,7 @@ pub enum DeploymentTaskStatus {
     Pending,
     Started,
     Failed,
+    Canceled,
     Done,
 }
 
@@ -184,6 +185,14 @@ impl DeploymentTask {
             .optional()?)
     }
 
+    pub async fn cancel(&self, reason: String) -> DbResult<Self> {
+        if self.execute_at < Utc::now() + chrono::Duration::minutes(5) {
+            return Err(DbError::CancelTaskCloseToExecution);
+        }
+        self.set_status(DeploymentTaskStatus::Canceled, Some(reason))
+            .await
+    }
+
     pub async fn set_status(
         &self,
         status: DeploymentTaskStatus,
@@ -197,6 +206,7 @@ impl DeploymentTask {
             (DeploymentTaskStatus::Started, Some(_)) => (None, Some(now), None),
             (DeploymentTaskStatus::Failed, _) => (None, None, Some(now)),
             (DeploymentTaskStatus::Done, _) => (None, None, Some(now)),
+            (DeploymentTaskStatus::Canceled, _) => (None, None, None),
         };
         UpdateDeploymentTask {
             first_attempted_at,

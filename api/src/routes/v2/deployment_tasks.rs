@@ -1,3 +1,4 @@
+use super::utils::ensure_user;
 use crate::result::ApiResult;
 use actix_web::{get, post, web, HttpResponse};
 use chrono::prelude::*;
@@ -60,6 +61,51 @@ async fn get_all(
 #[get("/deployment-tasks/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentTask::find(id.into_inner()).await?))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CancelDeploymentTask {
+    pub reason: Option<String>,
+}
+
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Tasks",
+    operation_id = "cancelDeploymentTask",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = CancelDeploymentTask,
+    responses(
+        (
+            status = OK,
+            body = DeploymentTask,
+        ),
+    ),
+)]
+#[post("/deployment-tasks/{id}/cancel")]
+async fn cancel_one(
+    identity: ApiIdentity,
+    id: web::Path<Uuid>,
+    info: web::Json<CancelDeploymentTask>,
+) -> ApiResult {
+    let info = info.into_inner();
+    let task = DeploymentTask::find(id.into_inner()).await?;
+
+    let user = ensure_user(&identity).await?;
+    if task.acting_user_id.map(|x| x.ne(&user.id)).unwrap_or(true) && !user.is_admin {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "message": "Non-admin users are not allowed to cancel tasks of other users",
+        })));
+    }
+    let canceled_by = format!("Canceled by {}", &user.email);
+    let reason = if let Some(user_reason) = &info.reason {
+        format!("{canceled_by}. {user_reason}")
+    } else {
+        canceled_by
+    };
+    Ok(HttpResponse::Ok().json(task.cancel(reason).await?))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -181,6 +227,7 @@ their status.
         DeploymentRestartK8sResourceTask,
         DeploymentTaskStatus,
         CreateDeploymentTask,
+        CancelDeploymentTask,
         JsonDiff,
         JsonDiffPair,
     )),

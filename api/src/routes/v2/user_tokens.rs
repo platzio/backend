@@ -1,26 +1,13 @@
+use super::utils::{ensure_user, ensure_user_id};
 use crate::permissions::verify_site_admin;
 use crate::result::{ApiError, ApiResult};
 use actix_web::{delete, get, post, web, HttpResponse};
-use platz_auth::{generate_user_token, ApiIdentity, AuthError};
-use platz_db::{DbError, NewUserToken, Paginated, User, UserToken, UserTokenFilters};
+use platz_auth::{generate_user_token, ApiIdentity};
+use platz_db::{DbError, NewUserToken, Paginated, UserToken, UserTokenFilters};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-fn ensure_user_id(identity: &ApiIdentity) -> Result<Uuid, ApiError> {
-    identity.inner().user_id().ok_or(ApiError::NoPermission)
-}
-
-async fn ensure_user(identity: &ApiIdentity) -> Result<User, ApiError> {
-    User::find_only_active(ensure_user_id(identity)?)
-        .await?
-        .ok_or_else(|| {
-            ApiError::from(AuthError::BearerAuthenticationError(
-                "Unknown user".to_owned(),
-            ))
-        })
-}
 
 #[utoipa::path(
     context_path = "/api/v2",
