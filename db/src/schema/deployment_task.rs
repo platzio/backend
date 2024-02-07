@@ -89,6 +89,7 @@ pub struct DeploymentTask {
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct DeploymentTaskExtraFilters {
     active_only: Option<bool>,
+    show_future: Option<bool>,
     created_from: Option<DateTime<Utc>>,
     env_id: Option<Uuid>,
 }
@@ -132,6 +133,9 @@ impl DeploymentTask {
                         .eq(DeploymentTaskStatus::Started)
                         .or(deployment_tasks::status.eq(DeploymentTaskStatus::Pending)),
                 );
+            }
+            if !extra_filters.show_future.unwrap_or(true) {
+                filtered = filtered.filter(deployment_tasks::execute_at.le(diesel::dsl::now));
             }
             if let Some(from_date_time) = extra_filters.created_from {
                 filtered = filtered.filter(deployment_tasks::created_at.ge(from_date_time))
