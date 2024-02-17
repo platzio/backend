@@ -1,6 +1,6 @@
 use super::utils::ensure_user;
 use crate::result::ApiResult;
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{delete, get, post, web, HttpResponse};
 use chrono::prelude::*;
 use platz_auth::ApiIdentity;
 use platz_db::{
@@ -84,28 +84,41 @@ pub struct CancelDeploymentTask {
         ),
     ),
 )]
-#[post("/deployment-tasks/{id}/cancel")]
+#[delete("/deployment-tasks/{id}")]
 async fn cancel_one(
     identity: ApiIdentity,
     id: web::Path<Uuid>,
-    info: web::Json<CancelDeploymentTask>,
+    body: web::Json<CancelDeploymentTask>,
 ) -> ApiResult {
-    let info = info.into_inner();
+    let body = body.into_inner();
     let task = DeploymentTask::find(id.into_inner()).await?;
+    let canceled_by_user_id = identity.inner().user_id();
+    let canceled_by_deployment_id = identity.inner().deployment_id();
 
-    let user = ensure_user(&identity).await?;
-    if task.acting_user_id.map(|x| x.ne(&user.id)).unwrap_or(true) && !user.is_admin {
+    if task.acting_user_id != canceled_by_user_id
+        && task.acting_deployment_id != canceled_by_deployment_id
+        && !ensure_user(&identity).await?.is_admin
+    {
         return Ok(HttpResponse::Forbidden().json(json!({
-            "message": "Non-admin users are not allowed to cancel tasks of other users",
+            "message": "Only admin users can cancel tasks of other users",
         })));
     }
-    let canceled_by = format!("Canceled by {}", &user.email);
-    let reason = if let Some(user_reason) = &info.reason {
-        format!("{canceled_by}. {user_reason}")
-    } else {
-        canceled_by
-    };
-    Ok(HttpResponse::Ok().json(task.cancel(reason).await?))
+
+    if task.execute_at < Utc::now() + chrono::Duration::minutes(5) {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "message": "Cannot cancel task which is closed to being executed",
+        })));
+    }
+
+    let task = platz_db::CancelDeploymentTask {
+        canceled_by_user_id,
+        canceled_by_deployment_id,
+        reason: body.reason,
+    }
+    .save(task.id)
+    .await?;
+
+    Ok(HttpResponse::Ok().json(task))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

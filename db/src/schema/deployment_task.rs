@@ -30,6 +30,8 @@ table! {
         deployment_id -> Uuid,
         acting_user_id -> Nullable<Uuid>,
         acting_deployment_id -> Nullable<Uuid>,
+        canceled_by_user_id -> Nullable<Uuid>,
+        canceled_by_deployment_id -> Nullable<Uuid>,
         operation -> Jsonb,
         status -> Varchar,
         reason -> Nullable<Varchar>,
@@ -81,6 +83,8 @@ pub struct DeploymentTask {
     pub deployment_id: Uuid,
     pub acting_user_id: Option<Uuid>,
     pub acting_deployment_id: Option<Uuid>,
+    pub canceled_by_user_id: Option<Uuid>,
+    pub canceled_by_deployment_id: Option<Uuid>,
     #[schema(value_type = DeploymentTaskOperation)]
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
@@ -183,14 +187,6 @@ impl DeploymentTask {
             .get_result_async(pool())
             .await
             .optional()?)
-    }
-
-    pub async fn cancel(&self, reason: String) -> DbResult<Self> {
-        if self.execute_at < Utc::now() + chrono::Duration::minutes(5) {
-            return Err(DbError::CancelTaskCloseToExecution);
-        }
-        self.set_status(DeploymentTaskStatus::Canceled, Some(reason))
-            .await
     }
 
     pub async fn set_status(
@@ -503,4 +499,27 @@ pub struct DeploymentInvokeActionTask {
 pub struct DeploymentRestartK8sResourceTask {
     pub resource_id: Uuid,
     pub resource_name: String,
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = deployment_tasks)]
+pub struct CancelDeploymentTask {
+    pub canceled_by_user_id: Option<Uuid>,
+    pub canceled_by_deployment_id: Option<Uuid>,
+    pub reason: Option<String>,
+}
+
+impl CancelDeploymentTask {
+    pub async fn save(self, id: Uuid) -> DbResult<DeploymentTask> {
+        Ok(
+            diesel::update(deployment_tasks::table.filter(deployment_tasks::id.eq(id)))
+                .set((
+                    self,
+                    deployment_tasks::status.eq(DeploymentTaskStatus::Canceled),
+                    deployment_tasks::finished_at.eq(diesel::dsl::now),
+                ))
+                .get_result_async(pool())
+                .await?,
+        )
+    }
 }

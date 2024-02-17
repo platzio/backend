@@ -56,9 +56,6 @@ pub enum DbError {
     #[error("Requested config_inputs from a task type that has no config inputs")]
     TaskHasNoConfig,
 
-    #[error("Cannot cancel task which is closed to being executed")]
-    CancelTaskCloseToExecution,
-
     #[error("Error syncing deployment resource ({0}): {1}")]
     DeploymentResourceSyncError(String, String),
 }
