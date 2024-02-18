@@ -15,6 +15,7 @@ mod secrets;
 mod server;
 mod user_tokens;
 mod users;
+mod utils;
 mod ws;
 
 use actix_web::web;
@@ -38,6 +39,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(deployment_resources::delete);
     cfg.service(deployment_tasks::get_all);
     cfg.service(deployment_tasks::get_one);
+    cfg.service(deployment_tasks::cancel_one);
     cfg.service(deployment_tasks::create);
     cfg.service(deployments::get_all);
     cfg.service(deployments::get_one);

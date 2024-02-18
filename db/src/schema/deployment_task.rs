@@ -30,6 +30,8 @@ table! {
         deployment_id -> Uuid,
         acting_user_id -> Nullable<Uuid>,
         acting_deployment_id -> Nullable<Uuid>,
+        canceled_by_user_id -> Nullable<Uuid>,
+        canceled_by_deployment_id -> Nullable<Uuid>,
         operation -> Jsonb,
         status -> Varchar,
         reason -> Nullable<Varchar>,
@@ -55,6 +57,7 @@ pub enum DeploymentTaskStatus {
     Pending,
     Started,
     Failed,
+    Canceled,
     Done,
 }
 
@@ -80,6 +83,8 @@ pub struct DeploymentTask {
     pub deployment_id: Uuid,
     pub acting_user_id: Option<Uuid>,
     pub acting_deployment_id: Option<Uuid>,
+    pub canceled_by_user_id: Option<Uuid>,
+    pub canceled_by_deployment_id: Option<Uuid>,
     #[schema(value_type = DeploymentTaskOperation)]
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
@@ -89,6 +94,7 @@ pub struct DeploymentTask {
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct DeploymentTaskExtraFilters {
     active_only: Option<bool>,
+    show_future: Option<bool>,
     created_from: Option<DateTime<Utc>>,
     env_id: Option<Uuid>,
 }
@@ -133,6 +139,9 @@ impl DeploymentTask {
                         .or(deployment_tasks::status.eq(DeploymentTaskStatus::Pending)),
                 );
             }
+            if !extra_filters.show_future.unwrap_or(true) {
+                filtered = filtered.filter(deployment_tasks::execute_at.le(diesel::dsl::now));
+            }
             if let Some(from_date_time) = extra_filters.created_from {
                 filtered = filtered.filter(deployment_tasks::created_at.ge(from_date_time))
             }
@@ -140,7 +149,7 @@ impl DeploymentTask {
                 filtered = filtered.filter(deployment_tasks::cluster_id.eq_any(cluster_ids))
             }
             filtered
-                .order_by(deployment_tasks::created_at.desc())
+                .order_by(deployment_tasks::execute_at.desc())
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn)
@@ -193,6 +202,7 @@ impl DeploymentTask {
             (DeploymentTaskStatus::Started, Some(_)) => (None, Some(now), None),
             (DeploymentTaskStatus::Failed, _) => (None, None, Some(now)),
             (DeploymentTaskStatus::Done, _) => (None, None, Some(now)),
+            (DeploymentTaskStatus::Canceled, _) => (None, None, None),
         };
         UpdateDeploymentTask {
             first_attempted_at,
@@ -489,4 +499,27 @@ pub struct DeploymentInvokeActionTask {
 pub struct DeploymentRestartK8sResourceTask {
     pub resource_id: Uuid,
     pub resource_name: String,
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = deployment_tasks)]
+pub struct CancelDeploymentTask {
+    pub canceled_by_user_id: Option<Uuid>,
+    pub canceled_by_deployment_id: Option<Uuid>,
+    pub reason: Option<String>,
+}
+
+impl CancelDeploymentTask {
+    pub async fn save(self, id: Uuid) -> DbResult<DeploymentTask> {
+        Ok(
+            diesel::update(deployment_tasks::table.filter(deployment_tasks::id.eq(id)))
+                .set((
+                    self,
+                    deployment_tasks::status.eq(DeploymentTaskStatus::Canceled),
+                    deployment_tasks::finished_at.eq(diesel::dsl::now),
+                ))
+                .get_result_async(pool())
+                .await?,
+        )
+    }
 }

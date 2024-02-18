@@ -1,5 +1,6 @@
+use super::utils::ensure_user;
 use crate::result::ApiResult;
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{delete, get, post, web, HttpResponse};
 use chrono::prelude::*;
 use platz_auth::ApiIdentity;
 use platz_db::{
@@ -60,6 +61,64 @@ async fn get_all(
 #[get("/deployment-tasks/{id}")]
 async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     Ok(HttpResponse::Ok().json(DeploymentTask::find(id.into_inner()).await?))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CancelDeploymentTask {
+    pub reason: Option<String>,
+}
+
+#[utoipa::path(
+    context_path = "/api/v2",
+    tag = "Deployment Tasks",
+    operation_id = "cancelDeploymentTask",
+    security(
+        ("access_token" = []),
+        ("user_token" = []),
+    ),
+    request_body = CancelDeploymentTask,
+    responses(
+        (
+            status = OK,
+            body = DeploymentTask,
+        ),
+    ),
+)]
+#[delete("/deployment-tasks/{id}")]
+async fn cancel_one(
+    identity: ApiIdentity,
+    id: web::Path<Uuid>,
+    body: web::Json<CancelDeploymentTask>,
+) -> ApiResult {
+    let body = body.into_inner();
+    let task = DeploymentTask::find(id.into_inner()).await?;
+    let canceled_by_user_id = identity.inner().user_id();
+    let canceled_by_deployment_id = identity.inner().deployment_id();
+
+    if task.acting_user_id != canceled_by_user_id
+        && task.acting_deployment_id != canceled_by_deployment_id
+        && !ensure_user(&identity).await?.is_admin
+    {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "message": "Only admin users can cancel tasks of other users",
+        })));
+    }
+
+    if task.execute_at < Utc::now() + chrono::Duration::minutes(5) {
+        return Ok(HttpResponse::Forbidden().json(json!({
+            "message": "Cannot cancel task which is closed to being executed",
+        })));
+    }
+
+    let task = platz_db::CancelDeploymentTask {
+        canceled_by_user_id,
+        canceled_by_deployment_id,
+        reason: body.reason,
+    }
+    .save(task.id)
+    .await?;
+
+    Ok(HttpResponse::Ok().json(task))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -181,6 +240,7 @@ their status.
         DeploymentRestartK8sResourceTask,
         DeploymentTaskStatus,
         CreateDeploymentTask,
+        CancelDeploymentTask,
         JsonDiff,
         JsonDiffPair,
     )),
