@@ -2,11 +2,9 @@ use super::runnable_task::RunnableDeploymentOperation;
 use crate::k8s::K8S_TRACKER;
 use anyhow::anyhow;
 use anyhow::Result;
-use async_trait::async_trait;
 use kube::api::Api;
 use platz_db::{Deployment, DeploymentRestartK8sResourceTask, DeploymentTask, K8sResource};
 
-#[async_trait]
 impl RunnableDeploymentOperation for DeploymentRestartK8sResourceTask {
     async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
         let resource = K8sResource::find(self.resource_id).await?.ok_or_else(|| {

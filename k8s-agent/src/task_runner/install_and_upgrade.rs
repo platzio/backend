@@ -4,7 +4,6 @@ use crate::deployment_creds::apply_deployment_credentials;
 use crate::k8s::K8S_TRACKER;
 use crate::k8s::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS};
 use anyhow::Result;
-use async_trait::async_trait;
 use k8s_openapi::api::core::v1::Namespace;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::Api;
@@ -15,7 +14,6 @@ use platz_db::{
 };
 use uuid::Uuid;
 
-#[async_trait]
 impl RunnableDeploymentOperation for DeploymentInstallTask {
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
         debug!("Setting status to installing");
@@ -43,7 +41,6 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
     }
 }
 
-#[async_trait]
 impl RunnableDeploymentOperation for DeploymentUpgradeTask {
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
         debug!("Setting status to upgrading");
@@ -69,7 +66,6 @@ impl RunnableDeploymentOperation for DeploymentUpgradeTask {
     }
 }
 
-#[async_trait]
 impl RunnableDeploymentOperation for DeploymentReinstallTask {
     async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
         deployment
@@ -94,7 +90,6 @@ impl RunnableDeploymentOperation for DeploymentReinstallTask {
     }
 }
 
-#[async_trait]
 impl RunnableDeploymentOperation for DeploymentRecreaseTask {
     async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
         deployment
@@ -107,7 +102,6 @@ impl RunnableDeploymentOperation for DeploymentRecreaseTask {
     }
 }
 
-#[async_trait]
 impl RunnableDeploymentOperation for DeploymentUninstallTask {
     async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
         if deployment.status == DeploymentStatus::Deleting {

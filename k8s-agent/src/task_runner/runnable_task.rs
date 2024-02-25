@@ -1,14 +1,11 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use log::*;
 use platz_db::{Deployment, DeploymentTask, DeploymentTaskOperation, DeploymentTaskStatus, Json};
 
-#[async_trait]
 pub trait RunnableDeploymentTask: Send + Sync {
     async fn run(self) -> Result<()>;
 }
 
-#[async_trait]
 impl RunnableDeploymentTask for DeploymentTask {
     #[tracing::instrument(ret, err, ignore_all, name = "RDT.run")]
     async fn run(self) -> Result<()> {
@@ -47,7 +44,6 @@ impl RunnableDeploymentTask for DeploymentTask {
     }
 }
 
-#[async_trait]
 pub trait RunnableDeploymentOperation: Send + Sync {
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String>;
 }

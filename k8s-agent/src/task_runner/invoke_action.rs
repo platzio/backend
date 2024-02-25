@@ -1,13 +1,11 @@
 use super::runnable_task::RunnableDeploymentOperation;
 use anyhow::{anyhow, Result};
-use async_trait::async_trait;
 use log::debug;
 use platz_db::{
     DbError, DbTableOrDeploymentResource, Deployment, DeploymentInvokeActionTask, DeploymentTask,
     K8sCluster,
 };
 
-#[async_trait]
 impl RunnableDeploymentOperation for DeploymentInvokeActionTask {
     #[tracing::instrument(err, ret, name = "invoke_action", skip_all, task_id=%task.id)]
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {

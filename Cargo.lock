@@ -3056,7 +3056,6 @@ name = "platz-k8s-agent"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "aws-arn",
  "aws-config",
  "aws-sdk-ec2",
