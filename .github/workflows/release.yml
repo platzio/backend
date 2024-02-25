@@ -20,7 +20,7 @@ jobs:
         id: cargo
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.75.0
+          toolchain: stable
           default: true
           components: clippy
 
