@@ -7,7 +7,7 @@ use platz_db::{
 };
 
 impl RunnableDeploymentOperation for DeploymentInvokeActionTask {
-    #[tracing::instrument(err, ret, name = "invoke_action", skip_all, task_id=%task.id)]
+    #[tracing::instrument(err, ret, name = "invoke_action", skip_all, fields(task_id = %task.id))]
     async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
         debug!("Loading chart...");
         let chart = task.helm_chart().await?;

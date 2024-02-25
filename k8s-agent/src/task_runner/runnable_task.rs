@@ -7,7 +7,7 @@ pub trait RunnableDeploymentTask: Send + Sync {
 }
 
 impl RunnableDeploymentTask for DeploymentTask {
-    #[tracing::instrument(ret, err, ignore_all, name = "RDT.run")]
+    #[tracing::instrument(ret, err, skip_all, name = "RDT.run")]
     async fn run(self) -> Result<()> {
         debug!("fetching deployment...");
         let deployment = Deployment::find(self.deployment_id).await?;
