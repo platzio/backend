@@ -4,30 +4,30 @@ name = "platz-api"
 version = "0.1.0"
 
 [dependencies]
-actix = "0.13.3"
-actix-web = {version = "4.5.1", features = ["rustls"]}
+actix = "0.13.5"
+actix-web = {version = "4.8.0", features = ["rustls"]}
 actix-web-actors = "4.3.0"
-anyhow = {version = "1.0.80", features = ["backtrace"]}
-chrono = {version = "0.4.34", default-features = false, features = ["std", "serde"]}
-clap = {version = "4.5.1", features = ["derive", "env"]}
+anyhow = {version = "1.0.86", features = ["backtrace"]}
+chrono = {version = "0.4.38", default-features = false, features = ["std", "serde"]}
+clap = {version = "4.5.9", features = ["derive", "env"]}
 dotenvy = "0.15.7"
 futures = "0.3.30"
 humantime = "2.1.0"
-itertools = "0.12.1"
-lazy_static = "1.4.0"
-log = "0.4.20"
+itertools = "0.13.0"
+lazy_static = "1.5.0"
+log = "0.4.22"
 platz-chart-ext = {workspace = true}
 prometheus = {workspace = true}
-regex = "1.10.3"
-serde = {version = "1.0.197", features = ["derive"]}
-serde_json = "1.0.114"
-strum = "0.26.1"
-thiserror = "1.0.57"
-tokio = {version = "1.36.0", features = ["full"]}
-tokio-stream = {version = "0.1.14", features = ["sync"]}
+regex = "1.10.5"
+serde = {version = "1.0.204", features = ["derive"]}
+serde_json = "1.0.120"
+strum = "0.26.3"
+thiserror = "1.0.63"
+tokio = {version = "1.38.1", features = ["full"]}
+tokio-stream = {version = "0.1.15", features = ["sync"]}
 tracing-subscriber = {workspace = true}
-url = "2.5.0"
-utoipa = {version = "4.2.0", features = [
+url = "2.5.2"
+utoipa = {version = "4.2.3", features = [
   "actix_extras",
   "chrono",
   "decimal",
@@ -35,7 +35,7 @@ utoipa = {version = "4.2.0", features = [
   "uuid",
   "yaml",
 ]}
-uuid = {version = "1.7.0", features = ["serde", "v4"]}
+uuid = {version = "1.10.0", features = ["serde", "v4"]}
 
 [dependencies.platz-db]
 path = "../db"

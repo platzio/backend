@@ -20,6 +20,7 @@ pub struct Config {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct EcrEvent {
     pub version: String,
     pub id: Uuid,

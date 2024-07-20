@@ -3,7 +3,7 @@ use anyhow::{anyhow, Context, Result};
 use futures::{stream, StreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, AttachedProcess, DeleteParams, PostParams, ResourceExt};
-use kube::runtime::watcher;
+use kube::runtime::watcher::{self, Event};
 use log::*;
 use std::{fmt, time::Duration};
 use tap::TapFallible;
@@ -110,25 +110,24 @@ where
     loop {
         select! {
             biased;
-            Some(status) = stream.next() => {
-                match status {
-                    Ok(status) => {
-                        for pod in status.into_iter_applied() {
-                            let status = match pod.status.as_ref() {
-                                Some(status) => status,
-                                None => continue,
-                            };
-                            match &status.phase {
-                                Some(phase) => {
-                                    if pred(phase) {
-                                        log::debug!("Reached {phase} phase");
-                                        return Ok(phase.clone());
-                                    }
+            Some(event) = stream.next() => {
+                match event {
+                    Ok(Event::Apply(pod) | Event::InitApply(pod)) => {
+                        let status = match pod.status.as_ref() {
+                            Some(status) => status,
+                            None => continue,
+                        };
+                        match &status.phase {
+                            Some(phase) => {
+                                if pred(phase) {
+                                    log::debug!("Reached {phase} phase");
+                                    return Ok(phase.clone());
                                 }
-                                None => continue,
                             }
+                            None => continue,
                         }
                     }
+                    Ok(Event::Init | Event::InitDone | Event::Delete(_)) => {}
                     Err(e) => log::debug!("Recovering from watcher error: {e:?}"),
                 }
             },

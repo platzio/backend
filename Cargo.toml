@@ -22,4 +22,4 @@ features = ["env-filter", "fmt"]
 version = "0.3.18"
 
 [workspace.dependencies.prometheus]
-version = "0.13.3"
+version = "0.13.4"
