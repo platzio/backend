@@ -20,7 +20,7 @@ services:
     build:
       context: .
       args:
-        BASE_IMAGE: platzio/base:v5
+        BASE_IMAGE: platzio/base:v6
     command:
       - /root/platz-api
       - run
