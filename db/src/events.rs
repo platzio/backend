@@ -1,12 +1,8 @@
-use crate::DbError;
-use crate::DbResult;
-use crate::DbTable;
-use log::*;
+use crate::{DbError, DbResult, DbTable};
 use postgres::fallible_iterator::FallibleIterator;
 use serde::{Deserialize, Serialize};
-use tokio::sync::broadcast;
-use tokio::task;
-use tokio::time;
+use tokio::{sync::broadcast, task, time};
+use tracing::{debug, error, warn};
 use utoipa::ToSchema;
 use uuid::Uuid;
 

@@ -6,10 +6,10 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
-use log::*;
 use platz_chart_ext::ChartExtActionTarget;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
+use tracing::warn;
 use utoipa::ToSchema;
 use uuid::Uuid;
 

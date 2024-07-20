@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
-use log::*;
 use platz_db::{init_db, NotificationListeningOpts};
 use routes::openapi::SchemaFormat;
+use tracing::warn;
 
 mod permissions;
 mod result;

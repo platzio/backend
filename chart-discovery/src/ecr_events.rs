@@ -4,9 +4,9 @@ use aws_sdk_ecr::types::{ImageDetail, ImageIdentifier};
 use aws_types::region::Region;
 use chrono::prelude::*;
 use clap::Parser;
-use log::*;
 use platz_db::HelmRegistry;
 use serde::Deserialize;
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 #[derive(Debug, Parser)]

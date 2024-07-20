@@ -1,9 +1,9 @@
 use crate::tracker::StatusTracker;
 use anyhow::Result;
 use futures::future::join_all;
-use log::*;
 use platz_db::{db_events, DbEventOperation, DbTable, Deployment};
 use tokio::time;
+use tracing::debug;
 
 const DEPLOYMENT_CHUNK_SIZE: usize = 10;
 const DEPLOYMENT_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_secs(1);

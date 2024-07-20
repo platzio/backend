@@ -6,6 +6,7 @@ use kube::api::{Api, Patch, PatchParams};
 use platz_chart_ext::UiSchema;
 use platz_db::{DbTableOrDeploymentResource, Deployment, DeploymentTask};
 use std::collections::BTreeMap;
+use tracing::debug;
 use uuid::Uuid;
 
 pub async fn apply_secrets(
@@ -59,7 +60,7 @@ pub async fn apply_secret(
 
     let params = PatchParams::apply(name);
     let patch = Patch::Apply(&secret);
-    log::debug!("applying...");
+    debug!("applying...");
     api.patch(name, &params, &patch)
         .await
         .context("Failed applying secrets")?;

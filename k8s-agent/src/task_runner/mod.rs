@@ -10,12 +10,11 @@ use crate::k8s::K8S_TRACKER;
 use crate::utils::create_interval_stream;
 use anyhow::Result;
 use futures::StreamExt;
-use log::*;
 use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
 use runnable_task::RunnableDeploymentTask;
 pub use secrets::apply_secret;
 use tokio::{select, signal::unix::SignalKind, sync::watch};
-use tracing::Instrument;
+use tracing::{debug, error, info, Instrument};
 
 #[tracing::instrument(err, name = "task_runner")]
 pub async fn start() -> Result<()> {

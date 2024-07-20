@@ -1,7 +1,7 @@
 use anyhow::Result;
-use log::*;
 use platz_db::{db_events, DbTable, HelmChart, HelmChartFilters, HelmChartTagInfo, HelmTagFormat};
 use regex::Regex;
+use tracing::{debug, info, warn};
 
 pub async fn run() -> Result<()> {
     info!("Starting tag parser task");

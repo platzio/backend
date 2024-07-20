@@ -1,10 +1,10 @@
 use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use log::*;
 use platz_db::{db_events, DbEvent, DbEventData, DbEventOperation};
 use std::time::Duration;
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
+use tracing::error;
 
 #[derive(Default)]
 struct DbEventsWs {}

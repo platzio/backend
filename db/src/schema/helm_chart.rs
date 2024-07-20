@@ -10,6 +10,7 @@ use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceTypes;
 use platz_chart_ext::{ChartExtActions, ChartExtFeatures, UiSchema};
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -195,7 +196,7 @@ impl HelmChart {
         filters: HelmChartFilters,
         extra_filters: HelmChartExtraFilters,
     ) -> DbResult<Paginated<Self>> {
-        log::debug!("{:?} {:?}", filters, extra_filters);
+        debug!("{:?} {:?}", filters, extra_filters);
         let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);

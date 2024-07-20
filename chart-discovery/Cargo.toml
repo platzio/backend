@@ -14,7 +14,6 @@ chrono = {version = "0.4.38", default-features = false, features = ["std", "serd
 clap = {version = "4.5.9", features = ["derive", "env"]}
 futures = "0.3.30"
 itertools = "0.13.0"
-log = "0.4.22"
 platz-chart-ext = {workspace = true}
 regex = "1.10.5"
 serde = {version = "1.0.204", features = ["derive"]}
@@ -22,6 +21,7 @@ serde_json = "1.0.120"
 thiserror = "1.0.63"
 titlecase = "3.3.0"
 tokio = {version = "1.38.1", features = ["full"]}
+tracing = "0.1.40"
 uuid = {version = "1.10.0", features = ["serde", "v4"]}
 
 [dependencies.platz-db]

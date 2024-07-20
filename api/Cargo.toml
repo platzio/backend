@@ -15,7 +15,6 @@ futures = "0.3.30"
 humantime = "2.1.0"
 itertools = "0.13.0"
 lazy_static = "1.5.0"
-log = "0.4.22"
 platz-chart-ext = {workspace = true}
 prometheus = {workspace = true}
 regex = "1.10.5"
@@ -25,6 +24,7 @@ strum = "0.26.3"
 thiserror = "1.0.63"
 tokio = {version = "1.38.1", features = ["full"]}
 tokio-stream = {version = "0.1.15", features = ["sync"]}
+tracing = "0.1.40"
 tracing-subscriber = {workspace = true}
 url = "2.5.2"
 utoipa = {version = "4.2.3", features = [

@@ -9,7 +9,6 @@ use futures::{FutureExt, StreamExt, TryStreamExt};
 use kube::api::{Api, ListParams, WatchEvent, WatchParams};
 use kube::ResourceExt;
 use lazy_static::lazy_static;
-use log::*;
 use platz_db::{
     DeploymentReportedStatusColor, DeploymentStatus, K8sResource, NewK8sCluster,
     UpdateK8sClusterStatus,
@@ -18,6 +17,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::{broadcast, watch, RwLock};
 use tokio::{select, task};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 #[derive(Clone)]

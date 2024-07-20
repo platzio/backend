@@ -4,8 +4,8 @@ use aws_sdk_ecr::types::Repository;
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use aws_types::region::Region;
 use itertools::Itertools;
-use log::*;
 use platz_db::{HelmRegistry, NewHelmRegistry};
+use tracing::info;
 
 pub async fn find_and_save_ecr_repo(region: Region, repo_name: &str) -> Result<HelmRegistry> {
     let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;

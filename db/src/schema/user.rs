@@ -5,8 +5,8 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
-use log::*;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 use utoipa::ToSchema;
 use uuid::Uuid;
 

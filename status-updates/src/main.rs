@@ -4,8 +4,8 @@ mod tracker;
 
 use crate::tracker::StatusTracker;
 use anyhow::Result;
-use log::*;
 use platz_db::DbTable;
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> Result<()> {

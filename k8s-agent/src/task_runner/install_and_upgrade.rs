@@ -7,11 +7,11 @@ use anyhow::Result;
 use k8s_openapi::api::core::v1::Namespace;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::Api;
-use log::debug;
 use platz_db::{
     Deployment, DeploymentInstallTask, DeploymentRecreaseTask, DeploymentReinstallTask,
     DeploymentStatus, DeploymentTask, DeploymentUninstallTask, DeploymentUpgradeTask,
 };
+use tracing::debug;
 use uuid::Uuid;
 
 impl RunnableDeploymentOperation for DeploymentInstallTask {

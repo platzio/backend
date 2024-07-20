@@ -1,15 +1,14 @@
-use crate::config::OWN_URL;
-use crate::k8s::K8S_TRACKER;
-use crate::task_runner::apply_secret;
+use crate::{config::OWN_URL, k8s::K8S_TRACKER, task_runner::apply_secret};
 use anyhow::Result;
 use futures::future::try_join_all;
-use log::*;
 use maplit::btreemap;
 use platz_auth::{AccessToken, DEPLOYMENT_TOKEN_DURATION};
 use platz_db::Deployment;
-use tokio::select;
-use tokio::time;
-use tokio::time::interval;
+use tokio::{
+    select,
+    time::{self, interval},
+};
+use tracing::{debug, error};
 
 const CREDS_SECRET_NAME: &str = "platz-creds";
 const REFRESH_CREDS_CHUNK_SIZE: usize = 10;

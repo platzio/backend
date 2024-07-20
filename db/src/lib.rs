@@ -27,9 +27,9 @@ use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
 pub use diesel_json::Json;
 use lazy_static::lazy_static;
-use log::*;
 use prometheus::{register_gauge, Gauge};
 use tokio::task;
+use tracing::info;
 
 mod pagination;
 pub use pagination::{Paginated, DEFAULT_PAGE_SIZE};

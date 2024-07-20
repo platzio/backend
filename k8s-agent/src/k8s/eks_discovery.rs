@@ -3,10 +3,10 @@ use super::tracker::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use aws_types::region::Region;
 use futures::future::try_join_all;
-use log::*;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
+use tracing::{debug, error};
 
 pub async fn scan_for_new_clusters(every: Duration) -> Result<()> {
     let mut interval = time::interval(every);

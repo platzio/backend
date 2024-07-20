@@ -4,10 +4,10 @@ use futures::{stream, StreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, AttachedProcess, DeleteParams, PostParams, ResourceExt};
 use kube::runtime::watcher::{self, Event};
-use log::*;
 use std::{fmt, time::Duration};
 use tap::TapFallible;
 use tokio::select;
+use tracing::{debug, error};
 
 use crate::config::CONFIG;
 use crate::utils::create_interval_stream;
@@ -89,7 +89,7 @@ pub async fn execute_pod(pod: Pod) -> Result<String> {
             debug!("{pod_name} deletion succeed");
             exe_result.output
         })
-        .tap_err(|e| log::error!("{pod_name} deletion failed: {e:?}"))
+        .tap_err(|e| error!("{pod_name} deletion failed: {e:?}"))
 }
 
 async fn wait_for_pod_phase<S, F>(
@@ -120,7 +120,7 @@ where
                         match &status.phase {
                             Some(phase) => {
                                 if pred(phase) {
-                                    log::debug!("Reached {phase} phase");
+                                    debug!("Reached {phase} phase");
                                     return Ok(phase.clone());
                                 }
                             }
@@ -128,15 +128,15 @@ where
                         }
                     }
                     Ok(Event::Init | Event::InitDone | Event::Delete(_)) => {}
-                    Err(e) => log::debug!("Recovering from watcher error: {e:?}"),
+                    Err(e) => debug!("Recovering from watcher error: {e:?}"),
                 }
             },
             () = &mut timeout_sleep => {
-                log::debug!("Failed waiting for pod to reach phase");
+                debug!("Failed waiting for pod to reach phase");
                 return Err(anyhow!("Failed waiting for pod to reach phase"))
             },
             _ = logs_timer_stream.next() => {
-                log::debug!("Still waiting for pod phase");
+                debug!("Still waiting for pod phase");
             }
         }
     }
@@ -157,7 +157,7 @@ async fn wait_for_pod(pods: &Api<Pod>, pod_name: &str) -> Result<PodExecutionRes
         result
     };
 
-    log::debug!("Waiting for pod to be ready");
+    debug!("Waiting for pod to be ready");
     let mut pod_phase = wait_for_pod_phase(
         &mut pod_events,
         |p| {

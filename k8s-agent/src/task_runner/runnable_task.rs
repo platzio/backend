@@ -1,6 +1,6 @@
 use anyhow::Result;
-use log::*;
 use platz_db::{Deployment, DeploymentTask, DeploymentTaskOperation, DeploymentTaskStatus, Json};
+use tracing::debug;
 
 pub trait RunnableDeploymentTask: Send + Sync {
     async fn run(self) -> Result<()>;

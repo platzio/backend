@@ -2,11 +2,11 @@ use crate::ecr_events::{EcrEvent, EcrEventDetail};
 use crate::tag_parser::parse_image_tag;
 use anyhow::{anyhow, Result};
 use aws_smithy_types_convert::date_time::DateTimeExt;
-use log::*;
 use platz_chart_ext::ChartExt;
 use platz_db::{HelmChart, HelmChartTagInfo, Json, NewHelmChart, UpdateHelmChart};
 use std::path::PathBuf;
 use tokio::process::Command;
+use tracing::{debug, info, warn};
 
 const HELM_ARTIFACT_MEDIA_TYPE: &str = "application/vnd.cncf.helm.config.v1+json";
 const TEMP_DOWNLOAD_PATH: &str = "/tmp/platz-chart-download";

@@ -2,10 +2,10 @@ use super::secrets::apply_secrets;
 use crate::config::OWN_URL;
 use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
-use log::*;
 use platz_chart_ext::{insert_into_map, UiSchema};
 use platz_db::{DbTableOrDeploymentResource, Deployment, DeploymentTask, Env, K8sCluster};
 use serde::Serialize;
+use tracing::warn;
 use url::Url;
 use uuid::Uuid;
 

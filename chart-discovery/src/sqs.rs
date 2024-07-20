@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use aws_types::region::Region;
-use log::*;
 use serde::de::DeserializeOwned;
 use std::future::Future;
+use tracing::debug;
 
 /// Listen for messages from an SQS queue, invoking the given
 /// function for every message. If the function returns a successful

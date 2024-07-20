@@ -1,10 +1,10 @@
 use super::runnable_task::RunnableDeploymentOperation;
 use anyhow::{anyhow, Result};
-use log::debug;
 use platz_db::{
     DbError, DbTableOrDeploymentResource, Deployment, DeploymentInvokeActionTask, DeploymentTask,
     K8sCluster,
 };
+use tracing::debug;
 
 impl RunnableDeploymentOperation for DeploymentInvokeActionTask {
     #[tracing::instrument(err, ret, name = "invoke_action", skip_all, fields(task_id = %task.id))]

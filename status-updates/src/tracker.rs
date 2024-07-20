@@ -1,16 +1,13 @@
 use crate::status_config::StatusConfig;
 use anyhow::Result;
-use futures_util::TryFutureExt;
-use log::*;
+use futures::TryFutureExt;
 use platz_db::{
     Deployment, DeploymentReportedStatus, DeploymentReportedStatusContent,
     UpdateDeploymentReportedStatus,
 };
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::RwLock;
-use tokio::task;
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::{sync::RwLock, task};
+use tracing::{error, info, warn};
 use url::Url;
 use uuid::Uuid;
 

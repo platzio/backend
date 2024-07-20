@@ -6,8 +6,8 @@ use anyhow::Result;
 use base64::prelude::*;
 use k8s_openapi::api::core::v1::{Container, EnvVar, Pod, PodSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use log::debug;
 use platz_db::{Deployment, DeploymentTask, HelmRegistry};
+use tracing::debug;
 
 // -------------------------------------------------------------------------
 // Runs helm in a pod in the current cluster. We do this, instead of running

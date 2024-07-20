@@ -6,8 +6,8 @@ mod utils;
 
 use crate::config::CONFIG;
 use anyhow::Result;
-use log::*;
 use platz_db::DbTable;
+use tracing::{info, warn};
 
 pub async fn _main() -> Result<()> {
     platz_db::init_db(
