@@ -1,4 +1,5 @@
 use super::utils::ensure_user;
+use crate::permissions::verify_deployment_maintainer;
 use crate::result::ApiResult;
 use actix_web::{delete, get, post, web, HttpResponse};
 use chrono::prelude::*;
@@ -192,6 +193,8 @@ async fn create(identity: ApiIdentity, task: web::Json<CreateDeploymentTask>) ->
             }
         }
         Json(DeploymentTaskOperation::RestartK8sResource(params)) => {
+            verify_deployment_maintainer(deployment.cluster_id, &deployment.kind, &identity)
+                .await?;
             match K8sResource::find(params.resource_id).await? {
                 None => HttpResponse::NotFound().json(json!({
                     "message": format!("Unknown resource with id={}", params.resource_id)
