@@ -239,7 +239,7 @@ impl DeploymentTask {
             let ChartExtResourceType::V1Beta1(typ) = typ;
             NewDeploymentResourceType {
                 env_id: if typ.spec.global { None } else { Some(env_id) },
-                deployment_kind: deployment.kind.clone(),
+                deployment_kind_id: deployment.kind_id,
                 key: typ.key,
                 spec: serde_json::to_value(typ.spec).unwrap(),
             }
@@ -452,9 +452,9 @@ impl DeploymentTask {
             acting_deployment_id: identity.borrow().deployment_id(),
             operation: Json(DeploymentTaskOperation::Recreate(DeploymentRecreaseTask {
                 old_cluster_id: old_deployment.cluster_id,
-                old_namespace: old_deployment.namespace_name(),
+                old_namespace: old_deployment.namespace_name().await,
                 new_cluster_id: new_deployment.cluster_id,
-                new_namespace: new_deployment.namespace_name(),
+                new_namespace: new_deployment.namespace_name().await,
             })),
             status: Default::default(),
             execute_at: None,

@@ -69,7 +69,7 @@ pub(crate) async fn apply_deployment_credentials(deployment: &Deployment) -> Res
     let access_token = AccessToken::from(deployment);
     apply_secret(
         deployment.cluster_id,
-        &deployment.namespace_name(),
+        &deployment.namespace_name().await,
         CREDS_SECRET_NAME,
         btreemap! {
             "access_token".to_owned() => access_token.encode().await?,

@@ -83,7 +83,7 @@ async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
 #[post("/deployments")]
 async fn create(identity: ApiIdentity, new_deployment: web::Json<NewDeployment>) -> ApiResult {
     let new_deployment = new_deployment.into_inner();
-    verify_deployment_owner(new_deployment.cluster_id, &new_deployment.kind, &identity).await?;
+    verify_deployment_owner(new_deployment.cluster_id, new_deployment.kind_id, &identity).await?;
 
     let chart = HelmChart::find(new_deployment.helm_chart_id).await?;
     match chart.features()?.cardinality() {
@@ -114,7 +114,7 @@ pub fn using_error(prefix: &str, deployments: Vec<Deployment>) -> String {
         prefix,
         deployments
             .into_iter()
-            .map(|d| format!("{} ({})", d.name, d.kind))
+            .map(|d| format!("{} (Kind ID: {})", d.name, d.kind_id))
             .collect::<Vec<String>>()
             .join(", ")
     )
@@ -145,12 +145,12 @@ async fn update(
     let updates = data.into_inner();
     let old_deployment = Deployment::find(id.into_inner()).await?;
 
-    verify_deployment_maintainer(old_deployment.cluster_id, &old_deployment.kind, &identity)
+    verify_deployment_maintainer(old_deployment.cluster_id, old_deployment.kind_id, &identity)
         .await?;
 
     if let Some(new_cluster_id) = updates.cluster_id {
         if new_cluster_id != old_deployment.cluster_id {
-            verify_deployment_maintainer(new_cluster_id, &old_deployment.kind, &identity).await?;
+            verify_deployment_maintainer(new_cluster_id, old_deployment.kind_id, &identity).await?;
         }
     }
 
@@ -230,7 +230,7 @@ async fn update(
 #[delete("/deployments/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let deployment = Deployment::find(id.into_inner()).await?;
-    verify_deployment_owner(deployment.cluster_id, &deployment.kind, &identity).await?;
+    verify_deployment_owner(deployment.cluster_id, deployment.kind_id, &identity).await?;
 
     let dependents = Deployment::find_using(
         &DbTableOrDeploymentResource::DbTable(DbTable::Deployments),

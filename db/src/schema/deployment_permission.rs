@@ -16,6 +16,7 @@ table! {
         env_id -> Uuid,
         user_id -> Uuid,
         kind -> Varchar,
+        kind_id -> Uuid,
         role -> Varchar,
     }
 }
@@ -51,6 +52,7 @@ pub struct DeploymentPermission {
     pub env_id: Uuid,
     pub user_id: Uuid,
     pub kind: String,
+    pub kind_id: Uuid,
     pub role: UserDeploymentRole,
 }
 
@@ -91,12 +93,12 @@ impl DeploymentPermission {
     pub async fn find_user_role(
         env_id: Uuid,
         user_id: Uuid,
-        kind: String,
+        kind_id: Uuid,
     ) -> DbResult<Option<UserDeploymentRole>> {
         Ok(deployment_permissions::table
             .filter(deployment_permissions::env_id.eq(env_id))
             .filter(deployment_permissions::user_id.eq(user_id))
-            .filter(deployment_permissions::kind.eq(kind))
+            .filter(deployment_permissions::kind_id.eq(kind_id))
             .get_result_async::<Self>(pool())
             .await
             .optional()?
@@ -116,7 +118,7 @@ impl DeploymentPermission {
 pub struct NewDeploymentPermission {
     pub env_id: Uuid,
     pub user_id: Uuid,
-    pub kind: String,
+    pub kind_id: Uuid,
     pub role: UserDeploymentRole,
 }
 

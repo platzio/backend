@@ -20,7 +20,7 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
         deployment
             .set_status(DeploymentStatus::Installing, None)
             .await?;
-        create_namespace(deployment.cluster_id, deployment_to_namespace(deployment)).await?;
+        create_namespace(deployment.cluster_id, deployment_to_namespace(deployment).await).await?;
         apply_deployment_credentials(deployment).await?;
         match run_helm("install", deployment, task).await {
             Ok(output) => {
@@ -96,7 +96,7 @@ impl RunnableDeploymentOperation for DeploymentRecreaseTask {
             .set_status(DeploymentStatus::Renaming, None)
             .await?;
         delete_namespace(self.old_cluster_id, &self.old_namespace).await?;
-        create_namespace(self.new_cluster_id, deployment_to_namespace(deployment)).await?;
+        create_namespace(self.new_cluster_id, deployment_to_namespace(deployment).await).await?;
         apply_deployment_credentials(deployment).await?;
         Ok("".to_owned())
     }
@@ -113,7 +113,7 @@ impl RunnableDeploymentOperation for DeploymentUninstallTask {
                 .set_status(DeploymentStatus::Uninstalling, None)
                 .await?;
         }
-        delete_namespace(deployment.cluster_id, &deployment.namespace_name()).await?;
+        delete_namespace(deployment.cluster_id, &deployment.namespace_name().await).await?;
         deployment.set_revision(None).await?;
         Ok("".to_owned())
     }
@@ -123,10 +123,10 @@ impl RunnableDeploymentOperation for DeploymentUninstallTask {
 // Namespace operations
 // --------------------
 
-fn deployment_to_namespace(deployment: &Deployment) -> Namespace {
+async fn deployment_to_namespace(deployment: &Deployment) -> Namespace {
     Namespace {
         metadata: ObjectMeta {
-            name: Some(deployment.namespace_name()),
+            name: Some(deployment.namespace_name().await),
             labels: Some(DEPLOYMENT_NAMESPACE_LABELS.to_owned()),
             annotations: Some(deployment_namespace_annotations(deployment)),
             ..Default::default()
