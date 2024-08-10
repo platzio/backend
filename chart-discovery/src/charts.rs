@@ -107,7 +107,7 @@ async fn download_chart(event: &EcrEvent) -> Result<PathBuf> {
         .arg(&script)
         .env("TEMP_DOWNLOAD_PATH", TEMP_DOWNLOAD_PATH)
         .env("HELM_REGISTRY_REGION", &event.region)
-        .env("HELM_REGISTRY", &event.helm_registry_domain_name())
+        .env("HELM_REGISTRY", event.helm_registry_domain_name())
         .env("HELM_REPO", &event.detail.repository_name)
         .env("HELM_CHART_TAG", &event.detail.image_tag)
         .spawn()?
