@@ -193,7 +193,7 @@ async fn create(identity: ApiIdentity, task: web::Json<CreateDeploymentTask>) ->
             }
         }
         Json(DeploymentTaskOperation::RestartK8sResource(params)) => {
-            verify_deployment_maintainer(deployment.cluster_id, &deployment.kind, &identity)
+            verify_deployment_maintainer(deployment.cluster_id, deployment.kind_id, &identity)
                 .await?;
             match K8sResource::find(params.resource_id).await? {
                 None => HttpResponse::NotFound().json(json!({
