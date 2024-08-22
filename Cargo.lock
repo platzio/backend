@@ -3186,6 +3186,7 @@ dependencies = [
  "titlecase",
  "tokio",
  "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 

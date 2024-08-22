@@ -3,6 +3,9 @@ use clap::Parser;
 use platz_db::DbTable;
 use platz_db::NotificationListeningOpts;
 use tokio::select;
+use tokio::signal::unix::signal;
+use tokio::signal::unix::SignalKind;
+use tracing::info;
 
 mod charts;
 mod ecr_events;
@@ -22,7 +25,10 @@ pub struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt::init();
     let config = Config::parse();
+    let mut sigterm = signal(SignalKind::terminate())?;
+    let mut sigint = signal(SignalKind::interrupt())?;
 
     platz_db::init_db(
         false,
@@ -40,9 +46,20 @@ async fn main() -> Result<()> {
     };
 
     select! {
+        _ = sigterm.recv() => {
+            info!("SIGTERM received, exiting");
+            Ok(())
+        }
+
+        _ = sigint.recv() => {
+            info!("SIGINT received, exiting");
+            Ok(())
+        }
+
         result = ecr_events::run(&config.ecr_events) => {
             result
         }
+
         result = tag_parser_fut => {
             result
         }

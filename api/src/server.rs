@@ -7,13 +7,21 @@ use serde_json::json;
 #[derive(clap::Args)]
 #[group(skip)]
 pub struct Config {
+    #[arg(long, env = "API_HOST", default_value = "0.0.0.0")]
+    api_host: String,
     #[arg(long, env = "API_PORT", default_value = "3000")]
     api_port: u16,
+    #[clap(flatten)]
+    auth_config: platz_auth::Config,
 }
 
-pub async fn serve(config: Config, oidc_login: platz_auth::OidcLogin) -> Result<()> {
-    let api_port = config.api_port;
-    let oidc_login = web::Data::new(oidc_login);
+pub async fn serve(config: Config) -> Result<()> {
+    let Config {
+        api_host,
+        api_port,
+        auth_config,
+    } = config;
+    let oidc_login = web::Data::new(platz_auth::OidcLogin::from(auth_config));
 
     let server = HttpServer::new(move || {
         let json_cfg = web::JsonConfig::default().error_handler(|err, _req| {
@@ -33,7 +41,10 @@ pub async fn serve(config: Config, oidc_login: platz_auth::OidcLogin) -> Result<
             .service(web::scope("/api/v2").configure(crate::routes::v2::config))
     });
 
-    Ok(server.bind(&format!("0.0.0.0:{api_port}"))?.run().await?)
+    Ok(server
+        .bind(&format!("{api_host}:{api_port}"))?
+        .run()
+        .await?)
 }
 
 async fn status() -> crate::result::ApiResult {

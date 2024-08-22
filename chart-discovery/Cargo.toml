@@ -24,6 +24,7 @@ serde_json = "1.0.120"
 titlecase = "3.3.0"
 tokio = { version = "1.38.1", features = ["full"] }
 tracing = "0.1.40"
+tracing-subscriber = { workspace = true }
 uuid = { version = "1.10.0", features = ["serde", "v4"] }
 
 [dependencies.platz-db]

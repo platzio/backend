@@ -16,6 +16,7 @@ then
     cargo install cargo-watch
 fi
 
+export RUST_LOG="debug"
 export RUST_BACKTRACE="1"
 export OIDC_SERVER_URL="https://accounts.google.com"
 export OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-"id"}
