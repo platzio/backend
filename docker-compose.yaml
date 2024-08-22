@@ -21,6 +21,7 @@ services:
       context: .
       args:
         BASE_IMAGE: platzio/base:v6
+        RELEASE_BUILD: 0
     command:
       - /root/platz-api
       - run

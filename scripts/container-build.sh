@@ -4,7 +4,8 @@ set -eu
 set -o pipefail
 
 TARGETARCH="$1"
-BUILD_DEST="$2"
+RELEASE_BUILD="$2"
+BUILD_DEST="$3"
 
 case "$TARGETARCH" in \
     arm64)
@@ -48,6 +49,13 @@ export LDFLAGS="-L/usr/lib/${LINUX_TARGETARCH}-linux-gnu"
 export CARGO_BUILD_TARGET="${LINUX_TARGETARCH}-unknown-linux-gnu"
 
 rustup target add "${CARGO_BUILD_TARGET}"
-cargo build --release
+
+CARGO_FLAGS=""
+if [ "${RELEASE_BUILD}" = "1" ]
+then
+    CARGO_FLAGS="--release"
+fi
+
+cargo build ${CARGO_FLAGS}
 
 find "target/${CARGO_BUILD_TARGET}/release/" -maxdepth 1 -type f -executable -exec mv -v {} "${BUILD_DEST}/" \;
