@@ -5,10 +5,10 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.86"
-platz-chart-ext = {workspace = true}
-tokio = {version = "1.38.1", features = ["full"]}
+platz-chart-ext = { workspace = true }
+tokio = { version = "1.38.1", features = ["full"] }
 tracing = "0.1.40"
-tracing-subscriber = {workspace = true}
+tracing-subscriber = { workspace = true }
 
 [dependencies.platz-db]
 path = "../db"

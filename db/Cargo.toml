@@ -5,49 +5,47 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.86"
-async-diesel = {git = "https://github.com/vmalloc/async-diesel2.git", branch = "diesel-2.0"}
+async-diesel = { git = "https://github.com/vmalloc/async-diesel2.git", branch = "diesel-2.0" }
 async-trait = "0.1.81"
-chrono = {version = "0.4.38", default-features = false, features = ["std", "serde"]}
-diesel_enum_derive = {git = "https://github.com/popen2/diesel-enum-derive", default-features = false, features = ["plain"]}
+chrono = { version = "0.4.38", default-features = false, features = [
+  "std",
+  "serde",
+] }
+diesel_enum_derive = { git = "https://github.com/popen2/diesel-enum-derive", default-features = false, features = [
+  "plain",
+] }
 diesel_json = "0.2.1"
 diesel_migrations = "2.2.0"
 itertools = "0.13.0"
 lazy_static = "1.5.0"
 maplit = "1.0.2"
-platz-chart-ext = {workspace = true}
+platz-chart-ext = { workspace = true }
 postgres = "0.19.7"
-prometheus = {workspace = true}
+prometheus = { workspace = true }
 r2d2 = "0.8.10"
-rust_decimal = {version = "1.35.0", default-features = false, features = ["db-diesel-postgres"]}
-serde = {version = "1.0.204", features = ["derive"]}
+rust_decimal = { version = "1.35.0", default-features = false, features = [
+  "db-diesel-postgres",
+] }
+serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 serde_with = "3.9.0"
-strum = {version = "0.26.3", features = ["derive"]}
+strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.63"
-tokio = {version = "1.38.1", features = ["full"]}
+tokio = { version = "1.38.1", features = ["full"] }
 tracing = "0.1.40"
 url = "2.5.2"
-utoipa = {version = "4.2.3", features = ["chrono", "decimal", "preserve_order", "uuid"]}
-uuid = {version = "1.10.0", features = ["serde", "v4"]}
+utoipa = { version = "4.2.3", features = [
+  "chrono",
+  "decimal",
+  "preserve_order",
+  "uuid",
+] }
+uuid = { version = "1.10.0", features = ["serde", "v4"] }
 
 [dependencies.diesel]
-features = [
-  "chrono",
-  "numeric",
-  "postgres",
-  "r2d2",
-  "serde_json",
-  "uuid",
-]
+features = ["chrono", "numeric", "postgres", "r2d2", "serde_json", "uuid"]
 version = "2.2.2"
 
 [dependencies.diesel_filter]
-features = [
-  "actix",
-  "diesel",
-  "serde",
-  "serialize",
-  "pagination",
-  "utoipa",
-]
+features = ["actix", "diesel", "serde", "serialize", "pagination", "utoipa"]
 git = "https://github.com/popen2/diesel_filter"
