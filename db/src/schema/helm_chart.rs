@@ -230,8 +230,7 @@ impl HelmChart {
                     .load_and_count::<Self>(&mut conn),
             }
         })
-        .await
-        .unwrap()?;
+        .await??;
 
         Ok(Paginated {
             page,

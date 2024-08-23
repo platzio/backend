@@ -56,8 +56,7 @@ impl DeploymentResourceType {
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn)
         })
-        .await
-        .unwrap()?;
+        .await??;
         Ok(Paginated {
             page,
             per_page,

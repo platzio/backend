@@ -5,6 +5,9 @@ pub enum DbError {
     #[error("Diesel database error: {0}")]
     DieselError(diesel::result::Error),
 
+    #[error("Tokio join error: {0}")]
+    TokioJoinError(#[from] tokio::task::JoinError),
+
     #[error("Database pool error: {0}")]
     R2d2Error(#[from] r2d2::Error),
 
