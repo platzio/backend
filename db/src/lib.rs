@@ -28,7 +28,6 @@ use diesel::r2d2::{ConnectionManager, Pool};
 pub use diesel_json::Json;
 use lazy_static::lazy_static;
 use prometheus::{register_gauge, Gauge};
-use tokio::task;
 use tracing::info;
 
 mod pagination;
@@ -103,15 +102,16 @@ lazy_static! {
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-pub async fn init_db(run_migrations: bool, opts: NotificationListeningOpts) -> DbResult<()> {
-    if run_migrations {
-        info!("Running database migrations");
-        let mut conn = DB.pool.get()?;
-        conn.run_pending_migrations(MIGRATIONS).unwrap();
-        info!("Finished running migrations");
-    }
-    task::spawn(DB.events.run(opts));
+pub fn run_db_migrations() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    info!("Running database migrations");
+    let mut conn = DB.pool.get()?;
+    conn.run_pending_migrations(MIGRATIONS)?;
+    info!("Finished running migrations");
     Ok(())
+}
+
+pub async fn serve_db_events(opts: NotificationListeningOpts) -> DbResult<()> {
+    DB.events.run(opts).await
 }
 
 pub fn pool() -> &'static DbPool {

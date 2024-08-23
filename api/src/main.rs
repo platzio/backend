@@ -1,6 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
-use platz_db::{init_db, NotificationListeningOpts};
+use platz_db::{run_db_migrations, serve_db_events, NotificationListeningOpts};
 use routes::openapi::SchemaFormat;
 use tokio::{
     select,
@@ -34,7 +34,7 @@ impl RunCommand {
     async fn run(self) -> Result<()> {
         tracing_subscriber::fmt::init();
 
-        init_db(true, NotificationListeningOpts::all()).await?;
+        run_db_migrations().map_err(|error| anyhow!("Running migrations failed: {error:?}"))?;
         let mut sigterm = signal(SignalKind::terminate())?;
         let mut sigint = signal(SignalKind::interrupt())?;
 
@@ -47,6 +47,11 @@ impl RunCommand {
             _ = sigint.recv() => {
                 warn!("SIGINT received, exiting");
                 Ok(())
+            }
+
+            result = serve_db_events(NotificationListeningOpts::all()) => {
+                warn!("DB events task exited: {result:?}");
+                result.map_err(Into::into)
             }
 
             result = crate::routes::metrics::update_metrics_task(

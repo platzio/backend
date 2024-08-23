@@ -1,11 +1,11 @@
 use anyhow::Result;
 use clap::Parser;
-use platz_db::DbTable;
-use platz_db::NotificationListeningOpts;
-use tokio::select;
-use tokio::signal::unix::signal;
-use tokio::signal::unix::SignalKind;
-use tracing::info;
+use platz_db::{DbTable, NotificationListeningOpts};
+use tokio::{
+    select,
+    signal::unix::{signal, SignalKind},
+};
+use tracing::{info, warn};
 
 mod charts;
 mod ecr_events;
@@ -30,11 +30,6 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
-    platz_db::init_db(
-        false,
-        NotificationListeningOpts::on_table(DbTable::HelmTagFormats),
-    )
-    .await?;
     kind::update_all_registries().await?;
 
     let tag_parser_fut = async {
@@ -54,6 +49,13 @@ async fn main() -> Result<()> {
         _ = sigint.recv() => {
             info!("SIGINT received, exiting");
             Ok(())
+        }
+
+        result = platz_db::serve_db_events(
+            NotificationListeningOpts::on_table(DbTable::HelmTagFormats),
+        ) => {
+            warn!("DB events task exited: {result:?}");
+            result.map_err(Into::into)
         }
 
         result = ecr_events::run(&config.ecr_events) => {

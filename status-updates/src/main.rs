@@ -18,12 +18,6 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
-    platz_db::init_db(
-        false,
-        platz_db::NotificationListeningOpts::on_table(DbTable::Deployments),
-    )
-    .await?;
-
     select! {
         _ = sigterm.recv() => {
             warn!("SIGTERM received, exiting");
@@ -33,6 +27,15 @@ async fn main() -> Result<()> {
         _ = sigint.recv() => {
             warn!("SIGINT received, exiting");
             Ok(())
+        }
+
+        result = platz_db::serve_db_events(
+            platz_db::NotificationListeningOpts::on_table(
+                DbTable::Deployments,
+            ),
+        ) => {
+            warn!("DB events task exited: {result:?}");
+            result.map_err(Into::into)
         }
 
         result = events::watch_deployments(StatusTracker::new()) => {

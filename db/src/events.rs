@@ -64,7 +64,7 @@ impl DbEventBroadcast {
         self.tx.subscribe()
     }
 
-    pub async fn run(&self, opts: NotificationListeningOpts) {
+    pub async fn run(&self, opts: NotificationListeningOpts) -> DbResult<()> {
         let channel_name = &opts.channel_name;
         loop {
             let listen_to = channel_name.clone();
@@ -79,7 +79,7 @@ impl DbEventBroadcast {
                 }
                 Err(err) => {
                     warn!("Stopping due to error while waiting for listen_for_notifications task: {:?}", err);
-                    break;
+                    break Err(err.into());
                 }
             }
         }

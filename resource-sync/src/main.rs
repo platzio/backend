@@ -16,12 +16,6 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
-    platz_db::init_db(
-        false,
-        platz_db::NotificationListeningOpts::on_table(DbTable::DeploymentResources),
-    )
-    .await?;
-
     let fut = tokio::spawn(monitor_deployment_resource_changes());
 
     info!("Scrubbing all existing deployment resources");
@@ -37,6 +31,15 @@ async fn main() -> Result<()> {
         _ = sigint.recv() => {
             warn!("SIGINT received, exiting");
             Ok(())
+        }
+
+        result = platz_db::serve_db_events(
+            platz_db::NotificationListeningOpts::on_table(
+                DbTable::DeploymentResources,
+            ),
+        ) => {
+            warn!("DB events task exited: {result:?}");
+            result.map_err(Into::into)
         }
 
         result = fut => {
