@@ -110,7 +110,7 @@ pub fn run_db_migrations() -> Result<(), Box<dyn std::error::Error + Send + Sync
     Ok(())
 }
 
-pub async fn serve_db_events(opts: NotificationListeningOpts) -> DbResult<()> {
+pub async fn serve_db_events(opts: NotificationListeningOpts) -> Result<(), DbEventsError> {
     DB.events.run(opts).await
 }
 

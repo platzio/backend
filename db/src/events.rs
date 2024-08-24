@@ -1,8 +1,9 @@
-use crate::{DbError, DbResult, DbTable};
-use postgres::fallible_iterator::FallibleIterator;
+use crate::DbTable;
 use serde::{Deserialize, Serialize};
-use tokio::{sync::broadcast, task, time};
-use tracing::{debug, error, warn};
+use std::{future::poll_fn, task::ready};
+use tokio::{spawn, sync::broadcast, time};
+use tokio_postgres::AsyncMessage;
+use tracing::{debug, error, trace};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -59,49 +60,86 @@ impl Default for DbEventBroadcast {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum DbEventsError {
+    #[error("Tokio join error: {0}")]
+    TokioJoinError(#[from] tokio::task::JoinError),
+    #[error("Event parse error: {0}")]
+    EventParseError(serde_json::Error),
+    #[error("Database connection error: {0}")]
+    ConnectError(tokio_postgres::Error),
+    #[error("Poll connection error: {0}")]
+    PollError(tokio_postgres::Error),
+    #[error("Error running LISTEN query: {0}")]
+    ListenQueryFailed(tokio_postgres::Error),
+}
+
+impl DbEventsError {
+    fn retryable(&self) -> bool {
+        match self {
+            Self::TokioJoinError(_) => false,
+            Self::EventParseError(_) => false,
+            Self::ConnectError(_) => true,
+            Self::PollError(_) => true,
+            Self::ListenQueryFailed(_) => false,
+        }
+    }
+}
+
 impl DbEventBroadcast {
     pub fn subscribe(&self) -> DbEventReceiver {
         self.tx.subscribe()
     }
 
-    pub async fn run(&self, opts: NotificationListeningOpts) -> DbResult<()> {
+    pub async fn run(&self, opts: NotificationListeningOpts) -> Result<(), DbEventsError> {
         let channel_name = &opts.channel_name;
         loop {
             let listen_to = channel_name.clone();
             debug!("Listening for {}", &listen_to);
-            let tx = self.tx.clone();
-            match task::spawn_blocking(move || Self::listen_for_notifications(tx, &listen_to)).await
-            {
-                Ok(Ok(())) => continue,
-                Ok(Err(err)) => {
-                    error!("Error listening for notifications: {:?}", err);
+            match self.listen_for_notifications(&listen_to).await {
+                Ok(()) => continue,
+                Err(err) if err.retryable() => {
+                    error!("Retryable error while listening for notifications: {err:?}");
                     time::sleep(time::Duration::from_secs(3)).await;
                 }
-                Err(err) => {
-                    warn!("Stopping due to error while waiting for listen_for_notifications task: {:?}", err);
-                    break Err(err.into());
-                }
+                Err(err) => break Err(err),
             }
         }
     }
 
-    fn listen_for_notifications(
-        tx: broadcast::Sender<DbEvent>,
-        channel_name: &str,
-    ) -> DbResult<()> {
-        let mut client =
-            postgres::Client::connect(&crate::config::database_url(), postgres::NoTls)?;
-        client.execute(&format!("LISTEN {}", channel_name), &[])?;
+    async fn listen_for_notifications(&self, channel_name: &str) -> Result<(), DbEventsError> {
+        let events_tx = self.tx.clone();
+        let (client, mut connection) =
+            tokio_postgres::connect(&crate::config::database_url(), tokio_postgres::NoTls)
+                .await
+                .map_err(DbEventsError::ConnectError)?;
 
-        loop {
-            let mut notifications = client.notifications();
-            let mut iter = notifications.blocking_iter();
-
-            while let Some(notification) = iter.next()? {
-                let event: DbEvent = serde_json::from_str(notification.payload())
-                    .map_err(DbError::EventParseError)?;
-                tx.send(event).map_err(DbError::EventBroadcastError)?;
+        let events_task = spawn(poll_fn(move |cx| loop {
+            while let Some(message) = ready!(connection
+                .poll_message(cx)
+                .map_err(DbEventsError::PollError)?)
+            {
+                match message {
+                    AsyncMessage::Notice(notice) => {
+                        trace!("Database notice: {notice:?}");
+                    }
+                    AsyncMessage::Notification(notification) => {
+                        let event: DbEvent = serde_json::from_str(notification.payload())
+                            .map_err(DbEventsError::EventParseError)?;
+                        events_tx.send(event).ok();
+                    }
+                    other => {
+                        trace!("Got unknown message from Postgres: {other:?}");
+                    }
+                }
             }
-        }
+        }));
+
+        client
+            .execute(&format!("LISTEN {}", channel_name), &[])
+            .await
+            .map_err(DbEventsError::ListenQueryFailed)?;
+
+        events_task.await?
     }
 }

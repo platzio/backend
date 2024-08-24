@@ -1,5 +1,3 @@
-use crate::events::DbEvent;
-
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
     #[error("Diesel database error: {0}")]
@@ -11,20 +9,11 @@ pub enum DbError {
     #[error("Database pool error: {0}")]
     R2d2Error(#[from] r2d2::Error),
 
-    #[error("Postgres database error: {0}")]
-    PostgresError(#[from] postgres::Error),
-
     #[error("Not found")]
     NotFound,
 
     #[error("Failed parsing region name from helm registry domain name")]
     RegionNameParseError,
-
-    #[error("Event parse error: {0}")]
-    EventParseError(serde_json::Error),
-
-    #[error("Event broadcast error: {0}")]
-    EventBroadcastError(tokio::sync::broadcast::error::SendError<DbEvent>),
 
     #[error("Could not generate standard_ingress hostname because the cluster has no domain configured. Please configure a domain for the cluster and try again.")]
     ClusterHasNoIngressDomain,

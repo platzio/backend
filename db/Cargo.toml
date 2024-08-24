@@ -20,7 +20,6 @@ itertools = "0.13.0"
 lazy_static = "1.5.0"
 maplit = "1.0.2"
 platz-chart-ext = { workspace = true }
-postgres = "0.19.8"
 prometheus = { workspace = true }
 r2d2 = "0.8.10"
 rust_decimal = { version = "1.36.0", default-features = false, features = [
@@ -32,6 +31,7 @@ serde_with = "3.9.0"
 strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.63"
 tokio = "1.39.3"
+tokio-postgres = "0.7.11"
 tracing = "0.1.40"
 url = "2.5.2"
 utoipa = { version = "4.2.3", features = [
