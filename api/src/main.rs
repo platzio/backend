@@ -92,11 +92,9 @@ impl OpenapiCommand {
 async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
     let command = Command::parse();
-
     match command {
         Command::Run(command) => command.run().await?,
         Command::Openapi(command) => command.run()?,
     }
-    warn!("done");
     Ok(())
 }

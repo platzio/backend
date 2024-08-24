@@ -1,16 +1,11 @@
-use super::deployment_kinds;
-use super::deployment_status::DeploymentReportedStatus;
-use crate::DbTableOrDeploymentResource;
-use crate::DeploymentKind;
-use crate::DeploymentTask;
-use crate::HelmChart;
-use crate::Identity;
-use crate::K8sCluster;
-use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
+use super::{deployment_kinds, deployment_status::DeploymentReportedStatus};
+use crate::{
+    pool, DbError, DbResult, DbTableOrDeploymentResource, DeploymentKind, DeploymentTask,
+    HelmChart, Identity, K8sCluster, Paginated, DEFAULT_PAGE_SIZE,
+};
 use async_diesel::*;
 use chrono::prelude::*;
-use diesel::prelude::*;
-use diesel::QueryDsl;
+use diesel::{prelude::*, QueryDsl};
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use diesel_json::Json;
@@ -19,8 +14,7 @@ use platz_chart_ext::actions::{
 };
 use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
 use serde::{Deserialize, Serialize};
-use strum::AsRefStr;
-use strum::{Display, EnumIter, EnumString};
+use strum::{AsRefStr, Display, EnumIter, EnumString};
 use url::Url;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -99,15 +93,11 @@ pub struct Deployment {
     pub values_override: Option<serde_json::Value>,
 }
 
-#[derive(QueryableByName)]
+#[derive(Queryable)]
 pub struct DeploymentStat {
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
     pub count: i64,
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub kind_id: Uuid,
-    #[diesel(sql_type = diesel::sql_types::Varchar)]
     pub status: DeploymentStatus,
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
     pub cluster_id: Uuid,
 }
 
@@ -401,11 +391,20 @@ impl Deployment {
     }
 
     pub async fn get_status_counters() -> DbResult<Vec<DeploymentStat>> {
-        Ok(diesel::sql_query(
-            "SELECT count(*) as count, kind, status, cluster_id FROM deployments GROUP BY kind_id, status, cluster_id",
-        )
-        .load_async::<DeploymentStat>(pool())
-        .await?)
+        Ok(deployments::table
+            .group_by((
+                deployments::kind_id,
+                deployments::status,
+                deployments::cluster_id,
+            ))
+            .select((
+                diesel::dsl::count_star(),
+                deployments::kind_id,
+                deployments::status,
+                deployments::cluster_id,
+            ))
+            .get_results_async(pool())
+            .await?)
     }
 }
 

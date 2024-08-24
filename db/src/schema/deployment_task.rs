@@ -99,11 +99,9 @@ pub struct DeploymentTaskExtraFilters {
     env_id: Option<Uuid>,
 }
 
-#[derive(QueryableByName)]
+#[derive(Queryable)]
 pub struct DeploymentTaskStat {
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
     pub count: i64,
-    #[diesel(sql_type = diesel::sql_types::Varchar)]
     pub status: DeploymentTaskStatus,
 }
 
@@ -264,11 +262,11 @@ impl DeploymentTask {
     }
 
     pub async fn get_status_counters() -> DbResult<Vec<DeploymentTaskStat>> {
-        Ok(diesel::sql_query(
-            "SELECT count(*) as count, status FROM deployment_tasks GROUP BY status",
-        )
-        .load_async::<DeploymentTaskStat>(pool())
-        .await?)
+        Ok(deployment_tasks::table
+            .group_by(deployment_tasks::status)
+            .select((diesel::dsl::count_star(), deployment_tasks::status))
+            .get_results_async(pool())
+            .await?)
     }
 }
 
