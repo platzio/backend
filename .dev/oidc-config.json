@@ -1,11 +1,12 @@
 {
-    "idp_name": "http://idp:9000",
+    "idp_name": "http://localhost:9000",
     "port": 9000,
     "client_config": [
         {
-            "client_id": "foo",
-            "client_secret": "bar",
+            "client_id": "platz-dev",
+            "client_secret": "platz-dev",
             "redirect_uris": [
+                "http://localhost:8080/auth/google/callback",
                 "https://localhost:8080/auth/google/callback"
             ]
         }

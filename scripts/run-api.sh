@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 
-set -e
+set -eu
 
-SCRIPT=`basename $0`
+HERE="$(dirname "$0")"
+SCRIPT="$(basename "$0")"
+export PLATZ_FRONTEND_PORT="8080"
 
-if [ -z "${DATABASE_URL}" ]
+if [ -z "${DATABASE_URL:-}" ]
 then
-    echo "error: Please define DATABASE_URL manually or run ./run-db.sh"
-    exit 1
+    source "${HERE}/run-db.sh"
+fi
+
+if [ -z "${OIDC_SERVER_URL:-}" ]
+then
+    source "${HERE}/run-oidc.sh"
 fi
 
 if ! which cargo-watch &>/dev/null
@@ -18,9 +24,9 @@ fi
 
 export RUST_LOG="debug"
 export RUST_BACKTRACE="1"
-export OIDC_SERVER_URL="https://accounts.google.com"
-export OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-"id"}
-export OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET:-"secret"}
+export PLATZ_OWN_URL="https://localhost:${PLATZ_FRONTEND_PORT}"
+# From oidc-users.json
+export ADMIN_EMAILS="admin@example.com"
 
 echo "[${SCRIPT}] 🚀 Running API server"
 args=("$@")

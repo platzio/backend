@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eu
 
 LOG_PREFIX="[$(basename $0)]"
 
@@ -22,7 +22,7 @@ then
     exit 2
 fi
 
-if [ ! -z "${RM_DB}" ]
+if [ ! -z "${RM_DB:-}" ]
 then
     echo "${LOG_PREFIX} 🪓 Deleting existing database container" >&2
     docker stop "${DB_CONTAINER}" >&2 || true
@@ -46,8 +46,3 @@ then
     echo "${LOG_PREFIX} 🏁 Starting database container" >&2
     docker start "${DB_CONTAINER}" >&2
 fi
-
-echo "${LOG_PREFIX} 📀 Use this environment variable when running:" >&2
-echo "" >&2
-echo "    export DATABASE_URL=${DATABASE_URL}"
-echo "" >&2
