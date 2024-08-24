@@ -81,6 +81,7 @@ async fn get_token_user_id_and_verify_permissions(
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateUserToken {
+    #[schema(required)]
     pub user_id: Option<Uuid>,
 }
 

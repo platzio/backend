@@ -56,11 +56,13 @@ pub struct DeploymentResource {
     pub created_at: DateTime<Utc>,
     #[filter]
     pub type_id: Uuid,
+    #[schema(required)]
     pub deployment_id: Option<Uuid>,
     pub name: String,
     pub exists: bool,
     pub props: serde_json::Value,
     pub sync_status: DeploymentResourceSyncStatus,
+    #[schema(required)]
     pub sync_reason: Option<String>,
 }
 
@@ -154,12 +156,15 @@ impl DeploymentResource {
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct NewDeploymentResource {
+    #[schema(required)]
     pub id: Option<Uuid>,
+    #[schema(required)]
     pub created_at: Option<DateTime<Utc>>,
     pub type_id: Uuid,
     pub deployment_id: Uuid,
     pub name: String,
     pub props: serde_json::Value,
+    #[schema(required)]
     pub sync_status: Option<DeploymentResourceSyncStatus>,
 }
 
@@ -175,7 +180,9 @@ impl NewDeploymentResource {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResource {
+    #[schema(required)]
     pub name: Option<String>,
+    #[schema(required)]
     pub props: Option<serde_json::Value>,
 }
 
@@ -220,6 +227,7 @@ impl UpdateDeploymentResource {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResourceExists {
+    #[schema(required)]
     pub exists: Option<bool>,
 }
 

@@ -28,6 +28,7 @@ pub struct DeploymentResourceType {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
     #[filter]
+    #[schema(required)]
     pub env_id: Option<Uuid>,
     #[filter(insensitive)]
     pub deployment_kind: String,
@@ -142,6 +143,7 @@ impl DeploymentResourceType {
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resource_types)]
 pub struct NewDeploymentResourceType {
+    #[schema(required)]
     pub env_id: Option<Uuid>,
     pub deployment_kind_id: Uuid,
     pub key: String,

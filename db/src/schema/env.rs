@@ -73,6 +73,7 @@ impl Env {
 #[diesel(table_name = envs)]
 pub struct NewEnv {
     pub name: String,
+    #[schema(required)]
     pub auto_add_new_users: Option<bool>,
 }
 
@@ -88,9 +89,13 @@ impl NewEnv {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = envs)]
 pub struct UpdateEnv {
+    #[schema(required)]
     pub name: Option<String>,
+    #[schema(required)]
     pub node_selector: Option<serde_json::Value>,
+    #[schema(required)]
     pub tolerations: Option<serde_json::Value>,
+    #[schema(required)]
     pub auto_add_new_users: Option<bool>,
 }
 

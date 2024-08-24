@@ -74,28 +74,40 @@ pub struct DeploymentTask {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
     pub execute_at: DateTime<Utc>,
+    #[schema(required)]
     pub first_attempted_at: Option<DateTime<Utc>>,
+    #[schema(required)]
     pub started_at: Option<DateTime<Utc>>,
+    #[schema(required)]
     pub finished_at: Option<DateTime<Utc>>,
     #[filter]
     pub cluster_id: Uuid,
     #[filter]
     pub deployment_id: Uuid,
+    #[schema(required)]
     pub acting_user_id: Option<Uuid>,
+    #[schema(required)]
     pub acting_deployment_id: Option<Uuid>,
+    #[schema(required)]
     pub canceled_by_user_id: Option<Uuid>,
+    #[schema(required)]
     pub canceled_by_deployment_id: Option<Uuid>,
     #[schema(value_type = DeploymentTaskOperation)]
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
+    #[schema(required)]
     pub reason: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct DeploymentTaskExtraFilters {
+    #[schema(required)]
     active_only: Option<bool>,
+    #[schema(required)]
     show_future: Option<bool>,
+    #[schema(required)]
     created_from: Option<DateTime<Utc>>,
+    #[schema(required)]
     env_id: Option<Uuid>,
 }
 
@@ -275,11 +287,14 @@ impl DeploymentTask {
 pub struct NewDeploymentTask {
     pub cluster_id: Uuid,
     pub deployment_id: Uuid,
+    #[schema(required)]
     pub acting_user_id: Option<Uuid>,
+    #[schema(required)]
     pub acting_deployment_id: Option<Uuid>,
     #[schema(value_type = DeploymentTaskOperation)]
     pub operation: Json<DeploymentTaskOperation>,
     pub status: DeploymentTaskStatus,
+    #[schema(required)]
     pub execute_at: Option<DateTime<Utc>>,
 }
 
@@ -328,6 +343,7 @@ pub enum DeploymentTaskOperation {
 pub struct DeploymentInstallTask {
     pub helm_chart_id: Uuid,
     pub config_inputs: serde_json::Value,
+    #[schema(required)]
     pub values_override: Option<serde_json::Value>,
 }
 
@@ -357,9 +373,12 @@ impl DeploymentTask {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentUpgradeTask {
     pub helm_chart_id: Uuid,
+    #[schema(required)]
     pub prev_helm_chart_id: Option<Uuid>,
     pub config_inputs: serde_json::Value,
+    #[schema(required)]
     pub config_delta: Option<JsonDiff>,
+    #[schema(required)]
     pub values_override: Option<serde_json::Value>,
 }
 

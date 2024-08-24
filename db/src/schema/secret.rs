@@ -94,8 +94,11 @@ impl NewSecret {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = secrets)]
 pub struct UpdateSecret {
+    #[schema(required)]
     updated_at: Option<DateTime<Utc>>,
+    #[schema(required)]
     name: Option<String>,
+    #[schema(required)]
     contents: Option<String>,
 }
 

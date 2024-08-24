@@ -78,7 +78,9 @@ async fn create(identity: ApiIdentity, new_secret: web::Json<NewSecret>) -> ApiR
 
 #[derive(Deserialize, ToSchema)]
 struct UpdateSecretApi {
+    #[schema(required)]
     name: Option<String>,
+    #[schema(required)]
     contents: Option<String>,
 }
 

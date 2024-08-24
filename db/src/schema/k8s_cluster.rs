@@ -34,6 +34,7 @@ table! {
 pub struct K8sCluster {
     pub id: Uuid,
     #[filter]
+    #[schema(required)]
     pub env_id: Option<Uuid>,
     pub provider_id: String,
     pub created_at: DateTime<Utc>,
@@ -42,12 +43,18 @@ pub struct K8sCluster {
     pub name: String,
     pub region_name: String,
     pub is_ok: bool,
+    #[schema(required)]
     pub not_ok_reason: Option<String>,
     pub ignore: bool,
+    #[schema(required)]
     pub ingress_domain: Option<String>,
+    #[schema(required)]
     pub ingress_class: Option<String>,
+    #[schema(required)]
     pub ingress_tls_secret_name: Option<String>,
+    #[schema(required)]
     pub grafana_url: Option<String>,
+    #[schema(required)]
     pub grafana_datasource_name: Option<String>,
 }
 
@@ -126,6 +133,7 @@ impl K8sCluster {
 pub struct NewK8sCluster {
     pub provider_id: String,
     pub name: String,
+    #[schema(required)]
     pub env_id: Option<Uuid>,
     pub region_name: String,
 }
@@ -171,6 +179,7 @@ impl UpdateK8sClusterStatus {
 pub struct UpdateK8sCluster {
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub env_id: Option<Option<Uuid>>,
+    #[schema(required)]
     pub ignore: Option<bool>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub ingress_domain: Option<Option<String>>,

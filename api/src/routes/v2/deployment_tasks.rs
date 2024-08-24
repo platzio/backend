@@ -66,6 +66,7 @@ async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CancelDeploymentTask {
+    #[schema(required)]
     pub reason: Option<String>,
 }
 
@@ -126,6 +127,7 @@ async fn cancel_one(
 pub struct CreateDeploymentTask {
     pub deployment_id: Uuid,
     pub operation: DeploymentTaskOperation,
+    #[schema(required)]
     pub execute_at: Option<DateTime<Utc>>,
 }
 

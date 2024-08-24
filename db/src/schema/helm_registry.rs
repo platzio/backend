@@ -121,6 +121,7 @@ impl NewHelmRegistry {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = helm_registries)]
 pub struct UpdateHelmRegistry {
+    #[schema(required)]
     pub fa_icon: Option<String>,
 }
 

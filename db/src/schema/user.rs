@@ -120,7 +120,9 @@ impl NewUser {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = users)]
 pub struct UpdateUser {
+    #[schema(required)]
     pub is_admin: Option<bool>,
+    #[schema(required)]
     pub is_active: Option<bool>,
 }
 

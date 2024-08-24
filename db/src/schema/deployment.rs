@@ -83,13 +83,17 @@ pub struct Deployment {
     #[filter]
     pub enabled: bool,
     pub status: DeploymentStatus,
+    #[schema(required)]
     pub description_md: Option<String>,
+    #[schema(required)]
     pub reason: Option<String>,
+    #[schema(required)]
     pub revision_id: Option<Uuid>,
-    #[schema(value_type = Option<DeploymentReportedStatus>)]
+    #[schema(required, value_type = Option<DeploymentReportedStatus>)]
     pub reported_status: Option<Json<DeploymentReportedStatus>>,
     pub helm_chart_id: Uuid,
     pub config: serde_json::Value,
+    #[schema(required)]
     pub values_override: Option<serde_json::Value>,
 }
 
@@ -103,6 +107,7 @@ pub struct DeploymentStat {
 
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct DeploymentExtraFilters {
+    #[schema(required)]
     env_id: Option<Uuid>,
 }
 
@@ -417,7 +422,9 @@ pub struct NewDeployment {
     pub kind_id: Uuid,
     pub cluster_id: Uuid,
     pub helm_chart_id: Uuid,
+    #[schema(required)]
     pub config: Option<serde_json::Value>,
+    #[schema(required)]
     pub values_override: Option<serde_json::Value>,
 }
 
@@ -433,12 +440,19 @@ impl NewDeployment {
 #[derive(AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployments)]
 pub struct UpdateDeployment {
+    #[schema(required)]
     pub name: Option<String>,
+    #[schema(required)]
     pub cluster_id: Option<Uuid>,
+    #[schema(required)]
     pub helm_chart_id: Option<Uuid>,
+    #[schema(required)]
     pub config: Option<serde_json::Value>,
+    #[schema(required)]
     pub values_override: Option<Option<serde_json::Value>>,
+    #[schema(required)]
     pub enabled: Option<bool>,
+    #[schema(required)]
     pub description_md: Option<String>,
 }
 

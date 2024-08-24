@@ -46,26 +46,34 @@ pub struct HelmChart {
     pub image_digest: String,
     pub image_tag: String,
     pub available: bool,
-    #[schema(value_type = Option<UiSchema>)]
+    #[schema(required, value_type = Option<UiSchema>)]
     pub values_ui: Option<serde_json::Value>,
-    #[schema(value_type = Option<ChartExtActions>)]
+    #[schema(required, value_type = Option<ChartExtActions>)]
     pub actions_schema: Option<serde_json::Value>,
-    #[schema(value_type = Option<ChartExtFeatures>)]
+    #[schema(required, value_type = Option<ChartExtFeatures>)]
     pub features: Option<serde_json::Value>,
-    #[schema(value_type = Option<ChartExtResourceTypes>)]
+    #[schema(required, value_type = Option<ChartExtResourceTypes>)]
     pub resource_types: Option<serde_json::Value>,
+    #[schema(required)]
     pub error: Option<String>,
+    #[schema(required)]
     pub tag_format_id: Option<Uuid>,
+    #[schema(required)]
     pub parsed_version: Option<String>,
+    #[schema(required)]
     pub parsed_revision: Option<String>,
     #[filter]
+    #[schema(required)]
     pub parsed_branch: Option<String>,
+    #[schema(required)]
     pub parsed_commit: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct HelmChartExtraFilters {
+    #[schema(required)]
     in_use: Option<bool>,
+    #[schema(required)]
     kind: Option<String>,
 }
 
@@ -283,7 +291,7 @@ impl HelmChart {
     }
 }
 
-#[derive(Insertable, Deserialize, ToSchema)]
+#[derive(Insertable, Deserialize)]
 #[diesel(table_name = helm_charts)]
 pub struct NewHelmChart {
     pub created_at: DateTime<Utc>,
@@ -329,10 +337,15 @@ impl UpdateHelmChart {
 #[derive(Debug, Default, AsChangeset, ToSchema)]
 #[diesel(table_name = helm_charts)]
 pub struct HelmChartTagInfo {
+    #[schema(required)]
     pub tag_format_id: Option<Uuid>,
+    #[schema(required)]
     pub parsed_version: Option<String>,
+    #[schema(required)]
     pub parsed_revision: Option<String>,
+    #[schema(required)]
     pub parsed_branch: Option<String>,
+    #[schema(required)]
     pub parsed_commit: Option<String>,
 }
 

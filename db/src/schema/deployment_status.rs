@@ -8,7 +8,9 @@ use utoipa::ToSchema;
 pub struct DeploymentReportedStatus {
     timestamp: DateTime<Utc>,
     get_successful: bool,
+    #[schema(required)]
     content: Option<DeploymentReportedStatusContent>,
+    #[schema(required)]
     error: Option<String>,
 }
 
@@ -38,7 +40,9 @@ impl DeploymentReportedStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DeploymentReportedStatusContent {
     pub status: DeploymentReportedStatusSummary,
+    #[schema(required)]
     pub primary_metric: Option<DeploymentReportedMetric>,
+    #[schema(required)]
     pub metrics: Option<Vec<DeploymentReportedMetric>>,
     #[serde(default)]
     pub notices: Vec<DeploymentReportedNotice>,
@@ -65,6 +69,7 @@ pub struct DeploymentReportedMetric {
     pub value: Decimal,
     pub unit: String,
     pub short_description: String,
+    #[schema(required)]
     pub color: Option<DeploymentReportedStatusColor>,
 }
 
