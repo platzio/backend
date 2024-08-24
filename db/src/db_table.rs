@@ -21,6 +21,7 @@ pub enum DbTable {
     K8sClusters,
     K8sResources,
     Secrets,
+    Settings,
     Users,
 }
 
