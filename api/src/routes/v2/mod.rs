@@ -99,6 +99,7 @@ impl ApiV2 {
         let mut openapi = <ApiV2 as OpenApi>::openapi();
         openapi.merge(auth::OpenApi::openapi());
         openapi.merge(platz_chart_ext::openapi::OpenApi::openapi());
+        openapi.merge(deployment_kinds::OpenApi::openapi());
         openapi.merge(deployment_permissions::OpenApi::openapi());
         openapi.merge(deployment_resource_types::OpenApi::openapi());
         openapi.merge(deployment_resources::OpenApi::openapi());
