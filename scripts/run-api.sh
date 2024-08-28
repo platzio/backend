@@ -4,7 +4,8 @@ set -eu
 
 HERE="$(dirname "$0")"
 SCRIPT="$(basename "$0")"
-export PLATZ_FRONTEND_PORT="8080"
+export API_HOST="127.0.0.1"
+export PLATZ_FRONTEND_PORT="5173"
 
 if [ -z "${DATABASE_URL:-}" ]
 then
@@ -24,7 +25,7 @@ fi
 
 export RUST_LOG="debug"
 export RUST_BACKTRACE="1"
-export PLATZ_OWN_URL="https://localhost:${PLATZ_FRONTEND_PORT}"
+export PLATZ_OWN_URL="http://localhost:${PLATZ_FRONTEND_PORT}"
 # From oidc-users.json
 export ADMIN_EMAILS="admin@example.com"
 
