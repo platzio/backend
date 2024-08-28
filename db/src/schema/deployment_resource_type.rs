@@ -14,7 +14,6 @@ table! {
         id -> Uuid,
         created_at -> Timestamptz,
         env_id -> Nullable<Uuid>,
-        deployment_kind -> VarChar,
         deployment_kind_id -> Uuid,
         key -> Varchar,
         spec -> Jsonb,
@@ -30,8 +29,6 @@ pub struct DeploymentResourceType {
     #[filter]
     #[schema(required)]
     pub env_id: Option<Uuid>,
-    #[filter(insensitive)]
-    pub deployment_kind: String,
     #[filter]
     pub deployment_kind_id: Uuid,
     #[filter]

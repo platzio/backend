@@ -24,7 +24,6 @@ table! {
         id -> Uuid,
         created_at -> Timestamptz,
         name -> Varchar,
-        kind -> Varchar,
         kind_id -> Uuid,
         cluster_id -> Uuid,
         enabled -> Bool,
@@ -74,8 +73,6 @@ pub struct Deployment {
     pub created_at: DateTime<Utc>,
     #[filter(insensitive, substring)]
     pub name: String,
-    #[filter(insensitive)]
-    pub kind: String,
     #[filter]
     pub kind_id: Uuid,
     #[filter]
@@ -418,7 +415,6 @@ impl Deployment {
 pub struct NewDeployment {
     #[serde(default)]
     pub name: String,
-    pub kind: String,
     pub kind_id: Uuid,
     pub cluster_id: Uuid,
     pub helm_chart_id: Uuid,

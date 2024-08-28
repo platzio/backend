@@ -15,7 +15,6 @@ table! {
         created_at -> Timestamptz,
         domain_name -> Varchar,
         repo_name -> Varchar,
-        kind -> Varchar,
         kind_id -> Uuid,
         available -> Bool,
         fa_icon -> Varchar,
@@ -31,8 +30,6 @@ pub struct HelmRegistry {
     pub domain_name: String,
     #[filter]
     pub repo_name: String,
-    #[filter]
-    pub kind: String,
     #[filter]
     pub kind_id: Uuid,
     pub available: bool,

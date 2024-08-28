@@ -15,7 +15,6 @@ table! {
         created_at -> Timestamptz,
         env_id -> Uuid,
         user_id -> Uuid,
-        kind -> Varchar,
         kind_id -> Uuid,
         role -> Varchar,
     }
@@ -51,7 +50,6 @@ pub struct DeploymentPermission {
     #[filter]
     pub env_id: Uuid,
     pub user_id: Uuid,
-    pub kind: String,
     pub kind_id: Uuid,
     pub role: UserDeploymentRole,
 }
