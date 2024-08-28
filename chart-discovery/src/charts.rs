@@ -154,11 +154,7 @@ pub async fn discard_helm_chart(event: EcrEvent) -> Result<()> {
     match HelmChart::find_by_registry_and_digest(helm_registry.id, image_digest.to_owned()).await? {
         None => debug!("ECR image not found in database, ignoring"),
         Some(chart) => {
-            UpdateHelmChart {
-                available: Some(false),
-            }
-            .save(chart.id)
-            .await?;
+            UpdateHelmChart { available: false }.save(chart.id).await?;
         }
     }
 

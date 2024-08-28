@@ -94,28 +94,14 @@ impl NewSecret {
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = secrets)]
 pub struct UpdateSecret {
-    #[schema(required)]
-    updated_at: Option<DateTime<Utc>>,
-    #[schema(required)]
     name: Option<String>,
-    #[schema(required)]
     contents: Option<String>,
-}
-
-impl UpdateSecret {
-    pub fn new(name: Option<String>, contents: Option<String>) -> Self {
-        Self {
-            updated_at: Some(Utc::now()),
-            name,
-            contents,
-        }
-    }
 }
 
 impl UpdateSecret {
     pub async fn save(self, id: Uuid) -> DbResult<Secret> {
         Ok(diesel::update(secrets::table.filter(secrets::id.eq(id)))
-            .set(self)
+            .set((self, secrets::updated_at.eq(diesel::dsl::now)))
             .get_result_async(pool())
             .await?)
     }

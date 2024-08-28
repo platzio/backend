@@ -322,7 +322,7 @@ impl NewHelmChart {
 #[derive(AsChangeset)]
 #[diesel(table_name = helm_charts)]
 pub struct UpdateHelmChart {
-    pub available: Option<bool>,
+    pub available: bool,
 }
 
 impl UpdateHelmChart {

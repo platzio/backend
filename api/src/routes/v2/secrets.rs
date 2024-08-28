@@ -7,9 +7,7 @@ use platz_db::{
     DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Paginated, Secret, SecretFilters,
     UpdateSecret,
 };
-use serde::Deserialize;
 use serde_json::json;
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -76,20 +74,6 @@ async fn create(identity: ApiIdentity, new_secret: web::Json<NewSecret>) -> ApiR
     Ok(HttpResponse::Created().json(new_secret.insert().await?))
 }
 
-#[derive(Deserialize, ToSchema)]
-struct UpdateSecretApi {
-    #[schema(required)]
-    name: Option<String>,
-    #[schema(required)]
-    contents: Option<String>,
-}
-
-impl From<UpdateSecretApi> for UpdateSecret {
-    fn from(api: UpdateSecretApi) -> Self {
-        Self::new(api.name, api.contents)
-    }
-}
-
 #[utoipa::path(
     context_path = "/api/v2",
     tag = "Secrets",
@@ -98,7 +82,7 @@ impl From<UpdateSecretApi> for UpdateSecret {
         ("access_token" = []),
         ("user_token" = []),
     ),
-    request_body = UpdateSecretApi,
+    request_body = UpdateSecret,
     responses(
         (
             status = OK,
@@ -110,10 +94,10 @@ impl From<UpdateSecretApi> for UpdateSecret {
 async fn update(
     identity: ApiIdentity,
     id: web::Path<Uuid>,
-    update: web::Json<UpdateSecretApi>,
+    update: web::Json<UpdateSecret>,
 ) -> ApiResult {
     let id = id.into_inner();
-    let update: UpdateSecret = update.into_inner().into();
+    let update = update.into_inner();
 
     let old = Secret::find(id).await?;
     verify_env_admin(old.env_id, &identity).await?;
@@ -179,7 +163,7 @@ extensions. See chart extensions documentation for more information.
     components(schemas(
         Secret,
         NewSecret,
-        UpdateSecretApi,
+        UpdateSecret,
     )),
 )]
 pub(super) struct OpenApi;

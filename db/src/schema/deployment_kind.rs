@@ -80,7 +80,7 @@ impl NewDeploymentKind {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
+#[derive(AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_kinds)]
 pub struct UpdateDeploymentKind {
     pub name: String,

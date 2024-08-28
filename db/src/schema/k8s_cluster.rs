@@ -156,7 +156,7 @@ impl NewK8sCluster {
     }
 }
 
-#[derive(Debug, AsChangeset)]
+#[derive(AsChangeset)]
 #[diesel(table_name = k8s_clusters)]
 pub struct UpdateK8sClusterStatus {
     pub is_ok: Option<bool>,
@@ -179,7 +179,6 @@ impl UpdateK8sClusterStatus {
 pub struct UpdateK8sCluster {
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub env_id: Option<Option<Uuid>>,
-    #[schema(required)]
     pub ignore: Option<bool>,
     #[serde(default, with = "::serde_with::rust::double_option")]
     pub ingress_domain: Option<Option<String>>,

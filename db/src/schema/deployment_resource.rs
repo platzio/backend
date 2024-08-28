@@ -144,11 +144,9 @@ impl DeploymentResource {
     }
 
     pub async fn delete(&self) -> DbResult<()> {
-        UpdateDeploymentResourceExists {
-            exists: Some(false),
-        }
-        .save(self.id)
-        .await?;
+        UpdateDeploymentResourceExists { exists: false }
+            .save(self.id)
+            .await?;
         Ok(())
     }
 }
@@ -156,15 +154,12 @@ impl DeploymentResource {
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct NewDeploymentResource {
-    #[schema(required)]
     pub id: Option<Uuid>,
-    #[schema(required)]
     pub created_at: Option<DateTime<Utc>>,
     pub type_id: Uuid,
     pub deployment_id: Uuid,
     pub name: String,
     pub props: serde_json::Value,
-    #[schema(required)]
     pub sync_status: Option<DeploymentResourceSyncStatus>,
 }
 
@@ -177,12 +172,10 @@ impl NewDeploymentResource {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
+#[derive(AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResource {
-    #[schema(required)]
     pub name: Option<String>,
-    #[schema(required)]
     pub props: Option<serde_json::Value>,
 }
 
@@ -224,11 +217,10 @@ impl UpdateDeploymentResource {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
+#[derive(AsChangeset)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResourceExists {
-    #[schema(required)]
-    pub exists: Option<bool>,
+    pub exists: bool,
 }
 
 impl UpdateDeploymentResourceExists {
@@ -242,11 +234,11 @@ impl UpdateDeploymentResourceExists {
     }
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(AsChangeset)]
 #[diesel(table_name = deployment_resources)]
 pub struct UpdateDeploymentResourceSyncStatus {
-    pub sync_status: Option<DeploymentResourceSyncStatus>,
-    pub sync_reason: Option<Option<String>>,
+    pub sync_status: DeploymentResourceSyncStatus,
+    pub sync_reason: Option<String>,
 }
 
 impl UpdateDeploymentResourceSyncStatus {

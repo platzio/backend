@@ -127,7 +127,6 @@ async fn cancel_one(
 pub struct CreateDeploymentTask {
     pub deployment_id: Uuid,
     pub operation: DeploymentTaskOperation,
-    #[schema(required)]
     pub execute_at: Option<DateTime<Utc>>,
 }
 

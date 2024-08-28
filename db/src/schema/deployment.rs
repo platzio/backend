@@ -440,19 +440,13 @@ impl NewDeployment {
 #[derive(AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = deployments)]
 pub struct UpdateDeployment {
-    #[schema(required)]
     pub name: Option<String>,
-    #[schema(required)]
     pub cluster_id: Option<Uuid>,
-    #[schema(required)]
     pub helm_chart_id: Option<Uuid>,
-    #[schema(required)]
     pub config: Option<serde_json::Value>,
-    #[schema(required)]
+    #[serde(default, with = "::serde_with::rust::double_option")]
     pub values_override: Option<Option<serde_json::Value>>,
-    #[schema(required)]
     pub enabled: Option<bool>,
-    #[schema(required)]
     pub description_md: Option<String>,
 }
 
@@ -489,13 +483,13 @@ impl UpdateDeploymentStatus {
 #[derive(AsChangeset)]
 #[diesel(table_name = deployments)]
 pub struct UpdateDeploymentReportedStatus {
-    reported_status: Option<Option<Json<DeploymentReportedStatus>>>,
+    reported_status: Option<Json<DeploymentReportedStatus>>,
 }
 
 impl UpdateDeploymentReportedStatus {
     pub fn new(reported_status: Option<DeploymentReportedStatus>) -> Self {
         Self {
-            reported_status: Some(reported_status.map(Json)),
+            reported_status: reported_status.map(Json),
         }
     }
 

@@ -81,8 +81,8 @@ where
                 resource.id, resource.name,
             );
             UpdateDeploymentResourceSyncStatus {
-                sync_status: Some(DeploymentResourceSyncStatus::Ready),
-                sync_reason: Some(None),
+                sync_status: DeploymentResourceSyncStatus::Ready,
+                sync_reason: None,
             }
             .save(resource.id)
             .await?;
@@ -95,8 +95,8 @@ where
                     resource.id, resource.name, result
                 );
                 UpdateDeploymentResourceSyncStatus {
-                    sync_status: Some(DeploymentResourceSyncStatus::Ready),
-                    sync_reason: Some(None),
+                    sync_status: DeploymentResourceSyncStatus::Ready,
+                    sync_reason: None,
                 }
                 .save(resource.id)
                 .await?;
@@ -105,8 +105,8 @@ where
             Err(err) => {
                 error!("Error syncing {} ({}): {}", resource.id, resource.name, err);
                 UpdateDeploymentResourceSyncStatus {
-                    sync_status: Some(DeploymentResourceSyncStatus::Error),
-                    sync_reason: Some(Some(err.to_string())),
+                    sync_status: DeploymentResourceSyncStatus::Error,
+                    sync_reason: Some(err.to_string()),
                 }
                 .save(resource.id)
                 .await?;

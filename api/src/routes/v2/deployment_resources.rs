@@ -141,8 +141,8 @@ async fn update(
     let new_resource = update.save(id).await?;
 
     UpdateDeploymentResourceSyncStatus {
-        sync_status: Some(DeploymentResourceSyncStatus::Updating),
-        sync_reason: Some(None),
+        sync_status: DeploymentResourceSyncStatus::Updating,
+        sync_reason: None,
     }
     .save(new_resource.id)
     .await?;
@@ -193,8 +193,8 @@ async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     // TODO: Check allowed_role
 
     UpdateDeploymentResourceSyncStatus {
-        sync_status: Some(DeploymentResourceSyncStatus::Deleting),
-        sync_reason: Some(None),
+        sync_status: DeploymentResourceSyncStatus::Deleting,
+        sync_reason: None,
     }
     .save(resource.id)
     .await?;
