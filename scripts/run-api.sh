@@ -25,7 +25,7 @@ fi
 
 export RUST_LOG="debug"
 export RUST_BACKTRACE="1"
-export PLATZ_OWN_URL="http://localhost:${PLATZ_FRONTEND_PORT}"
+export PLATZ_OWN_URL="http://127.0.0.1:${PLATZ_FRONTEND_PORT}"
 # From oidc-users.json
 export ADMIN_EMAILS="admin@example.com"
 
