@@ -13,15 +13,13 @@ use futures::StreamExt;
 use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
 use runnable_task::RunnableDeploymentTask;
 pub use secrets::apply_secret;
-use tokio::{select, signal::unix::SignalKind, sync::watch};
+use tokio::{select, sync::watch};
 use tracing::{debug, error, info, Instrument};
 
 #[tracing::instrument(err, name = "task_runner")]
 pub async fn start() -> Result<()> {
     let (db_events_tx, mut db_events_rx) = watch::channel(());
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
-    let mut term = tokio::signal::unix::signal(SignalKind::terminate())?;
-    let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
 
     tokio::spawn(
         async move {
@@ -45,16 +43,6 @@ pub async fn start() -> Result<()> {
         debug!("polling...");
         select! {
             biased;
-
-            _ = term.recv() => {
-                info!("SIGTERM");
-                break Ok(());
-            }
-
-            _ = interrupt.recv() => {
-                info!("SIGINT");
-                break Ok(());
-            }
 
             db_event = db_events_rx.changed() => {
                 debug!("db task event received");
