@@ -1,3 +1,4 @@
+mod bot;
 mod deployment;
 mod deployment_kind;
 mod deployment_permission;
@@ -17,6 +18,7 @@ mod setting;
 mod user;
 mod user_token;
 
+pub use bot::*;
 pub use deployment::*;
 pub use deployment_kind::*;
 pub use deployment_permission::*;
@@ -37,6 +39,7 @@ pub use user::*;
 pub use user_token::*;
 
 diesel::allow_tables_to_appear_in_same_query!(
+    bots,
     deployments,
     deployment_kinds,
     deployment_permissions,

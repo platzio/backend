@@ -6,6 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Identity {
     User(Uuid),
+    Bot(Uuid),
     Deployment(Uuid),
 }
 

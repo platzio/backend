@@ -83,6 +83,7 @@ async fn create(identity: ApiIdentity, new_env: web::Json<NewEnv>) -> ApiResult 
     .await?;
     Ok(HttpResponse::Created().json(env))
 }
+
 #[utoipa::path(
     context_path = "/api/v2",
     tag = "Envs",

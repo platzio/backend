@@ -1,7 +1,7 @@
 use crate::result::ApiResult;
 use actix_web::{get, post, web, HttpResponse};
 use platz_auth::{AccessToken, ApiIdentity, OAuth2Response, OidcLogin};
-use platz_db::{Deployment, Identity, User};
+use platz_db::{Bot, Deployment, Identity, User};
 use serde::Serialize;
 use serde_json::json;
 use std::env;
@@ -23,6 +23,7 @@ lazy_static::lazy_static! {
 #[derive(Serialize, ToSchema)]
 enum MeResponse {
     User(User),
+    Bot(Bot),
     Deployment { id: Uuid, name: String },
 }
 
@@ -44,7 +45,16 @@ enum MeResponse {
 #[get("/auth/me")]
 async fn me(identity: ApiIdentity) -> ApiResult {
     Ok(HttpResponse::Ok().json(match identity.into_inner() {
-        Identity::User(user_id) => MeResponse::User(User::find(user_id).await?.unwrap()),
+        Identity::User(user_id) => MeResponse::User(
+            User::find(user_id)
+                .await?
+                .expect("User is authenticated but not found in database, this should not happen"),
+        ),
+        Identity::Bot(bot_id) => MeResponse::Bot(
+            Bot::find(bot_id)
+                .await?
+                .expect("Bot is authenticated but not found in database, this should not happen"),
+        ),
         Identity::Deployment(deployment_id) => {
             let Deployment { id, name, .. } = Deployment::find(deployment_id).await?;
             MeResponse::Deployment { id, name }

@@ -5,7 +5,7 @@ use actix_web::{dev::Payload, http::header::HeaderName, FromRequest, HttpRequest
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future::{ok, ready, BoxFuture, FutureExt, TryFutureExt};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
-use platz_db::{Deployment, Identity, User};
+use platz_db::{Bot, Deployment, Identity, User};
 
 async fn validate_token(bearer: BearerAuth) -> Result<TokenData<AccessToken>, AuthError> {
     let mut validation = Validation::new(Algorithm::HS256);
@@ -38,17 +38,19 @@ impl FromRequest for AccessToken {
 impl super::ApiIdentity {
     async fn validate(self) -> Result<Self, AuthError> {
         match self.inner() {
-            Identity::User(user_id) => match User::find_only_active(user_id.to_owned()).await {
-                Err(err) => Err(err.into()),
-                Ok(None) => Err(AuthError::UserNotFound),
-                Ok(Some(_)) => Ok(self),
-            },
+            Identity::User(user_id) => User::find_only_active(user_id.to_owned())
+                .await?
+                .map(|_| self)
+                .ok_or(AuthError::UserNotFound),
+            Identity::Bot(bot_id) => Bot::find(bot_id.to_owned())
+                .await?
+                .map(|_| self)
+                .ok_or(AuthError::BotNotFound),
             Identity::Deployment(deployment_id) => {
-                match Deployment::find_optional(deployment_id.to_owned()).await {
-                    Err(err) => Err(err.into()),
-                    Ok(None) => Err(AuthError::DeploymentNotFound),
-                    Ok(Some(_)) => Ok(self),
-                }
+                Deployment::find_optional(deployment_id.to_owned())
+                    .await?
+                    .map(|_| self)
+                    .ok_or(AuthError::DeploymentNotFound)
             }
         }
     }
@@ -101,6 +103,7 @@ impl From<AuthError> for actix_web::Error {
             AuthError::JwtEncodeError(_) => actix_web::error::ErrorServiceUnavailable(reason),
             AuthError::JwtDecodeError(_) => actix_web::error::ErrorUnauthorized(reason),
             AuthError::UserNotFound => actix_web::error::ErrorUnauthorized(reason),
+            AuthError::BotNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::DeploymentNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::JwtSecretDecodingError => actix_web::error::ErrorInternalServerError(reason),
             AuthError::UserTokenAuthenticationError(_) => {

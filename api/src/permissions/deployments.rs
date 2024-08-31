@@ -1,6 +1,6 @@
 use super::verify_env_admin;
 use crate::result::ApiError;
-use platz_db::{Deployment, DeploymentPermission, Identity, K8sCluster};
+use platz_db::{Bot, Deployment, DeploymentPermission, Identity, K8sCluster};
 use uuid::Uuid;
 
 pub async fn verify_deployment_owner<I>(
@@ -20,8 +20,7 @@ where
         Err(ApiError::NoPermission) => match identity.borrow().user_id() {
             None => Err(ApiError::NoPermission),
             Some(user_id) => {
-                match DeploymentPermission::find_user_role(env_id, user_id, kind_id).await?
-                {
+                match DeploymentPermission::find_user_role(env_id, user_id, kind_id).await? {
                     Some(platz_db::UserDeploymentRole::Owner) => Ok(()),
                     _ => Err(ApiError::NoPermission),
                 }
@@ -47,27 +46,23 @@ where
         Ok(()) => Ok(()),
         Err(ApiError::NoPermission) => match identity.borrow() {
             Identity::User(user_id) => {
-                match DeploymentPermission::find_user_role(
-                    env_id,
-                    user_id.to_owned(),
-                    kind_id,
-                )
-                .await?
-                {
-                    None => Err(ApiError::NoPermission),
-                    Some(_) => Ok(()),
-                }
+                DeploymentPermission::find_user_role(env_id, user_id.to_owned(), kind_id)
+                    .await?
+                    .map(|_| ())
+                    .ok_or(ApiError::NoPermission)
+            }
+            Identity::Bot(bot_id) => {
+                let _bot = Bot::find(bot_id.to_owned()).await?;
+                // TODO: Add bot permissions
+                Err(ApiError::NoPermission)
             }
             Identity::Deployment(deployment_id) => {
                 let identity_deployment = Deployment::find(deployment_id.to_owned()).await?;
-                let identity_env_id = K8sCluster::find(identity_deployment.cluster_id)
+                K8sCluster::find(identity_deployment.cluster_id)
                     .await?
-                    .env_id;
-                if Some(env_id) == identity_env_id {
-                    Ok(())
-                } else {
-                    Err(ApiError::NoPermission)
-                }
+                    .env_id
+                    .map(|_| ())
+                    .ok_or(ApiError::NoPermission)
             }
         },
         Err(err) => Err(err),

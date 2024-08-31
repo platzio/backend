@@ -29,6 +29,9 @@ pub enum AuthError {
     #[error("User not found")]
     UserNotFound,
 
+    #[error("Bot not found")]
+    BotNotFound,
+
     #[error("Deployment not found")]
     DeploymentNotFound,
 
