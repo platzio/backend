@@ -1,4 +1,5 @@
 mod auth;
+mod bot_tokens;
 mod bots;
 mod deployment_kinds;
 mod deployment_permissions;
@@ -28,6 +29,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(auth::me);
     cfg.service(auth::start_google_login);
     cfg.service(auth::finish_google_login);
+    cfg.service(bot_tokens::get_all);
+    cfg.service(bot_tokens::get_one);
+    cfg.service(bot_tokens::create);
+    cfg.service(bot_tokens::delete);
     cfg.service(bots::get_all);
     cfg.service(bots::get_one);
     cfg.service(bots::create);
@@ -123,6 +128,7 @@ impl ApiV2 {
         openapi.merge(user_tokens::OpenApi::openapi());
         openapi.merge(users::OpenApi::openapi());
         openapi.merge(bots::OpenApi::openapi());
+        openapi.merge(bot_tokens::OpenApi::openapi());
         openapi.merge(ws::OpenApi::openapi());
         openapi
     }

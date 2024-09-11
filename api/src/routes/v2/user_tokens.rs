@@ -2,7 +2,7 @@ use super::utils::{ensure_user, ensure_user_id};
 use crate::permissions::verify_site_admin;
 use crate::result::{ApiError, ApiResult};
 use actix_web::{delete, get, post, web, HttpResponse};
-use platz_auth::{generate_user_token, ApiIdentity};
+use platz_auth::{generate_api_token, ApiIdentity};
 use platz_db::{DbError, NewUserToken, Paginated, UserToken, UserTokenFilters};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -58,12 +58,12 @@ async fn get_all(identity: ApiIdentity, filters: web::Query<UserTokenFilters>) -
 #[get("/user-tokens/{id}")]
 async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let user = ensure_user(&identity).await?;
-    let user_token = UserToken::find(id.into_inner()).await?;
-    if user.is_admin || (user.id == user_token.user_id) {
-        Ok(HttpResponse::Ok().json(user_token))
-    } else {
-        Err(ApiError::from(DbError::NotFound))
+    if let Some(user_token) = UserToken::find(id.into_inner()).await? {
+        if user.is_admin || (user.id == user_token.user_id) {
+            return Ok(HttpResponse::Ok().json(user_token));
+        }
     }
+    Err(ApiError::from(DbError::NotFound))
 }
 
 async fn get_token_user_id_and_verify_permissions(
@@ -112,17 +112,17 @@ async fn create(identity: ApiIdentity, new_user_token: web::Json<CreateUserToken
     let token_user_id =
         get_token_user_id_and_verify_permissions(&identity, new_user_token.user_id).await?;
 
-    let user_token_info = generate_user_token().await?;
+    let api_token_info = generate_api_token().await?;
     NewUserToken {
-        id: user_token_info.token_id,
+        id: api_token_info.token_id,
         user_id: token_user_id,
-        secret_hash: user_token_info.secret_hash,
+        secret_hash: api_token_info.secret_hash,
     }
     .save()
     .await?;
 
     Ok(HttpResponse::Created().json(CreatedUserToken {
-        created_token: user_token_info.token_value,
+        created_token: api_token_info.token_value,
     }))
 }
 
@@ -143,7 +143,9 @@ async fn create(identity: ApiIdentity, new_user_token: web::Json<CreateUserToken
 #[delete("/user-tokens/{id}")]
 async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let id = id.into_inner();
-    let user_token = UserToken::find(id).await?;
+    let Some(user_token) = UserToken::find(id).await? else {
+        return Err(DbError::NotFound)?;
+    };
     get_token_user_id_and_verify_permissions(&identity, Some(user_token.user_id)).await?;
     user_token.delete().await?;
     Ok(HttpResponse::NoContent().finish())

@@ -9,28 +9,31 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 table! {
-    user_tokens(id) {
+    bot_tokens(id) {
         id -> Uuid,
-        user_id -> Uuid,
+        bot_id -> Uuid,
         created_at -> Timestamptz,
+        created_by_user_id -> Uuid,
         secret_hash -> Varchar,
     }
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
-#[diesel(table_name = user_tokens)]
+#[diesel(table_name = bot_tokens)]
 #[pagination]
-pub struct UserToken {
+pub struct BotToken {
     pub id: Uuid,
     #[filter]
-    pub user_id: Uuid,
+    pub bot_id: Uuid,
     pub created_at: DateTime<Utc>,
+    #[filter]
+    pub created_by_user_id: Uuid,
     #[serde(skip)]
     pub secret_hash: String,
 }
 
-impl UserToken {
-    pub async fn all_filtered(filters: UserTokenFilters) -> DbResult<Paginated<Self>> {
+impl BotToken {
+    pub async fn all_filtered(filters: BotTokenFilters) -> DbResult<Paginated<Self>> {
         let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
@@ -50,7 +53,7 @@ impl UserToken {
     }
 
     pub async fn find(id: Uuid) -> DbResult<Option<Self>> {
-        Ok(user_tokens::table
+        Ok(bot_tokens::table
             .find(id)
             .get_result_async(pool())
             .await
@@ -58,7 +61,7 @@ impl UserToken {
     }
 
     pub async fn delete(&self) -> DbResult<()> {
-        diesel::delete(user_tokens::table.find(self.id))
+        diesel::delete(bot_tokens::table.find(self.id))
             .execute_async(pool())
             .await?;
         Ok(())
@@ -66,16 +69,17 @@ impl UserToken {
 }
 
 #[derive(Insertable)]
-#[diesel(table_name = user_tokens)]
-pub struct NewUserToken {
+#[diesel(table_name = bot_tokens)]
+pub struct NewBotToken {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub bot_id: Uuid,
+    pub created_by_user_id: Uuid,
     pub secret_hash: String,
 }
 
-impl NewUserToken {
-    pub async fn save(self) -> DbResult<UserToken> {
-        Ok(diesel::insert_into(user_tokens::table)
+impl NewBotToken {
+    pub async fn save(self) -> DbResult<BotToken> {
+        Ok(diesel::insert_into(bot_tokens::table)
             .values(self)
             .get_result_async(pool())
             .await?)

@@ -1,4 +1,5 @@
 mod bot;
+mod bot_token;
 mod deployment;
 mod deployment_kind;
 mod deployment_permission;
@@ -19,6 +20,7 @@ mod user;
 mod user_token;
 
 pub use bot::*;
+pub use bot_token::*;
 pub use deployment::*;
 pub use deployment_kind::*;
 pub use deployment_permission::*;

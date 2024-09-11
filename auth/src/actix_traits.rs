@@ -1,6 +1,9 @@
-use crate::access_token::{get_jwt_secret, AccessToken};
-use crate::error::AuthError;
-use crate::USER_TOKEN_HEADER;
+use crate::{
+    access_token::{get_jwt_secret, AccessToken},
+    api_token::validate_api_token,
+    error::AuthError,
+    API_TOKEN_HEADER,
+};
 use actix_web::{dev::Payload, http::header::HeaderName, FromRequest, HttpRequest};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future::{ok, ready, BoxFuture, FutureExt, TryFutureExt};
@@ -62,20 +65,17 @@ impl FromRequest for super::ApiIdentity {
 
     fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
         let headers = req.headers();
-        if let Some(user_token_value) = headers.get(HeaderName::from_static(USER_TOKEN_HEADER)) {
-            // Get (& verify) ApiIdentity from UserToken
+        if let Some(user_token_value) = headers.get(HeaderName::from_static(API_TOKEN_HEADER)) {
+            // Get (& verify) ApiIdentity from API token header
             ready(
                 user_token_value
                     .to_str()
                     .map(ToOwned::to_owned)
                     .map_err(|_| {
-                        AuthError::UserTokenAuthenticationError(
-                            "Token header has no value".to_owned(),
-                        )
+                        AuthError::ApiTokenAuthenticationError("API token header has no value")
                     }),
             )
-            .and_then(crate::user_token::validate_user_token)
-            .and_then(|user_token| ok(Identity::User(user_token.user_id)))
+            .and_then(validate_api_token)
             .and_then(|identity| ok(Self::from(identity)))
             .and_then(|api_identity| api_identity.validate())
             .boxed()
@@ -106,7 +106,7 @@ impl From<AuthError> for actix_web::Error {
             AuthError::BotNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::DeploymentNotFound => actix_web::error::ErrorUnauthorized(reason),
             AuthError::JwtSecretDecodingError => actix_web::error::ErrorInternalServerError(reason),
-            AuthError::UserTokenAuthenticationError(_) => {
+            AuthError::ApiTokenAuthenticationError(_) => {
                 actix_web::error::ErrorUnauthorized(reason)
             }
             AuthError::NaiveDateTimeConvertOverflow(_) => {

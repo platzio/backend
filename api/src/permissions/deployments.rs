@@ -54,7 +54,7 @@ where
             Identity::Bot(bot_id) => {
                 let _bot = Bot::find(bot_id.to_owned()).await?;
                 // TODO: Add bot permissions
-                Err(ApiError::NoPermission)
+                Ok(())
             }
             Identity::Deployment(deployment_id) => {
                 let identity_deployment = Deployment::find(deployment_id.to_owned()).await?;

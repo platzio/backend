@@ -1,4 +1,4 @@
-use platz_auth::USER_TOKEN_HEADER;
+use platz_auth::API_TOKEN_HEADER;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, HttpAuthScheme, HttpBuilder, SecurityScheme},
     OpenApi,
@@ -26,7 +26,7 @@ impl utoipa::Modify for SecurityAddon {
         );
         components.add_security_scheme(
             "user_token",
-            SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new(USER_TOKEN_HEADER))),
+            SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new(API_TOKEN_HEADER))),
         );
     }
 }
