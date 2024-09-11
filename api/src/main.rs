@@ -11,7 +11,6 @@ use tracing::warn;
 mod permissions;
 mod result;
 mod routes;
-mod serde_utils;
 mod server;
 
 #[derive(Parser)]

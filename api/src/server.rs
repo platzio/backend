@@ -37,7 +37,6 @@ pub async fn serve(config: Config) -> Result<()> {
             .app_data(oidc_login.clone())
             .route("/status", web::get().to(status))
             .route("/metrics", web::get().to(metrics))
-            .service(web::scope("/api/v1").configure(crate::routes::v1::config))
             .service(web::scope("/api/v2").configure(crate::routes::v2::config))
     });
 
