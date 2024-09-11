@@ -7,12 +7,12 @@ version = "0.1.0"
 actix = "0.13.5"
 actix-web = { version = "4.9.0", features = ["rustls"] }
 actix-web-actors = "4.3.1"
-anyhow = { version = "1.0.86", features = ["backtrace"] }
+anyhow = { version = "1.0.87", features = ["backtrace"] }
 chrono = { version = "0.4.38", default-features = false, features = [
   "std",
   "serde",
 ] }
-clap = { version = "4.5.16", features = ["derive", "env"] }
+clap = { version = "4.5.17", features = ["derive", "env"] }
 dotenvy = "0.15.7"
 futures = "0.3.30"
 humantime = "2.1.0"
@@ -21,12 +21,12 @@ lazy_static = "1.5.0"
 platz-chart-ext = { workspace = true }
 prometheus = { workspace = true }
 regex = "1.10.6"
-serde = { version = "1.0.209", features = ["derive"] }
-serde_json = "1.0.127"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
 strum = "0.26.3"
 thiserror = "1.0.63"
-tokio = { version = "1.39.3", features = ["rt-multi-thread", "signal"] }
-tokio-stream = { version = "0.1.15", features = ["sync"] }
+tokio = { version = "1.40.0", features = ["rt-multi-thread", "signal"] }
+tokio-stream = { version = "0.1.16", features = ["sync"] }
 tracing = "0.1.40"
 tracing-subscriber = { workspace = true }
 url = "2.5.2"

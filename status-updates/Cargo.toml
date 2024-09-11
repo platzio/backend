@@ -4,14 +4,14 @@ name = "platz-status-updates"
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.87"
 futures = "0.3.30"
 platz-chart-ext = { workspace = true }
 reqwest = { version = "0.12.7", default-features = false, features = [
     "rustls-tls",
     "json",
 ] }
-tokio = { version = "1.39.3", features = ["rt-multi-thread", "signal"] }
+tokio = { version = "1.40.0", features = ["rt-multi-thread", "signal"] }
 tracing = "0.1.40"
 tracing-subscriber = { workspace = true }
 url = "2.5.2"
