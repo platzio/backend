@@ -2,13 +2,17 @@ use crate::tracker::StatusTracker;
 use anyhow::Result;
 use futures::future::join_all;
 use platz_db::{db_events, DbEventOperation, DbTable, Deployment};
+use std::{io::Write, path::PathBuf};
 use tokio::time;
 use tracing::debug;
 
 const DEPLOYMENT_CHUNK_SIZE: usize = 10;
 const DEPLOYMENT_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_secs(1);
 
-pub async fn watch_deployments(tracker: StatusTracker) -> Result<()> {
+pub async fn watch_deployments(
+    tracker: StatusTracker,
+    heartbeat_file_path: Option<PathBuf>,
+) -> Result<()> {
     let mut db_rx = db_events();
 
     for deploy_chunk in Deployment::all().await?.chunks(DEPLOYMENT_CHUNK_SIZE) {
@@ -33,6 +37,15 @@ pub async fn watch_deployments(tracker: StatusTracker) -> Result<()> {
         .map_err(|_| anyhow::anyhow!("Timed out processing DB event"))
         .inspect_err(|e| tracing::error!("Error processing DB events: {e:?}"))
         .and_then(|res| res)?;
+
+        if let Some(path) = &heartbeat_file_path {
+            let mut f = std::fs::OpenOptions::new()
+                .create(true)
+                .truncate(true)
+                .write(true)
+                .open(path)?;
+            writeln!(&mut f, "{:?} -- {:?}", std::time::SystemTime::now(), event)?;
+        }
     }
 }
 

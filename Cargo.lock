@@ -3196,6 +3196,7 @@ name = "platz-status-updates"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "clap",
  "futures",
  "platz-chart-ext",
  "platz-db",
