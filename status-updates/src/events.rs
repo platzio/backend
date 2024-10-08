@@ -25,14 +25,28 @@ pub async fn watch_deployments(tracker: StatusTracker) -> Result<()> {
     loop {
         let event = db_rx.recv().await?;
         debug!("Got {:?}", event);
-        if event.table == DbTable::Deployments {
-            match event.operation {
-                DbEventOperation::Delete => tracker.remove(event.data.id).await,
-                _ => {
-                    let deployment = Deployment::find(event.data.id).await?;
-                    tracker.add(deployment).await
-                }
+        tokio::time::timeout(
+            std::time::Duration::from_secs(60),
+            handle_db_event(&tracker, event),
+        )
+        .await
+        .map_err(|_| anyhow::anyhow!("Timed out processing DB event"))
+        .inspect_err(|e| tracing::error!("Error processing DB events: {e:?}"))
+        .and_then(|res| res)?;
+    }
+}
+
+async fn handle_db_event(tracker: &StatusTracker, event: platz_db::DbEvent) -> Result<()> {
+    if event.table == DbTable::Deployments {
+        match event.operation {
+            DbEventOperation::Delete => {
+                tracker.remove(event.data.id).await;
+            }
+            _ => {
+                let deployment = Deployment::find(event.data.id).await?;
+                tracker.add(deployment).await;
             }
         }
     }
+    Ok(())
 }

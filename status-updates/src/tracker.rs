@@ -7,7 +7,7 @@ use platz_db::{
 };
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{sync::RwLock, task};
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use url::Url;
 use uuid::Uuid;
 
@@ -28,15 +28,16 @@ impl StatusTracker {
     }
 
     pub async fn add(&self, deployment: Deployment) {
+        let deployment_id = deployment.id;
         if !deployment.enabled {
             warn!(
                 "Deployment {} is disabled, stopping its status updates if there were any",
-                deployment.id
+                deployment_id
             );
             self.remove(deployment.id).await;
             if deployment.reported_status.is_some() {
                 UpdateDeploymentReportedStatus::new(None)
-                    .save(deployment.id)
+                    .save(deployment_id)
                     .await
                     .unwrap();
             }
@@ -79,16 +80,20 @@ impl StatusTracker {
             deployment.id,
             task::spawn(periodic_deployment_status_update(deployment, new_config)),
         ) {
+            debug!("Stopping previous status update task assigned for {deployment_id}");
             handle.abort();
         }
+        info!("Deployment {deployment_id} added to tracker");
     }
 
     pub async fn remove(&self, id: Uuid) {
         info!("Removing deployment {}", id);
         self.inner.configs.write().await.remove(&id);
         if let Some(handle) = self.inner.tasks.write().await.remove(&id) {
+            debug!("Stopping previous status update task assigned for {id}");
             handle.abort();
         }
+        info!("Deployment {id} removed from tracker");
     }
 }
 
