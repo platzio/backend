@@ -15,6 +15,7 @@ pub async fn watch_deployments(tracker: StatusTracker) -> Result<()> {
         join_all(
             deploy_chunk
                 .iter()
+                .filter(|dep| dep.enabled)
                 .map(|deployment| tracker.add(deployment.clone())),
         )
         .await;
