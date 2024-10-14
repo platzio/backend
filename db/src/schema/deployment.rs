@@ -110,7 +110,10 @@ pub struct DeploymentExtraFilters {
 
 impl Deployment {
     pub async fn all() -> DbResult<Vec<Self>> {
-        Ok(deployments::table.get_results_async(pool()).await?)
+        Ok(deployments::table
+            .order_by(deployments::created_at.asc())
+            .get_results_async(pool())
+            .await?)
     }
 
     pub async fn all_filtered(
@@ -137,6 +140,7 @@ impl Deployment {
                 filtered = filtered.filter(deployments::cluster_id.eq_any(cluster_ids))
             }
             filtered
+                .order_by(deployments::created_at.asc())
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn)
