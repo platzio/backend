@@ -1,3 +1,4 @@
+use super::helm_registries;
 use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use async_diesel::*;
 use chrono::prelude::*;
@@ -34,6 +35,8 @@ table! {
         parsed_commit -> Nullable<Varchar>,
     }
 }
+
+diesel::joinable!(helm_charts -> helm_registries(helm_registry_id));
 
 #[derive(Debug, Identifiable, Queryable, QueryableByName, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = helm_charts)]
@@ -154,47 +157,6 @@ FROM ("#,
     }
 }
 
-#[derive(diesel::QueryId)]
-struct HelmChartsByKind<T> {
-    query: T,
-    kind_id: Uuid,
-}
-
-impl<T> Query for HelmChartsByKind<T>
-where
-    T: Query,
-{
-    type SqlType = T::SqlType;
-}
-
-impl<T> RunQueryDsl<PgConnection> for HelmChartsByKind<T> {}
-impl<T> QueryDsl for HelmChartsByKind<T> {}
-
-impl<T> QueryFragment<Pg> for HelmChartsByKind<T>
-where
-    T: QueryFragment<Pg>,
-{
-    fn walk_ast<'a>(&'a self, mut pass: AstPass<'_, 'a, Pg>) -> QueryResult<()> {
-        pass.push_sql(
-            "
-            SELECT \"helm_charts\".* FROM (",
-        );
-        self.query.walk_ast(pass.reborrow())?;
-        pass.push_sql(
-            ") AS helm_charts
-            INNER JOIN
-                helm_registries
-            ON
-                helm_charts.helm_registry_id = helm_registries.id
-            WHERE
-                helm_registries.kind_id =
-            ",
-        );
-        pass.push_bind_param::<diesel::sql_types::Uuid, Uuid>(&self.kind_id)?;
-        Ok(())
-    }
-}
-
 impl HelmChart {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(helm_charts::table.get_results_async(pool()).await?)
@@ -214,10 +176,13 @@ impl HelmChart {
                 extra_filters.in_use.unwrap_or_default(),
                 extra_filters.kind_id,
             ) {
-                (true, Some(kind_id)) => InUseHelmCharts(HelmChartsByKind {
-                    query: Self::filter(&filters).order_by(helm_charts::created_at.desc()),
-                    kind_id,
-                })
+                (true, Some(kind_id)) => InUseHelmCharts(
+                    Self::filter(&filters)
+                        .order_by(helm_charts::created_at.desc())
+                        .inner_join(helm_registries::table)
+                        .filter(helm_registries::kind_id.eq(kind_id))
+                        .select(helm_charts::all_columns),
+                )
                 .paginate(Some(page))
                 .per_page(Some(per_page))
                 .load_and_count::<Self>(&mut conn),
@@ -227,13 +192,14 @@ impl HelmChart {
                         .per_page(Some(per_page))
                         .load_and_count::<Self>(&mut conn)
                 }
-                (false, Some(kind_id)) => HelmChartsByKind {
-                    query: Self::filter(&filters).order_by(helm_charts::created_at.desc()),
-                    kind_id,
-                }
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn),
+                (false, Some(kind_id)) => Self::filter(&filters)
+                    .order_by(helm_charts::created_at.desc())
+                    .inner_join(helm_registries::table)
+                    .filter(helm_registries::kind_id.eq(kind_id))
+                    .select(helm_charts::all_columns)
+                    .paginate(Some(page))
+                    .per_page(Some(per_page))
+                    .load_and_count::<Self>(&mut conn),
                 (false, None) => Self::filter(&filters)
                     .order_by(helm_charts::created_at.desc())
                     .paginate(Some(page))
