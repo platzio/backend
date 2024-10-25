@@ -74,7 +74,7 @@ pub struct HelmChartExtraFilters {
     #[schema(required)]
     in_use: Option<bool>,
     #[schema(required)]
-    kind: Option<String>,
+    kind_id: Option<Uuid>,
 }
 
 #[derive(diesel::QueryId)]
@@ -157,7 +157,7 @@ FROM ("#,
 #[derive(diesel::QueryId)]
 struct HelmChartsByKind<T> {
     query: T,
-    kind: String,
+    kind_id: Uuid,
 }
 
 impl<T> Query for HelmChartsByKind<T>
@@ -187,10 +187,10 @@ where
             ON
                 helm_charts.helm_registry_id = helm_registries.id
             WHERE
-                helm_registries.kind = 
+                helm_registries.kind_id =
             ",
         );
-        pass.push_bind_param::<diesel::sql_types::VarChar, String>(&self.kind)?;
+        pass.push_bind_param::<diesel::sql_types::Uuid, Uuid>(&self.kind_id)?;
         Ok(())
     }
 }
@@ -210,10 +210,13 @@ impl HelmChart {
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
 
         let (items, num_total) = tokio::task::spawn_blocking(move || {
-            match (extra_filters.in_use.unwrap_or_default(), extra_filters.kind) {
-                (true, Some(kind)) => InUseHelmCharts(HelmChartsByKind {
+            match (
+                extra_filters.in_use.unwrap_or_default(),
+                extra_filters.kind_id,
+            ) {
+                (true, Some(kind_id)) => InUseHelmCharts(HelmChartsByKind {
                     query: Self::filter(&filters).order_by(helm_charts::created_at.desc()),
-                    kind,
+                    kind_id,
                 })
                 .paginate(Some(page))
                 .per_page(Some(per_page))
@@ -224,9 +227,9 @@ impl HelmChart {
                         .per_page(Some(per_page))
                         .load_and_count::<Self>(&mut conn)
                 }
-                (false, Some(kind)) => HelmChartsByKind {
+                (false, Some(kind_id)) => HelmChartsByKind {
                     query: Self::filter(&filters).order_by(helm_charts::created_at.desc()),
-                    kind,
+                    kind_id,
                 }
                 .paginate(Some(page))
                 .per_page(Some(per_page))
