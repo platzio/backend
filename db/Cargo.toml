@@ -4,10 +4,10 @@ name = "platz-db"
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.87"
+anyhow = "1.0.95"
 async-diesel = { git = "https://github.com/vmalloc/async-diesel2.git", branch = "diesel-2.0" }
-async-trait = "0.1.82"
-chrono = { version = "0.4.38", default-features = false, features = [
+async-trait = "0.1.85"
+chrono = { version = "0.4.39", default-features = false, features = [
   "std",
   "serde",
 ] }
@@ -16,7 +16,7 @@ diesel_enum_derive = { git = "https://github.com/popen2/diesel-enum-derive", def
 ] }
 diesel_json = "0.2.1"
 diesel_migrations = "2.2.0"
-itertools = "0.13.0"
+itertools = "0.14.0"
 lazy_static = "1.5.0"
 maplit = "1.0.2"
 platz-chart-ext = { workspace = true }
@@ -25,26 +25,26 @@ r2d2 = "0.8.10"
 rust_decimal = { version = "1.36.0", default-features = false, features = [
   "db-diesel-postgres",
 ] }
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
-serde_with = "3.9.0"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.137"
+serde_with = "3.12.0"
 strum = { version = "0.26.3", features = ["derive"] }
-thiserror = "1.0.63"
-tokio = "1.40.0"
-tokio-postgres = "0.7.11"
-tracing = "0.1.40"
-url = "2.5.2"
-utoipa = { version = "4.2.3", features = [
+thiserror = "2.0.11"
+tokio = "1.43.0"
+tokio-postgres = "0.7.12"
+tracing = "0.1.41"
+url = "2.5.4"
+utoipa = { version = "5.3.1", features = [
   "chrono",
   "decimal",
   "preserve_order",
   "uuid",
 ] }
-uuid = { version = "1.10.0", features = ["serde", "v4"] }
+uuid = { version = "1.12.1", features = ["serde", "v4"] }
 
 [dependencies.diesel]
 features = ["chrono", "numeric", "postgres", "r2d2", "serde_json", "uuid"]
-version = "2.2.4"
+version = "2.2.6"
 
 [dependencies.diesel_filter]
 features = ["actix", "diesel", "serde", "serialize", "pagination", "utoipa"]
