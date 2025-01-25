@@ -161,7 +161,7 @@ impl TryFrom<&K8s> for kube::config::Kubeconfig {
                 name: "default".to_owned(),
                 context: Some(kube::config::Context {
                     cluster: cluster.into(),
-                    user: user.to_owned(),
+                    user: Some(user.to_owned()),
                     namespace: None,
                     extensions: None,
                 }),

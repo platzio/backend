@@ -26,7 +26,6 @@ pub enum DbTable {
     Users,
 }
 
-#[async_trait::async_trait]
 impl UiSchemaCollections for DbTable {
     type Error = DbError;
 

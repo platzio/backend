@@ -1,9 +1,9 @@
-use crate::pool;
-use crate::DbResult;
-use async_diesel::*;
+use crate::{db_conn, DbResult};
 use chrono::prelude::*;
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use serde::Deserialize;
+use std::ops::DerefMut;
 use uuid::Uuid;
 
 table! {
@@ -27,7 +27,7 @@ impl Setting {
     pub async fn get(key: &str) -> DbResult<Option<Self>> {
         Ok(settings::table
             .filter(settings::key.eq(key.to_owned()))
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await
             .optional()?)
     }
@@ -61,7 +61,7 @@ impl UpdateSetting {
     async fn insert(self) -> DbResult<Setting> {
         Ok(diesel::insert_into(settings::table)
             .values(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -72,7 +72,7 @@ impl UpdateSetting {
             .on_conflict(settings::key)
             .do_update()
             .set(settings::value.eq(value))
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }

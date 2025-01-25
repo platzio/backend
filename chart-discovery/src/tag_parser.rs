@@ -1,11 +1,11 @@
 use anyhow::Result;
-use platz_db::{db_events, DbTable, HelmChart, HelmChartFilters, HelmChartTagInfo, HelmTagFormat};
+use platz_db::{Db, DbTable, HelmChart, HelmChartFilters, HelmChartTagInfo, HelmTagFormat};
 use regex::Regex;
 use tracing::{debug, info, warn};
 
-pub async fn run() -> Result<()> {
+pub async fn run(db: &Db) -> Result<()> {
     info!("Starting tag parser task");
-    let mut db_rx = db_events();
+    let mut db_rx = db.subscribe_to_events();
 
     update_all_charts().await?;
 

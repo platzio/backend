@@ -20,7 +20,11 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
         deployment
             .set_status(DeploymentStatus::Installing, None)
             .await?;
-        create_namespace(deployment.cluster_id, deployment_to_namespace(deployment).await).await?;
+        create_namespace(
+            deployment.cluster_id,
+            deployment_to_namespace(deployment).await,
+        )
+        .await?;
         apply_deployment_credentials(deployment).await?;
         match run_helm("install", deployment, task).await {
             Ok(output) => {
@@ -96,7 +100,11 @@ impl RunnableDeploymentOperation for DeploymentRecreaseTask {
             .set_status(DeploymentStatus::Renaming, None)
             .await?;
         delete_namespace(self.old_cluster_id, &self.old_namespace).await?;
-        create_namespace(self.new_cluster_id, deployment_to_namespace(deployment).await).await?;
+        create_namespace(
+            self.new_cluster_id,
+            deployment_to_namespace(deployment).await,
+        )
+        .await?;
         apply_deployment_credentials(deployment).await?;
         Ok("".to_owned())
     }

@@ -1,11 +1,11 @@
 use super::{deployment_kinds, deployment_status::DeploymentReportedStatus};
 use crate::{
-    pool, DbError, DbResult, DbTableOrDeploymentResource, DeploymentKind, DeploymentTask,
+    db_conn, DbError, DbResult, DbTableOrDeploymentResource, DeploymentKind, DeploymentTask,
     HelmChart, Identity, K8sCluster, Paginated, DEFAULT_PAGE_SIZE,
 };
-use async_diesel::*;
 use chrono::prelude::*;
 use diesel::{prelude::*, QueryDsl};
+use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use diesel_json::Json;
@@ -14,6 +14,7 @@ use platz_chart_ext::actions::{
 };
 use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 use url::Url;
 use utoipa::ToSchema;
@@ -112,7 +113,7 @@ impl Deployment {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployments::table
             .order_by(deployments::created_at.asc())
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -120,7 +121,6 @@ impl Deployment {
         filters: DeploymentFilters,
         extra_filters: DeploymentExtraFilters,
     ) -> DbResult<Paginated<Self>> {
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
@@ -134,18 +134,16 @@ impl Deployment {
         } else {
             None
         };
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            let mut filtered = Self::filter(&filters);
-            if let Some(cluster_ids) = allowed_cluster_ids {
-                filtered = filtered.filter(deployments::cluster_id.eq_any(cluster_ids))
-            }
-            filtered
-                .order_by(deployments::created_at.asc())
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn)
-        })
-        .await??;
+        let mut filtered = Self::filter(filters);
+        if let Some(cluster_ids) = allowed_cluster_ids {
+            filtered = filtered.filter(deployments::cluster_id.eq_any(cluster_ids))
+        }
+        let (items, num_total) = filtered
+            .order_by(deployments::created_at.asc())
+            .paginate(Some(page))
+            .per_page(Some(per_page))
+            .load_and_count(db_conn().await?.deref_mut())
+            .await?;
         Ok(Paginated {
             page,
             per_page,
@@ -155,13 +153,16 @@ impl Deployment {
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {
-        Ok(deployments::table.find(id).get_result_async(pool()).await?)
+        Ok(deployments::table
+            .find(id)
+            .get_result(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn find_optional(id: Uuid) -> DbResult<Option<Self>> {
         Ok(deployments::table
             .find(id)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await
             .optional()?)
     }
@@ -169,11 +170,11 @@ impl Deployment {
     pub async fn find_by_kind(kind: String) -> DbResult<Vec<Self>> {
         let kind_obj: DeploymentKind = deployment_kinds::table
             .filter(deployment_kinds::name.eq(kind))
-            .first_async(pool())
+            .first(db_conn().await?.deref_mut())
             .await?;
         Ok(deployments::table
             .filter(deployments::kind_id.eq(kind_obj.id))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -237,14 +238,14 @@ impl Deployment {
     pub async fn find_by_cluster_id(cluster_id: Uuid) -> DbResult<Vec<Self>> {
         Ok(deployments::table
             .filter(deployments::cluster_id.eq(cluster_id))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
     pub async fn find_by_cluster_ids(cluster_ids: Vec<Uuid>) -> DbResult<Vec<Self>> {
         Ok(deployments::table
             .filter(deployments::cluster_id.eq_any(cluster_ids))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -253,7 +254,7 @@ impl Deployment {
         for cluster in K8sCluster::find_by_env_id(env_id).await? {
             let mut deployments = deployments::table
                 .filter(deployments::cluster_id.eq(cluster.id))
-                .get_results_async(pool())
+                .get_results(db_conn().await?.deref_mut())
                 .await?;
             result.append(&mut deployments);
         }
@@ -270,7 +271,7 @@ impl Deployment {
                     .or(deployments::status.eq(DeploymentStatus::Uninstalling)),
             )
             .filter(deployments::cluster_id.eq(cluster_id))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -295,12 +296,12 @@ impl Deployment {
     pub async fn find_by_cluster_and_kind(cluster_id: Uuid, kind: String) -> DbResult<Vec<Self>> {
         let kind_obj: DeploymentKind = deployment_kinds::table
             .filter(deployment_kinds::name.eq(kind))
-            .first_async(pool())
+            .first(db_conn().await?.deref_mut())
             .await?;
         Ok(deployments::table
             .filter(deployments::cluster_id.eq(cluster_id))
             .filter(deployments::kind_id.eq(kind_obj.id))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -340,14 +341,13 @@ impl Deployment {
     }
 
     pub async fn current_ingress_hostname(&self) -> DbResult<String> {
-        self.ingress_hostname(
-            self.current_helm_chart()
-                .await?
-                .features()?
-                .ingress()
-                .hostname_format,
-        )
-        .await
+        let format = self
+            .current_helm_chart()
+            .await?
+            .features()?
+            .ingress()
+            .hostname_format;
+        self.ingress_hostname(format).await
     }
 
     pub async fn set_status(
@@ -391,7 +391,7 @@ impl Deployment {
 
     pub async fn delete(&self) -> DbResult<()> {
         diesel::delete(deployments::table.find(self.id))
-            .execute_async(pool())
+            .execute(db_conn().await?.deref_mut())
             .await?;
         Ok(())
     }
@@ -409,7 +409,7 @@ impl Deployment {
                 deployments::status,
                 deployments::cluster_id,
             ))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -432,7 +432,7 @@ impl NewDeployment {
     pub async fn insert(self) -> DbResult<Deployment> {
         Ok(diesel::insert_into(deployments::table)
             .values(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -455,7 +455,7 @@ impl UpdateDeployment {
         Ok(
             diesel::update(deployments::table.filter(deployments::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
@@ -474,7 +474,7 @@ impl UpdateDeploymentStatus {
         Ok(
             diesel::update(deployments::table.filter(deployments::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
@@ -497,14 +497,15 @@ impl UpdateDeploymentReportedStatus {
         Ok(
             diesel::update(deployments::table.filter(deployments::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
 }
 
-#[async_trait::async_trait]
 impl ChartExtActionTargetResolver for Deployment {
+    type Error = anyhow::Error;
+
     async fn resolve(&self, target: &ChartExtActionTarget) -> anyhow::Result<Url> {
         let host = match target.endpoint {
             ChartExtActionEndpoint::StandardIngress => self.current_ingress_hostname().await?,

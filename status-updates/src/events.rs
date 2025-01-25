@@ -1,15 +1,15 @@
 use crate::tracker::StatusTracker;
 use anyhow::Result;
 use futures::future::join_all;
-use platz_db::{db_events, DbEventOperation, DbTable, Deployment};
+use platz_db::{Db, DbEventOperation, DbTable, Deployment};
 use tokio::time;
 use tracing::debug;
 
 const DEPLOYMENT_CHUNK_SIZE: usize = 10;
 const DEPLOYMENT_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_secs(1);
 
-pub async fn watch_deployments(tracker: StatusTracker) -> Result<()> {
-    let mut db_rx = db_events();
+pub async fn watch_deployments(db: &Db, tracker: StatusTracker) -> Result<()> {
+    let mut db_rx = db.subscribe_to_events();
 
     for deploy_chunk in Deployment::all().await?.chunks(DEPLOYMENT_CHUNK_SIZE) {
         join_all(

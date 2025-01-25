@@ -1,11 +1,12 @@
-use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
-use async_diesel::*;
+use crate::{db_conn, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+use diesel_async::RunQueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -38,20 +39,19 @@ pub struct HelmRegistry {
 
 impl HelmRegistry {
     pub async fn all() -> DbResult<Vec<Self>> {
-        Ok(helm_registries::table.get_results_async(pool()).await?)
+        Ok(helm_registries::table
+            .get_results(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn all_filtered(filters: HelmRegistryFilters) -> DbResult<Paginated<Self>> {
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn)
-        })
-        .await??;
+        let (items, num_total) = Self::filter(filters)
+            .paginate(Some(page))
+            .per_page(Some(per_page))
+            .load_and_count(db_conn().await?.deref_mut())
+            .await?;
         Ok(Paginated {
             page,
             per_page,
@@ -63,7 +63,7 @@ impl HelmRegistry {
     pub async fn find(id: Uuid) -> DbResult<Self> {
         Ok(helm_registries::table
             .find(id)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -74,7 +74,7 @@ impl HelmRegistry {
         Ok(helm_registries::table
             .filter(helm_registries::domain_name.eq(domain_name))
             .filter(helm_registries::repo_name.eq(repo_name))
-            .first_async(pool())
+            .first(db_conn().await?.deref_mut())
             .await
             .optional()?)
     }
@@ -105,11 +105,11 @@ impl NewHelmRegistry {
         Ok(match diesel::insert_into(helm_registries::table)
            .values(self)
            .on_conflict_do_nothing()
-           .get_result_async(pool())
+           .get_result(db_conn().await?.deref_mut())
            .await
            .optional()? {
                Some(registry) => registry,
-               None => HelmRegistry::find_by_domain_and_repo(domain_name, repo_name).await?.expect(
+               None => HelmRegistry::find_by_domain_and_repo( domain_name, repo_name).await?.expect(
                    "HelmRegistry::find_by_domain_and_repo returned empty result after successful NewHelmRegistry::insert"),
            })
     }
@@ -126,7 +126,7 @@ impl UpdateHelmRegistry {
         Ok(
             diesel::update(helm_registries::table.filter(helm_registries::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
@@ -143,7 +143,7 @@ impl UpdateHelmRegistryKind {
         Ok(
             diesel::update(helm_registries::table.filter(helm_registries::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }

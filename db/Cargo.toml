@@ -5,11 +5,20 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0.95"
-async-diesel = { git = "https://github.com/vmalloc/async-diesel2.git", branch = "diesel-2.0" }
-async-trait = "0.1.85"
 chrono = { version = "0.4.39", default-features = false, features = [
   "std",
   "serde",
+] }
+diesel = { version = "2.2.6", features = [
+  "chrono",
+  "numeric",
+  "serde_json",
+  "uuid",
+] }
+diesel-async = { version = "0.5.2", features = [
+  "async-connection-wrapper",
+  "bb8",
+  "postgres",
 ] }
 diesel_enum_derive = { git = "https://github.com/popen2/diesel-enum-derive", default-features = false, features = [
   "plain",
@@ -21,7 +30,6 @@ lazy_static = "1.5.0"
 maplit = "1.0.2"
 platz-chart-ext = { workspace = true }
 prometheus = { workspace = true }
-r2d2 = "0.8.10"
 rust_decimal = { version = "1.36.0", default-features = false, features = [
   "db-diesel-postgres",
 ] }
@@ -42,10 +50,14 @@ utoipa = { version = "5.3.1", features = [
 ] }
 uuid = { version = "1.12.1", features = ["serde", "v4"] }
 
-[dependencies.diesel]
-features = ["chrono", "numeric", "postgres", "r2d2", "serde_json", "uuid"]
-version = "2.2.6"
-
 [dependencies.diesel_filter]
-features = ["actix", "diesel", "serde", "serialize", "pagination", "utoipa"]
+features = [
+  "actix",
+  "diesel_async",
+  "serde",
+  "serialize",
+  "pagination",
+  "utoipa",
+]
 git = "https://github.com/popen2/diesel_filter"
+tag = "v1.0.4"

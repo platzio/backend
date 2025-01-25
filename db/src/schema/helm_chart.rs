@@ -1,16 +1,17 @@
 use super::helm_registries;
-use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
-use async_diesel::*;
+use crate::{db_conn, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use chrono::prelude::*;
 use diesel::pg::Pg;
 use diesel::prelude::*;
 use diesel::query_builder::{AstPass, Query, QueryFragment};
 use diesel::QueryDsl;
+use diesel_async::RunQueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceTypes;
 use platz_chart_ext::{ChartExtActions, ChartExtFeatures, UiSchema};
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use tracing::debug;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -90,8 +91,6 @@ where
     type SqlType = T::SqlType;
 }
 
-impl<T> RunQueryDsl<PgConnection> for InUseHelmCharts<T> {}
-
 impl<T> QueryFragment<Pg> for InUseHelmCharts<T>
 where
     T: QueryFragment<Pg>,
@@ -159,7 +158,9 @@ FROM ("#,
 
 impl HelmChart {
     pub async fn all() -> DbResult<Vec<Self>> {
-        Ok(helm_charts::table.get_results_async(pool()).await?)
+        Ok(helm_charts::table
+            .get_results(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn all_filtered(
@@ -167,17 +168,16 @@ impl HelmChart {
         extra_filters: HelmChartExtraFilters,
     ) -> DbResult<Paginated<Self>> {
         debug!("{:?} {:?}", filters, extra_filters);
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
 
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            match (
-                extra_filters.in_use.unwrap_or_default(),
-                extra_filters.kind_id,
-            ) {
-                (true, Some(kind_id)) => InUseHelmCharts(
-                    Self::filter(&filters)
+        let (items, num_total) = match (
+            extra_filters.in_use.unwrap_or_default(),
+            extra_filters.kind_id,
+        ) {
+            (true, Some(kind_id)) => {
+                InUseHelmCharts(
+                    Self::filter(filters)
                         .order_by(helm_charts::created_at.desc())
                         .inner_join(helm_registries::table)
                         .filter(helm_registries::kind_id.eq(kind_id))
@@ -185,29 +185,36 @@ impl HelmChart {
                 )
                 .paginate(Some(page))
                 .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn),
-                (true, None) => {
-                    InUseHelmCharts(Self::filter(&filters).order_by(helm_charts::created_at.desc()))
-                        .paginate(Some(page))
-                        .per_page(Some(per_page))
-                        .load_and_count::<Self>(&mut conn)
-                }
-                (false, Some(kind_id)) => Self::filter(&filters)
+                .load_and_count(db_conn().await?.deref_mut())
+                .await
+            }
+            (true, None) => {
+                InUseHelmCharts(Self::filter(filters).order_by(helm_charts::created_at.desc()))
+                    .paginate(Some(page))
+                    .per_page(Some(per_page))
+                    .load_and_count(db_conn().await?.deref_mut())
+                    .await
+            }
+            (false, Some(kind_id)) => {
+                Self::filter(filters)
                     .order_by(helm_charts::created_at.desc())
                     .inner_join(helm_registries::table)
                     .filter(helm_registries::kind_id.eq(kind_id))
                     .select(helm_charts::all_columns)
                     .paginate(Some(page))
                     .per_page(Some(per_page))
-                    .load_and_count::<Self>(&mut conn),
-                (false, None) => Self::filter(&filters)
+                    .load_and_count(db_conn().await?.deref_mut())
+                    .await
+            }
+            (false, None) => {
+                Self::filter(filters)
                     .order_by(helm_charts::created_at.desc())
                     .paginate(Some(page))
                     .per_page(Some(per_page))
-                    .load_and_count::<Self>(&mut conn),
+                    .load_and_count(db_conn().await?.deref_mut())
+                    .await
             }
-        })
-        .await??;
+        }?;
 
         Ok(Paginated {
             page,
@@ -218,7 +225,10 @@ impl HelmChart {
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {
-        Ok(helm_charts::table.find(id).get_result_async(pool()).await?)
+        Ok(helm_charts::table
+            .find(id)
+            .get_result(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn find_by_registry_and_digest(
@@ -228,7 +238,7 @@ impl HelmChart {
         Ok(helm_charts::table
             .filter(helm_charts::helm_registry_id.eq(registry_id))
             .filter(helm_charts::image_digest.eq(image_digest))
-            .first_async(pool())
+            .first(db_conn().await?.deref_mut())
             .await
             .optional()?)
     }
@@ -283,7 +293,7 @@ impl NewHelmChart {
     pub async fn insert(self) -> DbResult<HelmChart> {
         Ok(diesel::insert_into(helm_charts::table)
             .values(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -298,7 +308,7 @@ impl UpdateHelmChart {
     pub async fn save(self, id: Uuid) -> DbResult<HelmChart> {
         Ok(diesel::update(helm_charts::table.find(id))
             .set(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -322,7 +332,7 @@ impl HelmChartTagInfo {
     pub async fn save(self, id: Uuid) -> DbResult<HelmChart> {
         Ok(diesel::update(helm_charts::table.find(id))
             .set(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }

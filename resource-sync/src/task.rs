@@ -3,13 +3,13 @@ use platz_chart_ext::resource_types::{
     ChartExtResourceLifecycleActionV1Beta1, ChartExtResourceLifecycleV1Beta1,
 };
 use platz_db::{
-    db_events, DbEventOperation, DbTable, DeploymentResource, DeploymentResourceSyncStatus,
+    Db, DbEventOperation, DbTable, DeploymentResource, DeploymentResourceSyncStatus,
     DeploymentResourceType, UpdateDeploymentResourceSyncStatus,
 };
 use tracing::{debug, error, info};
 
-pub async fn monitor_deployment_resource_changes() -> Result<()> {
-    let mut db_rx = db_events();
+pub async fn monitor_deployment_resource_changes(db: &Db) -> Result<()> {
+    let mut db_rx = db.subscribe_to_events();
     while let Ok(event) = db_rx.recv().await {
         debug!("Got {:?}", event);
         if event.table == DbTable::DeploymentResources {

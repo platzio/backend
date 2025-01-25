@@ -1,13 +1,14 @@
 use crate::Deployment;
 use crate::DeploymentResourceType;
-use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
-use async_diesel::*;
+use crate::{db_conn, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use chrono::prelude::*;
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use platz_chart_ext::ChartExtActionTarget;
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use strum::{Display, EnumString};
 use tracing::warn;
 use utoipa::ToSchema;
@@ -69,21 +70,18 @@ pub struct DeploymentResource {
 impl DeploymentResource {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployment_resources::table
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
     pub async fn all_filtered(filters: DeploymentResourceFilters) -> DbResult<Paginated<Self>> {
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn)
-        })
-        .await??;
+        let (items, num_total) = Self::filter(filters)
+            .paginate(Some(page))
+            .per_page(Some(per_page))
+            .load_and_count(db_conn().await?.deref_mut())
+            .await?;
         Ok(Paginated {
             page,
             per_page,
@@ -95,14 +93,14 @@ impl DeploymentResource {
     pub async fn find(id: Uuid) -> DbResult<Self> {
         Ok(deployment_resources::table
             .find(id)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
     pub async fn find_by_type(type_id: Uuid) -> DbResult<Vec<Self>> {
         Ok(deployment_resources::table
             .filter(deployment_resources::type_id.eq(type_id))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -110,7 +108,7 @@ impl DeploymentResource {
         Ok(deployment_resources::table
             .filter(deployment_resources::type_id.eq(type_id))
             .find(id)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -140,7 +138,9 @@ impl DeploymentResource {
         target
             .call(&deployment, self)
             .await
-            .map_err(|err| DbError::DeploymentResourceSyncError(self.name.clone(), err.to_string()))
+            .map_err(|err: anyhow::Error| {
+                DbError::DeploymentResourceSyncError(self.name.clone(), err.to_string())
+            })
     }
 
     pub async fn delete(&self) -> DbResult<()> {
@@ -167,7 +167,7 @@ impl NewDeploymentResource {
     pub async fn insert(self) -> DbResult<DeploymentResource> {
         Ok(diesel::insert_into(deployment_resources::table)
             .values(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -211,7 +211,7 @@ impl UpdateDeploymentResource {
                     self.name.map(|name| deployment_resources::name.eq(name)),
                     props.map(|props| deployment_resources::props.eq(props)),
                 ))
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
@@ -228,7 +228,7 @@ impl UpdateDeploymentResourceExists {
         Ok(
             diesel::update(deployment_resources::table.filter(deployment_resources::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
@@ -246,7 +246,7 @@ impl UpdateDeploymentResourceSyncStatus {
         Ok(
             diesel::update(deployment_resources::table.filter(deployment_resources::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }

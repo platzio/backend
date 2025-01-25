@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use platz_db::{DbTable, NotificationListeningOpts};
+use platz_db::{init_db, DbTable, NotificationListeningOpts};
 use tokio::{
     select,
     signal::unix::{signal, SignalKind},
@@ -30,11 +30,13 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
+    let db = init_db().await;
+
     kind::update_all_registries().await?;
 
     let tag_parser_fut = async {
         if config.enable_tag_parser {
-            tag_parser::run().await
+            tag_parser::run(db).await
         } else {
             futures::future::pending::<Result<()>>().await
         }
@@ -51,7 +53,7 @@ async fn main() -> Result<()> {
             Ok(())
         }
 
-        result = platz_db::serve_db_events(
+        result = db.serve_db_events(
             NotificationListeningOpts::on_table(DbTable::HelmTagFormats),
         ) => {
             warn!("DB events task exited: {result:?}");

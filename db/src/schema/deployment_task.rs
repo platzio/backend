@@ -4,16 +4,17 @@ use crate::HelmChart;
 use crate::Identity;
 use crate::K8sCluster;
 use crate::NewDeploymentResourceType;
-use crate::{pool, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
-use async_diesel::*;
+use crate::{db_conn, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::{DieselFilter, Paginate};
 use diesel_json::Json;
 use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -119,14 +120,15 @@ pub struct DeploymentTaskStat {
 
 impl DeploymentTask {
     pub async fn all() -> DbResult<Vec<Self>> {
-        Ok(deployment_tasks::table.get_results_async(pool()).await?)
+        Ok(deployment_tasks::table
+            .get_results(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn all_filtered(
         filters: DeploymentTaskFilters,
         extra_filters: DeploymentTaskExtraFilters,
     ) -> DbResult<Paginated<Self>> {
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
@@ -140,31 +142,29 @@ impl DeploymentTask {
         } else {
             None
         };
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            let mut filtered = Self::filter(&filters);
-            if extra_filters.active_only.unwrap_or(false) {
-                filtered = filtered.filter(
-                    deployment_tasks::status
-                        .eq(DeploymentTaskStatus::Started)
-                        .or(deployment_tasks::status.eq(DeploymentTaskStatus::Pending)),
-                );
-            }
-            if !extra_filters.show_future.unwrap_or(true) {
-                filtered = filtered.filter(deployment_tasks::execute_at.le(diesel::dsl::now));
-            }
-            if let Some(from_date_time) = extra_filters.created_from {
-                filtered = filtered.filter(deployment_tasks::created_at.ge(from_date_time))
-            }
-            if let Some(cluster_ids) = allowed_cluster_ids {
-                filtered = filtered.filter(deployment_tasks::cluster_id.eq_any(cluster_ids))
-            }
-            filtered
-                .order_by(deployment_tasks::execute_at.desc())
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn)
-        })
-        .await??;
+        let mut filtered = Self::filter(filters);
+        if extra_filters.active_only.unwrap_or(false) {
+            filtered = filtered.filter(
+                deployment_tasks::status
+                    .eq(DeploymentTaskStatus::Started)
+                    .or(deployment_tasks::status.eq(DeploymentTaskStatus::Pending)),
+            );
+        }
+        if !extra_filters.show_future.unwrap_or(true) {
+            filtered = filtered.filter(deployment_tasks::execute_at.le(diesel::dsl::now));
+        }
+        if let Some(from_date_time) = extra_filters.created_from {
+            filtered = filtered.filter(deployment_tasks::created_at.ge(from_date_time))
+        }
+        if let Some(cluster_ids) = allowed_cluster_ids {
+            filtered = filtered.filter(deployment_tasks::cluster_id.eq_any(cluster_ids))
+        }
+        let (items, num_total) = filtered
+            .order_by(deployment_tasks::execute_at.desc())
+            .paginate(Some(page))
+            .per_page(Some(per_page))
+            .load_and_count(db_conn().await?.deref_mut())
+            .await?;
         Ok(Paginated {
             page,
             per_page,
@@ -176,14 +176,14 @@ impl DeploymentTask {
     pub async fn find_by_deployment_id(deployment_id: Uuid) -> DbResult<Vec<Self>> {
         Ok(deployment_tasks::table
             .filter(deployment_tasks::deployment_id.eq(deployment_id))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {
         Ok(deployment_tasks::table
             .find(id)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -193,7 +193,7 @@ impl DeploymentTask {
             .filter(deployment_tasks::cluster_id.eq_any(cluster_ids.to_owned()))
             .filter(deployment_tasks::execute_at.le(diesel::dsl::now))
             .order_by(deployment_tasks::execute_at.asc())
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await
             .optional()?)
     }
@@ -268,7 +268,7 @@ impl DeploymentTask {
 
     pub async fn delete(&self) -> DbResult<()> {
         diesel::delete(deployment_tasks::table.find(self.id))
-            .execute_async(pool())
+            .execute(db_conn().await?.deref_mut())
             .await?;
         Ok(())
     }
@@ -277,7 +277,7 @@ impl DeploymentTask {
         Ok(deployment_tasks::table
             .group_by(deployment_tasks::status)
             .select((diesel::dsl::count_star(), deployment_tasks::status))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -302,7 +302,7 @@ impl NewDeploymentTask {
     pub async fn insert(self) -> DbResult<DeploymentTask> {
         Ok(diesel::insert_into(deployment_tasks::table)
             .values(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -322,7 +322,7 @@ impl UpdateDeploymentTask {
         Ok(
             diesel::update(deployment_tasks::table.filter(deployment_tasks::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
@@ -534,7 +534,7 @@ impl CancelDeploymentTask {
                     deployment_tasks::status.eq(DeploymentTaskStatus::Canceled),
                     deployment_tasks::finished_at.eq(diesel::dsl::now),
                 ))
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }

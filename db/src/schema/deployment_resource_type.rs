@@ -1,11 +1,14 @@
-use crate::{pool, DbTableOrDeploymentResource, DeploymentKind, Paginated, DEFAULT_PAGE_SIZE};
-use crate::{DbError, DbResult};
-use async_diesel::*;
+use crate::{
+    db_conn, DbError, DbResult, DbTableOrDeploymentResource, DeploymentKind, Paginated,
+    DEFAULT_PAGE_SIZE,
+};
 use chrono::prelude::*;
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use platz_chart_ext::resource_types::ChartExtResourceTypeV1Beta1Spec;
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -40,21 +43,18 @@ pub struct DeploymentResourceType {
 impl DeploymentResourceType {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployment_resource_types::table
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
     pub async fn all_filtered(filters: DeploymentResourceTypeFilters) -> DbResult<Paginated<Self>> {
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn)
-        })
-        .await??;
+        let (items, num_total) = Self::filter(filters)
+            .paginate(Some(page))
+            .per_page(Some(per_page))
+            .load_and_count(db_conn().await?.deref_mut())
+            .await?;
         Ok(Paginated {
             page,
             per_page,
@@ -66,7 +66,7 @@ impl DeploymentResourceType {
     pub async fn find(id: Uuid) -> DbResult<Self> {
         Ok(deployment_resource_types::table
             .find(id)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -77,7 +77,7 @@ impl DeploymentResourceType {
                     .eq(env_id)
                     .or(deployment_resource_types::env_id.is_null()),
             )
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -95,7 +95,7 @@ impl DeploymentResourceType {
                     .eq(env_id)
                     .or(deployment_resource_types::env_id.is_null()),
             )
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -104,7 +104,7 @@ impl DeploymentResourceType {
         Ok(deployment_resource_types::table
             .filter(deployment_resource_types::deployment_kind_id.eq(kind_obj.id))
             .filter(deployment_resource_types::key.eq(key))
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -116,7 +116,7 @@ impl DeploymentResourceType {
                     .eq(env_id)
                     .or(deployment_resource_types::env_id.is_null()),
             )
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
@@ -151,7 +151,7 @@ impl NewDeploymentResourceType {
     pub async fn save(self) -> DbResult<()> {
         diesel::insert_into(deployment_resource_types::table)
             .values(self)
-            .execute_async(pool())
+            .execute(db_conn().await?.deref_mut())
             .await?;
         Ok(())
     }

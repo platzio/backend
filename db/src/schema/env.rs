@@ -1,9 +1,10 @@
-use crate::{pool, DbResult, K8sCluster, Paginated, DEFAULT_PAGE_SIZE};
-use async_diesel::*;
+use crate::{db_conn, DbResult, K8sCluster, Paginated, DEFAULT_PAGE_SIZE};
 use chrono::prelude::*;
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -34,20 +35,19 @@ pub struct Env {
 
 impl Env {
     pub async fn all() -> DbResult<Vec<Self>> {
-        Ok(envs::table.get_results_async(pool()).await?)
+        Ok(envs::table
+            .get_results(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn all_filtered(filters: EnvFilters) -> DbResult<Paginated<Self>> {
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn)
-        })
-        .await??;
+        let (items, num_total) = Self::filter(filters)
+            .paginate(Some(page))
+            .per_page(Some(per_page))
+            .load_and_count(db_conn().await?.deref_mut())
+            .await?;
         Ok(Paginated {
             page,
             per_page,
@@ -57,13 +57,16 @@ impl Env {
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {
-        Ok(envs::table.find(id).get_result_async(pool()).await?)
+        Ok(envs::table
+            .find(id)
+            .get_result(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn delete(&self) -> DbResult<()> {
         K8sCluster::detach_from_env(self.id).await?;
         diesel::delete(envs::table.find(self.id))
-            .execute_async(pool())
+            .execute(db_conn().await?.deref_mut())
             .await?;
         Ok(())
     }
@@ -81,7 +84,7 @@ impl NewEnv {
     pub async fn save(self) -> DbResult<Env> {
         Ok(diesel::insert_into(envs::table)
             .values(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -99,7 +102,7 @@ impl UpdateEnv {
     pub async fn save(self, id: Uuid) -> DbResult<Env> {
         Ok(diesel::update(envs::table.filter(envs::id.eq(id)))
             .set(self)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }

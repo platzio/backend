@@ -7,7 +7,7 @@ pub enum DbError {
     TokioJoinError(#[from] tokio::task::JoinError),
 
     #[error("Database pool error: {0}")]
-    R2d2Error(#[from] r2d2::Error),
+    Bb8Error(#[from] diesel_async::pooled_connection::bb8::RunError),
 
     #[error("Not found")]
     NotFound,
@@ -53,15 +53,6 @@ pub enum DbError {
 }
 
 pub type DbResult<T> = Result<T, DbError>;
-
-impl From<async_diesel::AsyncError> for DbError {
-    fn from(err: async_diesel::AsyncError) -> Self {
-        match err {
-            async_diesel::AsyncError::Checkout(err) => Self::R2d2Error(err),
-            async_diesel::AsyncError::Error(err) => Self::DieselError(err),
-        }
-    }
-}
 
 impl From<diesel::result::Error> for DbError {
     fn from(err: diesel::result::Error) -> Self {

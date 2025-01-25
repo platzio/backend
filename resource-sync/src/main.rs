@@ -2,7 +2,7 @@ mod task;
 
 use crate::task::{monitor_deployment_resource_changes, scrub_deployment_resources};
 use anyhow::Result;
-use platz_db::DbTable;
+use platz_db::{init_db, DbTable};
 use tokio::{
     select,
     signal::unix::{signal, SignalKind},
@@ -16,7 +16,9 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
-    let fut = tokio::spawn(monitor_deployment_resource_changes());
+    let db = init_db().await;
+
+    let fut = tokio::spawn(monitor_deployment_resource_changes(db));
 
     info!("Scrubbing all existing deployment resources");
     scrub_deployment_resources().await?;
@@ -33,7 +35,7 @@ async fn main() -> Result<()> {
             Ok(())
         }
 
-        result = platz_db::serve_db_events(
+        result = db.serve_db_events(
             platz_db::NotificationListeningOpts::on_table(
                 DbTable::DeploymentResources,
             ),

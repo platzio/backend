@@ -6,7 +6,7 @@ mod utils;
 
 use crate::config::CONFIG;
 use anyhow::Result;
-use platz_db::DbTable;
+use platz_db::{init_db, DbTable};
 use tokio::{
     select,
     signal::unix::{signal, SignalKind},
@@ -20,6 +20,8 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
+    let db = init_db().await;
+
     select! {
         _ = sigterm.recv() => {
             warn!("SIGTERM received, exiting");
@@ -31,7 +33,7 @@ async fn main() -> Result<()> {
             Ok(())
         }
 
-        result = platz_db::serve_db_events(
+        result = db.serve_db_events(
             platz_db::NotificationListeningOpts::on_table(
                 DbTable::DeploymentTasks,
             ),
@@ -45,7 +47,7 @@ async fn main() -> Result<()> {
             result
         }
 
-        result = task_runner::start() => {
+        result = task_runner::start(db) => {
             warn!("Task runner finished");
             result
         }

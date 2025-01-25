@@ -10,20 +10,20 @@ use crate::k8s::K8S_TRACKER;
 use crate::utils::create_interval_stream;
 use anyhow::Result;
 use futures::StreamExt;
-use platz_db::{db_events, DbEvent, DbEventOperation, DbTable, DeploymentTask};
+use platz_db::{Db, DbEvent, DbEventOperation, DbTable, DeploymentTask};
 use runnable_task::RunnableDeploymentTask;
 pub use secrets::apply_secret;
 use tokio::{select, sync::watch};
 use tracing::{debug, error, info, Instrument};
 
-#[tracing::instrument(err, name = "task_runner")]
-pub async fn start() -> Result<()> {
+#[tracing::instrument(err, skip_all, name = "task_runner")]
+pub async fn start(db: &Db) -> Result<()> {
     let (db_events_tx, mut db_events_rx) = watch::channel(());
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
+    let mut db_rx = db.subscribe_to_events();
 
     tokio::spawn(
         async move {
-            let mut db_rx = db_events();
             while let Ok(event) = db_rx.recv().await {
                 tracing::debug!(?event);
                 if is_new_task(&event) {

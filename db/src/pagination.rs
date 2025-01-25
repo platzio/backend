@@ -6,7 +6,7 @@ pub const DEFAULT_PAGE_SIZE: i64 = 50;
 #[derive(Serialize, ToSchema)]
 pub struct Paginated<T>
 where
-    T: Serialize + ToSchema<'static>,
+    T: Serialize + ToSchema,
 {
     #[schema(example = "1")]
     pub page: i64,

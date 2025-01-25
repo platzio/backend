@@ -1,10 +1,11 @@
-use crate::{pool, DbResult, Paginated, DEFAULT_PAGE_SIZE};
-use async_diesel::*;
+use crate::{db_conn, DbResult, Paginated, DEFAULT_PAGE_SIZE};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel::QueryDsl;
+use diesel_async::RunQueryDsl;
 use diesel_filter::{DieselFilter, Paginate};
 use serde::{Deserialize, Serialize};
+use std::ops::DerefMut;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -60,20 +61,19 @@ pub struct K8sCluster {
 
 impl K8sCluster {
     pub async fn all() -> DbResult<Vec<Self>> {
-        Ok(k8s_clusters::table.get_results_async(pool()).await?)
+        Ok(k8s_clusters::table
+            .get_results(db_conn().await?.deref_mut())
+            .await?)
     }
 
     pub async fn all_filtered(filters: K8sClusterFilters) -> DbResult<Paginated<Self>> {
-        let mut conn = pool().get()?;
         let page = filters.page.unwrap_or(1);
         let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
-        let (items, num_total) = tokio::task::spawn_blocking(move || {
-            Self::filter(&filters)
-                .paginate(Some(page))
-                .per_page(Some(per_page))
-                .load_and_count::<Self>(&mut conn)
-        })
-        .await??;
+        let (items, num_total) = Self::filter(filters)
+            .paginate(Some(page))
+            .per_page(Some(per_page))
+            .load_and_count(db_conn().await?.deref_mut())
+            .await?;
         Ok(Paginated {
             page,
             per_page,
@@ -85,28 +85,28 @@ impl K8sCluster {
     pub async fn find(id: Uuid) -> DbResult<Self> {
         Ok(k8s_clusters::table
             .find(id)
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 
     pub async fn find_by_env_id(env_id: Uuid) -> DbResult<Vec<Self>> {
         Ok(k8s_clusters::table
             .filter(k8s_clusters::env_id.eq(env_id))
-            .get_results_async(pool())
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 
     pub async fn find_by_provider_id(value: String) -> DbResult<Option<Self>> {
         Ok(k8s_clusters::table
             .filter(k8s_clusters::provider_id.eq(value))
-            .first_async(pool())
+            .first(db_conn().await?.deref_mut())
             .await
             .optional()?)
     }
 
     pub async fn delete(&self) -> DbResult<()> {
         diesel::delete(k8s_clusters::table.find(self.id))
-            .execute_async(pool())
+            .execute(db_conn().await?.deref_mut())
             .await?;
         Ok(())
     }
@@ -122,7 +122,7 @@ impl K8sCluster {
                 grafana_url: None,
                 grafana_datasource_name: None,
             })
-            .execute_async(pool())
+            .execute(db_conn().await?.deref_mut())
             .await?;
         Ok(())
     }
@@ -151,7 +151,7 @@ impl NewK8sCluster {
                 k8s_clusters::name.eq(name),
                 k8s_clusters::region_name.eq(region_name),
             ))
-            .get_result_async(pool())
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
@@ -168,7 +168,7 @@ impl UpdateK8sClusterStatus {
         Ok(
             diesel::update(k8s_clusters::table.filter(k8s_clusters::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }
@@ -197,7 +197,7 @@ impl UpdateK8sCluster {
         Ok(
             diesel::update(k8s_clusters::table.filter(k8s_clusters::id.eq(id)))
                 .set(self)
-                .get_result_async(pool())
+                .get_result(db_conn().await?.deref_mut())
                 .await?,
         )
     }

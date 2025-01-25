@@ -12,7 +12,6 @@ pub enum DbTableOrDeploymentResource {
     LegacyCollectionName(String),
 }
 
-#[async_trait::async_trait]
 impl UiSchemaCollections for DbTableOrDeploymentResource {
     type Error = DbError;
 

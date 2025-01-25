@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
-use platz_db::{run_db_migrations, serve_db_events, NotificationListeningOpts};
+use platz_db::{init_db, NotificationListeningOpts};
 use routes::openapi::SchemaFormat;
 use tokio::{
     select,
@@ -32,8 +32,11 @@ struct RunCommand {
 impl RunCommand {
     async fn run(self) -> Result<()> {
         tracing_subscriber::fmt::init();
+        let db = init_db().await;
 
-        run_db_migrations().map_err(|error| anyhow!("Running migrations failed: {error:?}"))?;
+        db.run_migrations()
+            .await
+            .map_err(|error| anyhow!("Running migrations failed: {error:?}"))?;
         let mut sigterm = signal(SignalKind::terminate())?;
         let mut sigint = signal(SignalKind::interrupt())?;
 
@@ -48,7 +51,7 @@ impl RunCommand {
                 Ok(())
             }
 
-            result = serve_db_events(NotificationListeningOpts::all()) => {
+            result = db.serve_db_events(NotificationListeningOpts::all()) => {
                 warn!("DB events task exited: {result:?}");
                 result.map_err(Into::into)
             }

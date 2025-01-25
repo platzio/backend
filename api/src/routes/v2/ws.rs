@@ -1,7 +1,7 @@
 use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use platz_db::{db_events, DbEvent, DbEventData, DbEventOperation};
+use platz_db::{db, DbEvent, DbEventData, DbEventOperation};
 use std::time::Duration;
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 use tracing::error;
@@ -13,7 +13,8 @@ impl Actor for DbEventsWs {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let stream = BroadcastStream::new(db_events());
+        let rx = db().subscribe_to_events();
+        let stream = BroadcastStream::new(rx);
         ctx.add_stream(stream);
         ctx.run_interval(Duration::from_secs(30), Self::keepalive);
     }
