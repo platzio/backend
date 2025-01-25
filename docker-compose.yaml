@@ -7,15 +7,11 @@ services:
     ports:
       - 15432:5432
   idp:
-    image: qlik/simple-oidc-provider
-    environment:
-      CONFIG_FILE: /etc/oidc-config.json
-      USERS_FILE: /etc/oidc-users.json
+    image: dexidp/dex
     volumes:
-      - ./.dev/oidc-config.json:/etc/oidc-config.json:ro
-      - ./.dev/oidc-users.json:/etc/oidc-users.json:ro
+      - ./scripts/dex.config.yaml:/etc/dex/config.docker.yaml:ro
     ports:
-      - 9000:9000
+      - 5556:5556
   platz-api:
     build:
       context: .
@@ -28,7 +24,7 @@ services:
     environment:
       ADMIN_EMAILS: admin@example.com
       DATABASE_URL: postgres://postgres:postgres@db:5432
-      OIDC_SERVER_URL: http://idp:9000
+      OIDC_SERVER_URL: http://idp:5556
       OIDC_CLIENT_ID: foo
       OIDC_CLIENT_SECRET: bar
       PLATZ_OWN_URL: https://localhost:8080
