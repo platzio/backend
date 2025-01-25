@@ -32,8 +32,6 @@ async fn main() -> Result<()> {
 
     let db = init_db().await;
 
-    kind::update_all_registries().await?;
-
     let tag_parser_fut = async {
         if config.enable_tag_parser {
             tag_parser::run(db).await

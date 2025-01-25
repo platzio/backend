@@ -1,18 +1,6 @@
 use anyhow::Result;
-use platz_db::{DeploymentKind, HelmRegistry, NewDeploymentKind, UpdateHelmRegistryKind};
+use platz_db::{DeploymentKind, NewDeploymentKind};
 use titlecase::titlecase;
-
-pub async fn update_all_registries() -> Result<()> {
-    for helm_registry in HelmRegistry::all().await?.into_iter() {
-        let deploy_kind = get_or_create_kind(&helm_registry.repo_name).await?;
-        UpdateHelmRegistryKind {
-            kind_id: deploy_kind.id,
-        }
-        .save(helm_registry.id)
-        .await?;
-    }
-    Ok(())
-}
 
 pub async fn get_or_create_kind(repo_name: &str) -> Result<DeploymentKind> {
     let kind_name = get_kind(repo_name);
