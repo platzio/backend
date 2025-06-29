@@ -85,7 +85,7 @@ impl OpenapiCommand {
     fn run(self) -> Result<()> {
         let OpenapiCommand::Schema { format } = self;
         let schema = routes::openapi::get_schema(format);
-        println!("{}", schema);
+        println!("{schema}");
         Ok(())
     }
 }
