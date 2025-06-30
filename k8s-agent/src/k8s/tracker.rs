@@ -459,9 +459,11 @@ fn k8s_deployment_status(
     let available = status.available_replicas.unwrap_or_default() as usize;
     let unavailable = status.unavailable_replicas.unwrap_or_default() as usize;
 
-    std::iter::repeat(DeploymentReportedStatusColor::Success)
-        .take(available)
-        .chain(std::iter::repeat(DeploymentReportedStatusColor::Danger).take(unavailable))
+    std::iter::repeat_n(DeploymentReportedStatusColor::Success, available)
+        .chain(std::iter::repeat_n(
+            DeploymentReportedStatusColor::Danger,
+            unavailable,
+        ))
         .collect()
 }
 
@@ -476,9 +478,12 @@ fn k8s_statefulset_status(
     let replicas = status.replicas as usize;
     let ready = status.ready_replicas.unwrap_or_default() as usize;
 
-    std::iter::repeat(DeploymentReportedStatusColor::Success)
+    std::iter::repeat_n(DeploymentReportedStatusColor::Success, ready)
         .take(ready)
-        .chain(std::iter::repeat(DeploymentReportedStatusColor::Danger).take(replicas - ready))
+        .chain(std::iter::repeat_n(
+            DeploymentReportedStatusColor::Danger,
+            replicas - ready,
+        ))
         .collect()
 }
 
@@ -488,15 +493,17 @@ fn k8s_job_status(job: &k8s_openapi::api::batch::v1::Job) -> Vec<DeploymentRepor
         None => return Vec::new(),
     };
 
-    std::iter::repeat(DeploymentReportedStatusColor::Primary)
-        .take(status.active.unwrap_or_default() as usize)
-        .chain(
-            std::iter::repeat(DeploymentReportedStatusColor::Success)
-                .take(status.succeeded.unwrap_or_default() as usize),
-        )
-        .chain(
-            std::iter::repeat(DeploymentReportedStatusColor::Danger)
-                .take(status.failed.unwrap_or_default() as usize),
-        )
-        .collect()
+    std::iter::repeat_n(
+        DeploymentReportedStatusColor::Primary,
+        status.active.unwrap_or_default() as usize,
+    )
+    .chain(std::iter::repeat_n(
+        DeploymentReportedStatusColor::Success,
+        status.succeeded.unwrap_or_default() as usize,
+    ))
+    .chain(std::iter::repeat_n(
+        DeploymentReportedStatusColor::Danger,
+        status.failed.unwrap_or_default() as usize,
+    ))
+    .collect()
 }

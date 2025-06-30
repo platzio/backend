@@ -136,7 +136,7 @@ impl DbEventBroadcast {
         }));
 
         client
-            .execute(&format!("LISTEN {}", channel_name), &[])
+            .execute(&format!("LISTEN {channel_name}"), &[])
             .await
             .map_err(DbEventsError::ListenQueryFailed)?;
 
