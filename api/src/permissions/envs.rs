@@ -1,6 +1,9 @@
 use super::verify_site_admin;
 use crate::result::ApiError;
-use platz_db::{EnvUserPermission, EnvUserRole, Identity};
+use platz_db::{
+    schema::env_user_permission::{EnvUserPermission, EnvUserRole},
+    Identity,
+};
 use uuid::Uuid;
 
 pub async fn verify_env_admin<I>(env_id: Uuid, identity: &I) -> Result<(), ApiError>

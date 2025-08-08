@@ -37,6 +37,5 @@ async fn get_one() -> ApiResult {
         description = "Return information about the Platz server.",
     )),
     paths(get_one),
-    components(schemas(ServerInfo)),
 )]
 pub(super) struct OpenApi;

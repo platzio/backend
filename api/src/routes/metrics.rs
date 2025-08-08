@@ -1,7 +1,10 @@
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
-use platz_db::{
-    Deployment, DeploymentKind, DeploymentStatus, DeploymentTask, DeploymentTaskStatus, K8sCluster,
+use platz_db::schema::{
+    deployment::{Deployment, DeploymentStatus},
+    deployment_kind::DeploymentKind,
+    deployment_task::{DeploymentTask, DeploymentTaskStatus},
+    k8s_cluster::K8sCluster,
 };
 use prometheus::{register_int_gauge_vec, IntGaugeVec};
 use std::collections::HashMap;
@@ -68,7 +71,7 @@ async fn update_metrics() -> Result<()> {
         for status in DeploymentStatus::iter() {
             for cluster_name in cluster_id_to_cluster_name.values() {
                 DEPLOYMENT_STATUS_COUNTERS
-                    .with_label_values(&[&kind, status.as_ref(), cluster_name])
+                    .with_label_values(&[kind.as_str(), status.as_ref(), cluster_name])
                     .set(0);
             }
         }

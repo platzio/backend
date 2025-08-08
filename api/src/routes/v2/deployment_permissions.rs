@@ -3,8 +3,10 @@ use crate::result::ApiResult;
 use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
-    DeploymentPermission, DeploymentPermissionFilters, NewDeploymentPermission, Paginated,
-    UserDeploymentRole,
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::deployment_permission::{
+        DeploymentPermission, DeploymentPermissionFilters, NewDeploymentPermission,
+    },
 };
 use uuid::Uuid;
 
@@ -20,7 +22,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<DeploymentPermission>),
+            body = Paginated<DeploymentPermission>,
         ),
     ),
 )]
@@ -28,8 +30,11 @@ use uuid::Uuid;
 async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<DeploymentPermissionFilters>,
+    pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
-    Ok(HttpResponse::Ok().json(DeploymentPermission::all_filtered(filters.into_inner()).await?))
+    Ok(HttpResponse::Ok().json(
+        DeploymentPermission::all_filtered(filters.into_inner(), pagination.into_inner()).await?,
+    ))
 }
 
 #[utoipa::path(
@@ -111,6 +116,5 @@ See UserDeploymentRole for more information.
         ",
     )),
     paths(get_all, get_one, create, delete),
-    components(schemas(DeploymentPermission, UserDeploymentRole, NewDeploymentPermission,))
 )]
 pub(super) struct OpenApi;

@@ -1,8 +1,12 @@
 use super::runnable_task::RunnableDeploymentOperation;
 use anyhow::{anyhow, Result};
 use platz_db::{
-    DbError, DbTableOrDeploymentResource, Deployment, DeploymentInvokeActionTask, DeploymentTask,
-    K8sCluster,
+    schema::{
+        deployment::Deployment,
+        deployment_task::{DeploymentInvokeActionTask, DeploymentTask},
+        k8s_cluster::K8sCluster,
+    },
+    DbError, DbTableOrDeploymentResource,
 };
 use tracing::debug;
 

@@ -1,7 +1,10 @@
 use crate::result::ApiResult;
 use actix_web::{get, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{K8sResource, K8sResourceFilters, Paginated};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::k8s_resource::{K8sResource, K8sResourceFilters},
+};
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -16,13 +19,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<K8sResource>),
+            body = Paginated<K8sResource>,
         ),
     ),
 )]
 #[get("/k8s-resources")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<K8sResourceFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(K8sResource::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<K8sResourceFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(K8sResource::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -57,8 +65,5 @@ Platz.
         ",
     )),
     paths(get_all, get_one),
-    components(schemas(
-        K8sResource,
-    )),
 )]
 pub(super) struct OpenApi;

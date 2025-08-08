@@ -4,7 +4,7 @@ use aws_sdk_ecr::types::Repository;
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use aws_types::region::Region;
 use itertools::Itertools;
-use platz_db::{HelmRegistry, NewHelmRegistry};
+use platz_db::schema::helm_registry::{HelmRegistry, NewHelmRegistry};
 use tracing::info;
 
 pub async fn find_and_save_ecr_repo(region: Region, repo_name: &str) -> Result<HelmRegistry> {

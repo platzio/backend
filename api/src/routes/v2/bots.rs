@@ -2,7 +2,11 @@ use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{Bot, BotFilters, DbError, NewBot, Paginated, UpdateBot};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::bot::{Bot, BotFilters, NewBot, UpdateBot},
+    DbError,
+};
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -17,13 +21,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<Bot>),
+            body = Paginated<Bot>,
         ),
     ),
 )]
 #[get("/bots")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<BotFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Bot::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<BotFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(Bot::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -128,10 +137,5 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
         description = "This collection contains all bots in Platz.",
     )),
     paths(get_all, get_one, update),
-    components(schemas(
-        Bot,
-        NewBot,
-        UpdateBot,
-    )),
 )]
 pub(super) struct OpenApi;

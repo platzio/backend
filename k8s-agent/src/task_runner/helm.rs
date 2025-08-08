@@ -6,7 +6,9 @@ use anyhow::Result;
 use base64::prelude::*;
 use k8s_openapi::api::core::v1::{Container, EnvVar, Pod, PodSpec};
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
-use platz_db::{Deployment, DeploymentTask, HelmRegistry};
+use platz_db::schema::{
+    deployment::Deployment, deployment_task::DeploymentTask, helm_registry::HelmRegistry,
+};
 use tracing::debug;
 
 // -------------------------------------------------------------------------

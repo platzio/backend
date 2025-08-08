@@ -1,6 +1,9 @@
 use crate::error::AuthError;
 use base64::prelude::*;
-use platz_db::{BotToken, Identity, UserToken};
+use platz_db::{
+    schema::{bot_token::BotToken, user_token::UserToken},
+    Identity,
+};
 use rand::random;
 use sha2::{Digest, Sha256};
 use tokio::task::spawn_blocking;

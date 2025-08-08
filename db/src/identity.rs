@@ -1,5 +1,4 @@
-use crate::schema::Deployment;
-use crate::schema::User;
+use crate::schema::{deployment::Deployment, user::User};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

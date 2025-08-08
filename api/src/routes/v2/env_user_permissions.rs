@@ -1,9 +1,11 @@
-use crate::permissions::verify_env_admin;
-use crate::result::ApiResult;
+use crate::{permissions::verify_env_admin, result::ApiResult};
 use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
-    EnvUserPermission, EnvUserPermissionFilters, EnvUserRole, NewEnvUserPermission, Paginated,
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::env_user_permission::{
+        EnvUserPermission, EnvUserPermissionFilters, NewEnvUserPermission,
+    },
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -20,7 +22,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<EnvUserPermission>),
+            body = Paginated<EnvUserPermission>,
         ),
     ),
 )]
@@ -28,8 +30,11 @@ use uuid::Uuid;
 async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<EnvUserPermissionFilters>,
+    pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
-    Ok(HttpResponse::Ok().json(EnvUserPermission::all_filtered(filters.into_inner()).await?))
+    Ok(HttpResponse::Ok().json(
+        EnvUserPermission::all_filtered(filters.into_inner(), pagination.into_inner()).await?,
+    ))
 }
 
 #[utoipa::path(
@@ -114,10 +119,5 @@ Controls which envs each user can see.
         ",
     )),
     paths(get_all, get_one, create, delete),
-    components(schemas(
-        EnvUserPermission,
-        EnvUserRole,
-        NewEnvUserPermission,
-    )),
 )]
 pub(super) struct OpenApi;

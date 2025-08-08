@@ -1,7 +1,7 @@
 use crate::tracker::StatusTracker;
 use anyhow::Result;
 use futures::future::join_all;
-use platz_db::{Db, DbEventOperation, DbTable, Deployment};
+use platz_db::{schema::deployment::Deployment, Db, DbEventOperation, DbTable};
 use tokio::time;
 use tracing::debug;
 

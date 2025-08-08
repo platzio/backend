@@ -3,7 +3,11 @@ use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
 use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::{generate_api_token, ApiIdentity};
-use platz_db::{BotToken, BotTokenFilters, DbError, NewBotToken, Paginated};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::bot_token::{BotToken, BotTokenFilters, NewBotToken},
+    DbError,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -19,14 +23,19 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<BotToken>),
+            body = Paginated<BotToken>,
         ),
     ),
 )]
 #[get("/bot-tokens")]
-async fn get_all(identity: ApiIdentity, filters: web::Query<BotTokenFilters>) -> ApiResult {
+async fn get_all(
+    identity: ApiIdentity,
+    filters: web::Query<BotTokenFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
     verify_site_admin(&identity).await?;
-    Ok(HttpResponse::Ok().json(BotToken::all_filtered(filters.into_inner()).await?))
+    Ok(HttpResponse::Ok()
+        .json(BotToken::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -131,10 +140,5 @@ Bot tokens are passed in the `x-platz-token` header.
 ",
     )),
     paths(get_all, get_one, create, delete),
-    components(schemas(
-        BotToken,
-        CreateBotToken,
-        CreatedBotToken,
-    )),
 )]
 pub(super) struct OpenApi;

@@ -3,7 +3,11 @@ use crate::k8s::K8S_TRACKER;
 use anyhow::anyhow;
 use anyhow::Result;
 use kube::api::Api;
-use platz_db::{Deployment, DeploymentRestartK8sResourceTask, DeploymentTask, K8sResource};
+use platz_db::schema::{
+    deployment::Deployment,
+    deployment_task::{DeploymentRestartK8sResourceTask, DeploymentTask},
+    k8s_resource::K8sResource,
+};
 
 impl RunnableDeploymentOperation for DeploymentRestartK8sResourceTask {
     async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {

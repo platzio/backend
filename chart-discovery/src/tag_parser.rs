@@ -1,5 +1,12 @@
 use anyhow::Result;
-use platz_db::{Db, DbTable, HelmChart, HelmChartFilters, HelmChartTagInfo, HelmTagFormat};
+use platz_db::{
+    diesel_pagination::PaginationParams,
+    schema::{
+        helm_chart::{HelmChart, HelmChartFilters, HelmChartTagInfo},
+        helm_tag_format::HelmTagFormat,
+    },
+    Db, DbTable,
+};
 use regex::Regex;
 use tracing::{debug, info, warn};
 
@@ -112,10 +119,9 @@ async fn get_charts_page(page: i64) -> Result<Vec<HelmChart>> {
         HelmChartFilters {
             helm_registry_id: None,
             parsed_branch: None,
-            page: Some(page),
-            per_page: Some(50),
         },
         Default::default(),
+        PaginationParams::page(page).per_page(50),
     )
     .await?;
     debug!(

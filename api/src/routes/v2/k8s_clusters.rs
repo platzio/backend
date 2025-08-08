@@ -1,8 +1,13 @@
-use crate::permissions::verify_site_admin;
-use crate::result::ApiResult;
+use crate::{permissions::verify_site_admin, result::ApiResult};
 use actix_web::{delete, get, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{Deployment, K8sCluster, K8sClusterFilters, Paginated, UpdateK8sCluster};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::{
+        deployment::Deployment,
+        k8s_cluster::{K8sCluster, K8sClusterFilters, UpdateK8sCluster},
+    },
+};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -18,13 +23,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<K8sCluster>),
+            body = Paginated<K8sCluster>,
         ),
     ),
 )]
 #[get("/k8s-clusters")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<K8sClusterFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(K8sCluster::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<K8sClusterFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(K8sCluster::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -112,9 +122,5 @@ This collection contains Kubernetes clusters detected by Plaz.
         ",
     )),
     paths(get_all, get_one, update, delete),
-    components(schemas(
-        K8sCluster,
-        UpdateK8sCluster,
-    )),
 )]
 pub(super) struct OpenApi;

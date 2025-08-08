@@ -1,5 +1,11 @@
 use anyhow::Result;
-use platz_db::{Deployment, DeploymentTask, DeploymentTaskOperation, DeploymentTaskStatus, Json};
+use platz_db::{
+    schema::{
+        deployment::Deployment,
+        deployment_task::{DeploymentTask, DeploymentTaskOperation, DeploymentTaskStatus},
+    },
+    Json,
+};
 use tracing::debug;
 
 pub trait RunnableDeploymentTask: Send + Sync {

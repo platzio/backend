@@ -1,8 +1,9 @@
-use crate::{db_conn, DbResult, Paginated, DEFAULT_PAGE_SIZE};
+use crate::{db_conn, DbResult};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use diesel_filter::{DieselFilter, Paginate};
+use diesel_filter::DieselFilter;
+use diesel_pagination::{Paginate, Paginated, PaginationParams};
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;
 use utoipa::ToSchema;
@@ -18,7 +19,6 @@ table! {
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = helm_tag_formats)]
-#[pagination]
 pub struct HelmTagFormat {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -34,21 +34,15 @@ impl HelmTagFormat {
             .await?)
     }
 
-    pub async fn all_filtered(filters: HelmTagFormatFilters) -> DbResult<Paginated<Self>> {
-        let page = filters.page.unwrap_or(1);
-        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
-        let (items, num_total) = Self::filter(filters)
+    pub async fn all_filtered(
+        filters: HelmTagFormatFilters,
+        pagination: PaginationParams,
+    ) -> DbResult<Paginated<Self>> {
+        Ok(Self::filter(filters)
             .order_by(helm_tag_formats::created_at.desc())
-            .paginate(Some(page))
-            .per_page(Some(per_page))
+            .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
-            .await?;
-        Ok(Paginated {
-            page,
-            per_page,
-            num_total,
-            items,
-        })
+            .await?)
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {

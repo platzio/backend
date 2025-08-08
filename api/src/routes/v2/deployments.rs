@@ -1,19 +1,21 @@
-use crate::permissions::verify_deployment_maintainer;
-use crate::permissions::verify_deployment_owner;
-use crate::result::ApiResult;
+use crate::{
+    permissions::{verify_deployment_maintainer, verify_deployment_owner},
+    result::ApiResult,
+};
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
-use platz_db::DeploymentReportedMetric;
-use platz_db::DeploymentReportedNotice;
-use platz_db::DeploymentReportedNoticeLevel;
-use platz_db::DeploymentReportedStatus;
-use platz_db::DeploymentReportedStatusColor;
-use platz_db::DeploymentReportedStatusContent;
-use platz_db::DeploymentReportedStatusSummary;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource, Deployment, DeploymentExtraFilters, DeploymentFilters,
-    DeploymentStatus, DeploymentTask, HelmChart, NewDeployment, Paginated, UpdateDeployment,
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::{
+        deployment::{
+            Deployment, DeploymentExtraFilters, DeploymentFilters, DeploymentStatus, NewDeployment,
+            UpdateDeployment,
+        },
+        deployment_task::DeploymentTask,
+        helm_chart::HelmChart,
+    },
+    DbTable, DbTableOrDeploymentResource,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -30,7 +32,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<Deployment>),
+            body = Paginated<Deployment>,
         ),
     ),
 )]
@@ -39,9 +41,16 @@ async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<DeploymentFilters>,
     extra_filters: web::Query<DeploymentExtraFilters>,
+    pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
-    Ok(HttpResponse::Ok()
-        .json(Deployment::all_filtered(filters.into_inner(), extra_filters.into_inner()).await?))
+    Ok(HttpResponse::Ok().json(
+        Deployment::all_filtered(
+            filters.into_inner(),
+            extra_filters.into_inner(),
+            pagination.into_inner(),
+        )
+        .await?,
+    ))
 }
 
 #[utoipa::path(
@@ -261,18 +270,5 @@ This collection contains deployments of Helm chart into envs.
 ",
     )),
     paths(get_all, get_one, create, update, delete),
-    components(schemas(
-        Deployment,
-        NewDeployment,
-        UpdateDeployment,
-        DeploymentStatus,
-        DeploymentReportedStatus,
-        DeploymentReportedStatusContent,
-        DeploymentReportedNotice,
-        DeploymentReportedNoticeLevel,
-        DeploymentReportedMetric,
-        DeploymentReportedStatusSummary,
-        DeploymentReportedStatusColor,
-    )),
 )]
 pub(super) struct OpenApi;

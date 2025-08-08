@@ -4,7 +4,11 @@ use crate::k8s::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use platz_chart_ext::{insert_into_map, UiSchema};
 use platz_db::{
-    DbTableOrDeploymentResource, Deployment, DeploymentKind, DeploymentTask, Env, K8sCluster,
+    schema::{
+        deployment::Deployment, deployment_kind::DeploymentKind, deployment_task::DeploymentTask,
+        env::Env, k8s_cluster::K8sCluster,
+    },
+    DbTableOrDeploymentResource,
 };
 use serde::Serialize;
 use tracing::warn;

@@ -3,7 +3,10 @@ use base64::prelude::*;
 use chrono::prelude::*;
 use chrono::Duration;
 use jsonwebtoken::{encode, EncodingKey, Header};
-use platz_db::{Deployment, Identity, Setting, User};
+use platz_db::{
+    schema::{deployment::Deployment, setting::Setting, user::User},
+    Identity,
+};
 use rand::random;
 use serde::{Deserialize, Serialize};
 

@@ -1,7 +1,10 @@
 use crate::result::ApiResult;
 use actix_web::{get, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{DeploymentResourceType, DeploymentResourceTypeFilters, Paginated};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::deployment_resource_type::{DeploymentResourceType, DeploymentResourceTypeFilters},
+};
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -16,7 +19,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<DeploymentResourceType>),
+            body = Paginated<DeploymentResourceType>,
         ),
     ),
 )]
@@ -24,8 +27,11 @@ use uuid::Uuid;
 async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<DeploymentResourceTypeFilters>,
+    pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
-    Ok(HttpResponse::Ok().json(DeploymentResourceType::all_filtered(filters.into_inner()).await?))
+    Ok(HttpResponse::Ok().json(
+        DeploymentResourceType::all_filtered(filters.into_inner(), pagination.into_inner()).await?,
+    ))
 }
 
 #[utoipa::path(
@@ -58,6 +64,5 @@ contained in the `platz` directory in the deployment Helm chart.
         ",
     )),
     paths(get_all, get_one),
-    components(schemas(DeploymentResourceType)),
 )]
 pub(super) struct OpenApi;

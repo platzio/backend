@@ -1,8 +1,10 @@
-use crate::permissions::verify_site_admin;
-use crate::result::ApiResult;
+use crate::{permissions::verify_site_admin, result::ApiResult};
 use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{HelmTagFormat, HelmTagFormatFilters, NewHelmTagFormat, Paginated};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::helm_tag_format::{HelmTagFormat, HelmTagFormatFilters, NewHelmTagFormat},
+};
 use regex::Regex;
 use serde_json::json;
 use uuid::Uuid;
@@ -19,13 +21,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<HelmTagFormat>),
+            body = Paginated<HelmTagFormat>,
         ),
     ),
 )]
 #[get("/helm-tag-formats")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<HelmTagFormatFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(HelmTagFormat::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<HelmTagFormatFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(HelmTagFormat::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -109,9 +116,5 @@ Git commit and branch.
         ",
     )),
     paths(get_all, get_one, create, delete),
-    components(schemas(
-        HelmTagFormat,
-        NewHelmTagFormat,
-    )),
 )]
 pub(super) struct OpenApi;

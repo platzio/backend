@@ -1,15 +1,17 @@
-use super::helm::run_helm;
-use super::runnable_task::RunnableDeploymentOperation;
-use crate::deployment_creds::apply_deployment_credentials;
-use crate::k8s::K8S_TRACKER;
-use crate::k8s::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS};
+use super::{helm::run_helm, runnable_task::RunnableDeploymentOperation};
+use crate::{
+    deployment_creds::apply_deployment_credentials,
+    k8s::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS, K8S_TRACKER},
+};
 use anyhow::Result;
-use k8s_openapi::api::core::v1::Namespace;
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+use k8s_openapi::{api::core::v1::Namespace, apimachinery::pkg::apis::meta::v1::ObjectMeta};
 use kube::api::Api;
-use platz_db::{
-    Deployment, DeploymentInstallTask, DeploymentRecreaseTask, DeploymentReinstallTask,
-    DeploymentStatus, DeploymentTask, DeploymentUninstallTask, DeploymentUpgradeTask,
+use platz_db::schema::{
+    deployment::{Deployment, DeploymentStatus},
+    deployment_task::{
+        DeploymentInstallTask, DeploymentRecreaseTask, DeploymentReinstallTask, DeploymentTask,
+        DeploymentUninstallTask, DeploymentUpgradeTask,
+    },
 };
 use tracing::debug;
 use uuid::Uuid;

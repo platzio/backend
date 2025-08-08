@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use base64::prelude::*;
 use kube::config::ExecInteractiveMode;
-use platz_db::NewK8sCluster;
+use platz_db::schema::k8s_cluster::NewK8sCluster;
 use std::convert::TryFrom;
 use std::fmt;
 use tracing::debug;

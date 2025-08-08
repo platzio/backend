@@ -1,6 +1,6 @@
 ARG BASE_IMAGE
 
-FROM --platform=$BUILDPLATFORM rust:1-bullseye AS build
+FROM --platform=$BUILDPLATFORM rust:1 AS build
 ARG RELEASE_BUILD=1
 ARG TARGETARCH
 WORKDIR /build

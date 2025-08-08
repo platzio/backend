@@ -1,6 +1,6 @@
 use crate::result::ApiError;
 use platz_auth::{ApiIdentity, AuthError};
-use platz_db::User;
+use platz_db::schema::user::User;
 use uuid::Uuid;
 
 pub(super) fn ensure_user_id(identity: &ApiIdentity) -> Result<Uuid, ApiError> {

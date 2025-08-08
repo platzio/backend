@@ -1,6 +1,6 @@
 use crate::error::AuthError;
 use openid::DiscoveredClient;
-use platz_db::{NewUser, User};
+use platz_db::schema::user::{NewUser, User};
 use serde::Deserialize;
 use url::Url;
 use utoipa::ToSchema;

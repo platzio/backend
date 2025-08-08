@@ -1,4 +1,9 @@
-use crate::{DbError, DbTable, DeploymentResource, DeploymentResourceType};
+use crate::{
+    schema::{
+        deployment_resource::DeploymentResource, deployment_resource_type::DeploymentResourceType,
+    },
+    DbError, DbTable,
+};
 use platz_chart_ext::{UiSchemaCollections, UiSchemaInputError};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;

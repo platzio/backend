@@ -3,7 +3,7 @@ use anyhow::Result;
 use futures::future::try_join_all;
 use maplit::btreemap;
 use platz_auth::{AccessToken, DEPLOYMENT_TOKEN_DURATION};
-use platz_db::Deployment;
+use platz_db::schema::deployment::Deployment;
 use tokio::{
     select,
     time::{self, interval},

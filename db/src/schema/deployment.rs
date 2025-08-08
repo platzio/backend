@@ -1,18 +1,22 @@
-use super::{deployment_kinds, deployment_status::DeploymentReportedStatus};
-use crate::{
-    db_conn, DbError, DbResult, DbTableOrDeploymentResource, DeploymentKind, DeploymentTask,
-    HelmChart, Identity, K8sCluster, Paginated, DEFAULT_PAGE_SIZE,
+use super::{
+    deployment_kind::{deployment_kinds, DeploymentKind},
+    deployment_status::DeploymentReportedStatus,
+    deployment_task::DeploymentTask,
+    helm_chart::HelmChart,
+    k8s_cluster::K8sCluster,
 };
+use crate::{db_conn, DbError, DbResult, DbTableOrDeploymentResource, Identity};
 use chrono::prelude::*;
 use diesel::{prelude::*, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
-use diesel_filter::{DieselFilter, Paginate};
+use diesel_filter::DieselFilter;
 use diesel_json::Json;
-use platz_chart_ext::actions::{
-    ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver,
+use diesel_pagination::{Paginate, Paginated, PaginationParams};
+use platz_chart_ext::{
+    actions::{ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver},
+    ChartExtIngressHostnameFormat, UiSchema,
 };
-use platz_chart_ext::{ChartExtIngressHostnameFormat, UiSchema};
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
@@ -68,7 +72,6 @@ pub enum DeploymentStatus {
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema, Clone)]
 #[diesel(table_name = deployments)]
-#[pagination]
 pub struct Deployment {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -120,9 +123,8 @@ impl Deployment {
     pub async fn all_filtered(
         filters: DeploymentFilters,
         extra_filters: DeploymentExtraFilters,
+        pagination: PaginationParams,
     ) -> DbResult<Paginated<Self>> {
-        let page = filters.page.unwrap_or(1);
-        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
             Some(
                 K8sCluster::find_by_env_id(env_id)
@@ -134,22 +136,17 @@ impl Deployment {
         } else {
             None
         };
+
         let mut filtered = Self::filter(filters);
         if let Some(cluster_ids) = allowed_cluster_ids {
             filtered = filtered.filter(deployments::cluster_id.eq_any(cluster_ids))
         }
-        let (items, num_total) = filtered
+
+        Ok(filtered
             .order_by(deployments::created_at.asc())
-            .paginate(Some(page))
-            .per_page(Some(per_page))
+            .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
-            .await?;
-        Ok(Paginated {
-            page,
-            per_page,
-            num_total,
-            items,
-        })
+            .await?)
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {

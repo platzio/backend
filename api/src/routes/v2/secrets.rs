@@ -1,11 +1,14 @@
 use super::deployments::using_error;
-use crate::permissions::verify_env_admin;
-use crate::result::ApiResult;
+use crate::{permissions::verify_env_admin, result::ApiResult};
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource, Deployment, NewSecret, Paginated, Secret, SecretFilters,
-    UpdateSecret,
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::{
+        deployment::Deployment,
+        secret::{NewSecret, Secret, SecretFilters, UpdateSecret},
+    },
+    DbTable, DbTableOrDeploymentResource,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -22,13 +25,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<Secret>),
+            body = Paginated<Secret>,
         ),
     ),
 )]
 #[get("/secrets")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<SecretFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Secret::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<SecretFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(Secret::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -160,10 +168,5 @@ extensions. See chart extensions documentation for more information.
         ",
     )),
     paths(get_all, get_one, create, update, delete),
-    components(schemas(
-        Secret,
-        NewSecret,
-        UpdateSecret,
-    )),
 )]
 pub(super) struct OpenApi;

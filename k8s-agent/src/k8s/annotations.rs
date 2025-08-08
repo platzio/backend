@@ -2,7 +2,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use k8s_openapi::api::core::v1::Namespace;
 use maplit::btreemap;
-use platz_db::Deployment;
+use platz_db::schema::deployment::Deployment;
 use std::collections::BTreeMap;
 use uuid::Uuid;
 

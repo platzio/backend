@@ -1,9 +1,15 @@
 use super::utils::{ensure_user, ensure_user_id};
-use crate::permissions::verify_site_admin;
-use crate::result::{ApiError, ApiResult};
+use crate::{
+    permissions::verify_site_admin,
+    result::{ApiError, ApiResult},
+};
 use actix_web::{delete, get, post, web, HttpResponse};
 use platz_auth::{generate_api_token, ApiIdentity};
-use platz_db::{DbError, NewUserToken, Paginated, UserToken, UserTokenFilters};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::user_token::{NewUserToken, UserToken, UserTokenFilters},
+    DbError,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use utoipa::ToSchema;
@@ -21,12 +27,16 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<UserToken>),
+            body = Paginated<UserToken>,
         ),
     ),
 )]
 #[get("/user-tokens")]
-async fn get_all(identity: ApiIdentity, filters: web::Query<UserTokenFilters>) -> ApiResult {
+async fn get_all(
+    identity: ApiIdentity,
+    filters: web::Query<UserTokenFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
     let user = ensure_user(&identity).await?;
     let mut filters = filters.into_inner();
     if !user.is_admin {
@@ -37,7 +47,7 @@ async fn get_all(identity: ApiIdentity, filters: web::Query<UserTokenFilters>) -
         }
         filters.user_id = Some(user.id);
     }
-    Ok(HttpResponse::Ok().json(UserToken::all_filtered(filters).await?))
+    Ok(HttpResponse::Ok().json(UserToken::all_filtered(filters, pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -163,10 +173,5 @@ User tokens are passed in the `x-platz-token` header.
 ",
     )),
     paths(get_all, get_one, create, delete),
-    components(schemas(
-        UserToken,
-        CreateUserToken,
-        CreatedUserToken,
-    )),
 )]
 pub(super) struct OpenApi;

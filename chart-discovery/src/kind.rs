@@ -1,5 +1,5 @@
 use anyhow::Result;
-use platz_db::{DeploymentKind, NewDeploymentKind};
+use platz_db::schema::deployment_kind::{DeploymentKind, NewDeploymentKind};
 use titlecase::titlecase;
 
 pub async fn get_or_create_kind(repo_name: &str) -> Result<DeploymentKind> {

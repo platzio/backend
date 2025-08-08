@@ -1,11 +1,15 @@
 use super::deployments::using_error;
-use crate::permissions::verify_site_admin;
-use crate::result::ApiResult;
+use crate::{permissions::verify_site_admin, result::ApiResult};
 use actix_web::{delete, get, post, put, web, HttpResponse};
 use itertools::Itertools;
 use platz_auth::ApiIdentity;
 use platz_db::{
-    Deployment, Env, EnvFilters, EnvUserRole, NewEnv, NewEnvUserPermission, Paginated, UpdateEnv,
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::{
+        deployment::Deployment,
+        env::{Env, EnvFilters, NewEnv, UpdateEnv},
+        env_user_permission::{EnvUserRole, NewEnvUserPermission},
+    },
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -22,13 +26,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<Env>),
+            body = Paginated<Env>,
         ),
     ),
 )]
 #[get("/envs")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<EnvFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Env::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<EnvFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(Env::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -166,10 +175,5 @@ deployments, such as deployment permissions.
         ",
     )),
     paths(get_all, get_one, create, update, delete),
-    components(schemas(
-        Env,
-        NewEnv,
-        UpdateEnv,
-    )),
 )]
 pub(super) struct OpenApi;

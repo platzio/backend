@@ -9,9 +9,11 @@ use futures::{FutureExt, StreamExt, TryStreamExt};
 use kube::api::{Api, ListParams, WatchEvent, WatchParams};
 use kube::ResourceExt;
 use lazy_static::lazy_static;
-use platz_db::{
-    DeploymentReportedStatusColor, DeploymentStatus, K8sResource, NewK8sCluster,
-    UpdateK8sClusterStatus,
+use platz_db::schema::{
+    deployment::DeploymentStatus,
+    deployment_status::DeploymentReportedStatusColor,
+    k8s_cluster::{NewK8sCluster, UpdateK8sClusterStatus},
+    k8s_resource::K8sResource,
 };
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -272,7 +274,10 @@ pub async fn handle_already_cleared_namespaces(
     );
 
     let deployments =
-        platz_db::Deployment::all_with_ongoing_clearing_status_in_cluster(cluster_id).await?;
+        platz_db::schema::deployment::Deployment::all_with_ongoing_clearing_status_in_cluster(
+            cluster_id,
+        )
+        .await?;
 
     for deployment in deployments {
         let namespace = deployment.namespace_name().await;
@@ -334,7 +339,9 @@ async fn handle_namespace_event(
     }
 }
 
-async fn deployment_removal_completed(deployment: platz_db::Deployment) -> Result<()> {
+async fn deployment_removal_completed(
+    deployment: platz_db::schema::deployment::Deployment,
+) -> Result<()> {
     // Only delete the deployment if the status is Deleting, otherwise
     // this namespace deletion is part of a rename.
     match deployment.status {

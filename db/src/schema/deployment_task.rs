@@ -1,17 +1,19 @@
-use crate::json_diff::{json_diff, JsonDiff};
-use crate::Deployment;
-use crate::HelmChart;
-use crate::Identity;
-use crate::K8sCluster;
-use crate::NewDeploymentResourceType;
-use crate::{db_conn, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
+use super::{
+    deployment::Deployment, deployment_resource_type::NewDeploymentResourceType,
+    helm_chart::HelmChart, k8s_cluster::K8sCluster,
+};
+use crate::{
+    db_conn,
+    json_diff::{json_diff, JsonDiff},
+    DbError, DbResult, Identity,
+};
 use chrono::prelude::*;
-use diesel::prelude::*;
-use diesel::QueryDsl;
+use diesel::{prelude::*, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
-use diesel_filter::{DieselFilter, Paginate};
+use diesel_filter::DieselFilter;
 use diesel_json::Json;
+use diesel_pagination::{Paginate, Paginated, PaginationParams};
 use platz_chart_ext::resource_types::ChartExtResourceType;
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;
@@ -70,7 +72,6 @@ impl Default for DeploymentTaskStatus {
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = deployment_tasks)]
-#[pagination]
 pub struct DeploymentTask {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -128,9 +129,8 @@ impl DeploymentTask {
     pub async fn all_filtered(
         filters: DeploymentTaskFilters,
         extra_filters: DeploymentTaskExtraFilters,
+        pagination: PaginationParams,
     ) -> DbResult<Paginated<Self>> {
-        let page = filters.page.unwrap_or(1);
-        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
         let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
             Some(
                 K8sCluster::find_by_env_id(env_id)
@@ -159,18 +159,12 @@ impl DeploymentTask {
         if let Some(cluster_ids) = allowed_cluster_ids {
             filtered = filtered.filter(deployment_tasks::cluster_id.eq_any(cluster_ids))
         }
-        let (items, num_total) = filtered
+
+        Ok(filtered
             .order_by(deployment_tasks::execute_at.desc())
-            .paginate(Some(page))
-            .per_page(Some(per_page))
+            .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
-            .await?;
-        Ok(Paginated {
-            page,
-            per_page,
-            num_total,
-            items,
-        })
+            .await?)
     }
 
     pub async fn find_by_deployment_id(deployment_id: Uuid) -> DbResult<Vec<Self>> {

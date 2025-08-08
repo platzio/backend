@@ -1,8 +1,10 @@
-use crate::permissions::verify_site_admin;
-use crate::result::ApiResult;
+use crate::{permissions::verify_site_admin, result::ApiResult};
 use actix_web::{get, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{HelmRegistry, HelmRegistryFilters, Paginated, UpdateHelmRegistry};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::helm_registry::{HelmRegistry, HelmRegistryFilters, UpdateHelmRegistry},
+};
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -17,13 +19,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<HelmRegistry>),
+            body = Paginated<HelmRegistry>,
         ),
     ),
 )]
 #[get("/helm-registries")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<HelmRegistryFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(HelmRegistry::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<HelmRegistryFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(HelmRegistry::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -87,9 +94,5 @@ are created in those registries.
         ",
     )),
     paths(get_all, get_one, update),
-    components(schemas(
-        HelmRegistry,
-        UpdateHelmRegistry,
-    )),
 )]
 pub(super) struct OpenApi;

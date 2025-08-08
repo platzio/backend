@@ -4,18 +4,18 @@ name = "platz-db"
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.95"
-chrono = { version = "0.4.39", default-features = false, features = [
+anyhow = "1.0.98"
+chrono = { version = "0.4.41", default-features = false, features = [
   "std",
   "serde",
 ] }
-diesel = { version = "2.2.6", features = [
+diesel = { version = "2.2.12", features = [
   "chrono",
   "numeric",
   "serde_json",
   "uuid",
 ] }
-diesel-async = { version = "0.5.2", features = [
+diesel-async = { version = "0.6.1", features = [
   "async-connection-wrapper",
   "bb8",
   "postgres",
@@ -30,34 +30,33 @@ lazy_static = "1.5.0"
 maplit = "1.0.2"
 platz-chart-ext = { workspace = true }
 prometheus = { workspace = true }
-rust_decimal = { version = "1.36.0", default-features = false, features = [
+rust_decimal = { version = "1.37.2", default-features = false, features = [
   "db-diesel-postgres",
 ] }
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.137"
-serde_with = "3.12.0"
-strum = { version = "0.26.3", features = ["derive"] }
-thiserror = "2.0.11"
-tokio = "1.43.0"
-tokio-postgres = "0.7.12"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.141"
+serde_with = "3.14.0"
+strum = { version = "0.27.2", features = ["derive"] }
+thiserror = "2.0.12"
+tokio = "1.47.0"
+tokio-postgres = "0.7.13"
 tracing = "0.1.41"
 url = "2.5.4"
-utoipa = { version = "5.3.1", features = [
+utoipa = { version = "5.4.0", features = [
   "chrono",
   "decimal",
   "preserve_order",
+  "rc_schema",
   "uuid",
 ] }
-uuid = { version = "1.12.1", features = ["serde", "v4"] }
+uuid = { version = "1.17.0", features = ["serde", "v4"] }
 
-[dependencies.diesel_filter]
-features = [
-  "actix",
-  "diesel_async",
-  "serde",
-  "serialize",
-  "pagination",
-  "utoipa",
-]
+[dependencies.diesel-filter]
+features = ["actix", "serde", "utoipa"]
 git = "https://github.com/popen2/diesel_filter"
-tag = "v1.0.4"
+tag = "v2.0.0"
+
+[dependencies.diesel-pagination]
+features = ["diesel-async", "serde", "utoipa"]
+git = "https://github.com/popen2/diesel_filter"
+tag = "v2.0.0"

@@ -5,12 +5,18 @@ use actix_web::{delete, get, post, web, HttpResponse};
 use chrono::prelude::*;
 use platz_auth::ApiIdentity;
 use platz_db::{
-    json_diff::{JsonDiff, JsonDiffPair},
-    DbError, DbTableOrDeploymentResource, Deployment, DeploymentInstallTask,
-    DeploymentInvokeActionTask, DeploymentRecreaseTask, DeploymentReinstallTask,
-    DeploymentRestartK8sResourceTask, DeploymentTask, DeploymentTaskExtraFilters,
-    DeploymentTaskFilters, DeploymentTaskOperation, DeploymentTaskStatus, DeploymentUninstallTask,
-    DeploymentUpgradeTask, HelmChart, Json, K8sCluster, K8sResource, NewDeploymentTask, Paginated,
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::{
+        deployment::Deployment,
+        deployment_task::{
+            DeploymentTask, DeploymentTaskExtraFilters, DeploymentTaskFilters,
+            DeploymentTaskOperation, NewDeploymentTask,
+        },
+        helm_chart::HelmChart,
+        k8s_cluster::K8sCluster,
+        k8s_resource::K8sResource,
+    },
+    DbError, DbTableOrDeploymentResource, Json,
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -29,7 +35,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<DeploymentTask>),
+            body = Paginated<DeploymentTask>,
         ),
     ),
 )]
@@ -38,9 +44,15 @@ async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<DeploymentTaskFilters>,
     extra_filters: web::Query<DeploymentTaskExtraFilters>,
+    pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
     Ok(HttpResponse::Ok().json(
-        DeploymentTask::all_filtered(filters.into_inner(), extra_filters.into_inner()).await?,
+        DeploymentTask::all_filtered(
+            filters.into_inner(),
+            extra_filters.into_inner(),
+            pagination.into_inner(),
+        )
+        .await?,
     ))
 }
 
@@ -112,7 +124,7 @@ async fn cancel_one(
         })));
     }
 
-    let task = platz_db::CancelDeploymentTask {
+    let task = platz_db::schema::deployment_task::CancelDeploymentTask {
         canceled_by_user_id,
         canceled_by_deployment_id,
         reason: body.reason,
@@ -232,21 +244,5 @@ their status.
         ",
     )),
     paths(get_all, get_one, create),
-    components(schemas(
-        DeploymentTask,
-        DeploymentTaskOperation,
-        DeploymentInstallTask,
-        DeploymentUpgradeTask,
-        DeploymentReinstallTask,
-        DeploymentRecreaseTask,
-        DeploymentUninstallTask,
-        DeploymentInvokeActionTask,
-        DeploymentRestartK8sResourceTask,
-        DeploymentTaskStatus,
-        CreateDeploymentTask,
-        CancelDeploymentTask,
-        JsonDiff,
-        JsonDiffPair,
-    )),
 )]
 pub(super) struct OpenApi;

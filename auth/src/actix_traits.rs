@@ -8,7 +8,10 @@ use actix_web::{dev::Payload, http::header::HeaderName, FromRequest, HttpRequest
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future::{ok, ready, BoxFuture, FutureExt, TryFutureExt};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
-use platz_db::{Bot, Deployment, Identity, User};
+use platz_db::{
+    schema::{bot::Bot, deployment::Deployment, user::User},
+    Identity,
+};
 
 async fn validate_token(bearer: BearerAuth) -> Result<TokenData<AccessToken>, AuthError> {
     let mut validation = Validation::new(Algorithm::HS256);

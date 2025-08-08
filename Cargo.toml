@@ -15,11 +15,11 @@ debug = true
 
 [workspace.dependencies.platz-chart-ext]
 features = ["utoipa"]
-version = "0.6.1"
+version = "0.6.2"
 
 [workspace.dependencies.tracing-subscriber]
 features = ["env-filter", "fmt"]
 version = "0.3.19"
 
 [workspace.dependencies.prometheus]
-version = "0.13.4"
+version = "0.14.0"

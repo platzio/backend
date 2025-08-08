@@ -1,8 +1,10 @@
-use crate::permissions::verify_site_admin;
-use crate::result::ApiResult;
+use crate::{permissions::verify_site_admin, result::ApiResult};
 use actix_web::{get, put, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{Paginated, UpdateUser, User, UserFilters};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::user::{UpdateUser, User, UserFilters},
+};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -18,13 +20,18 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<User>),
+            body = Paginated<User>,
         ),
     ),
 )]
 #[get("/users")]
-async fn get_all(_identity: ApiIdentity, filters: web::Query<UserFilters>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(User::all_filtered(filters.into_inner()).await?))
+async fn get_all(
+    _identity: ApiIdentity,
+    filters: web::Query<UserFilters>,
+    pagination: web::Query<PaginationParams>,
+) -> ApiResult {
+    Ok(HttpResponse::Ok()
+        .json(User::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
 }
 
 #[utoipa::path(
@@ -87,9 +94,5 @@ async fn update(
         description = "This collection contains all users in Platz.",
     )),
     paths(get_all, get_one, update),
-    components(schemas(
-        User,
-        UpdateUser,
-    )),
 )]
 pub(super) struct OpenApi;

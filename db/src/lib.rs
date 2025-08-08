@@ -4,8 +4,7 @@ mod errors;
 mod events;
 mod identity;
 pub mod json_diff;
-mod pagination;
-mod schema;
+pub mod schema;
 mod stats;
 mod ui_collection;
 
@@ -19,13 +18,13 @@ use diesel_async::{
     },
     AsyncPgConnection,
 };
+pub use diesel_filter;
 pub use diesel_json::Json;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+pub use diesel_pagination;
 pub use errors::*;
 pub use events::*;
 pub use identity::Identity;
-pub use pagination::{Paginated, DEFAULT_PAGE_SIZE};
-pub use schema::*;
 use tokio::{
     spawn,
     sync::OnceCell,

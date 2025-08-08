@@ -1,11 +1,11 @@
-use crate::Deployment;
-use crate::DeploymentResourceType;
-use crate::{db_conn, DbError, DbResult, Paginated, DEFAULT_PAGE_SIZE};
+use super::{deployment::Deployment, deployment_resource_type::DeploymentResourceType};
+use crate::{db_conn, DbError, DbResult};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
-use diesel_filter::{DieselFilter, Paginate};
+use diesel_filter::DieselFilter;
+use diesel_pagination::{Paginate, Paginated, PaginationParams};
 use platz_chart_ext::ChartExtActionTarget;
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;
@@ -51,7 +51,6 @@ pub enum DeploymentResourceSyncStatus {
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
 #[diesel(table_name = deployment_resources)]
-#[pagination]
 pub struct DeploymentResource {
     pub id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -74,20 +73,14 @@ impl DeploymentResource {
             .await?)
     }
 
-    pub async fn all_filtered(filters: DeploymentResourceFilters) -> DbResult<Paginated<Self>> {
-        let page = filters.page.unwrap_or(1);
-        let per_page = filters.per_page.unwrap_or(DEFAULT_PAGE_SIZE);
-        let (items, num_total) = Self::filter(filters)
-            .paginate(Some(page))
-            .per_page(Some(per_page))
+    pub async fn all_filtered(
+        filters: DeploymentResourceFilters,
+        pagination: PaginationParams,
+    ) -> DbResult<Paginated<Self>> {
+        Ok(Self::filter(filters)
+            .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
-            .await?;
-        Ok(Paginated {
-            page,
-            per_page,
-            num_total,
-            items,
-        })
+            .await?)
     }
 
     pub async fn find(id: Uuid) -> DbResult<Self> {

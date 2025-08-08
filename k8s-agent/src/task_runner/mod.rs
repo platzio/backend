@@ -6,11 +6,10 @@ mod runnable_task;
 mod secrets;
 mod values;
 
-use crate::k8s::K8S_TRACKER;
-use crate::utils::create_interval_stream;
+use crate::{k8s::K8S_TRACKER, utils::create_interval_stream};
 use anyhow::Result;
 use futures::StreamExt;
-use platz_db::{Db, DbEvent, DbEventOperation, DbTable, DeploymentTask};
+use platz_db::{schema::deployment_task::DeploymentTask, Db, DbEvent, DbEventOperation, DbTable};
 use runnable_task::RunnableDeploymentTask;
 pub use secrets::apply_secret;
 use tokio::{select, sync::watch};

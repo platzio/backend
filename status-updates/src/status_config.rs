@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use platz_chart_ext::ChartExtActionEndpoint;
-use platz_db::Deployment;
+use platz_db::schema::deployment::Deployment;
 use std::time::Duration;
 use tokio::time::{interval, Interval};
 use url::Url;

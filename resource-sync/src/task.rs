@@ -3,8 +3,13 @@ use platz_chart_ext::resource_types::{
     ChartExtResourceLifecycleActionV1Beta1, ChartExtResourceLifecycleV1Beta1,
 };
 use platz_db::{
-    Db, DbEventOperation, DbTable, DeploymentResource, DeploymentResourceSyncStatus,
-    DeploymentResourceType, UpdateDeploymentResourceSyncStatus,
+    schema::{
+        deployment_resource::{
+            DeploymentResource, DeploymentResourceSyncStatus, UpdateDeploymentResourceSyncStatus,
+        },
+        deployment_resource_type::DeploymentResourceType,
+    },
+    Db, DbEventOperation, DbTable,
 };
 use tracing::{debug, error, info};
 

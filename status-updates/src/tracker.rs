@@ -1,9 +1,9 @@
 use crate::status_config::StatusConfig;
 use anyhow::Result;
 use futures::TryFutureExt;
-use platz_db::{
-    Deployment, DeploymentReportedStatus, DeploymentReportedStatusContent,
-    UpdateDeploymentReportedStatus,
+use platz_db::schema::{
+    deployment::{Deployment, UpdateDeploymentReportedStatus},
+    deployment_status::{DeploymentReportedStatus, DeploymentReportedStatusContent},
 };
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{sync::RwLock, task};

@@ -3,7 +3,10 @@ use crate::tag_parser::parse_image_tag;
 use anyhow::{anyhow, Result};
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use platz_chart_ext::ChartExt;
-use platz_db::{HelmChart, HelmChartTagInfo, Json, NewHelmChart, UpdateHelmChart};
+use platz_db::{
+    schema::helm_chart::{HelmChart, HelmChartTagInfo, NewHelmChart, UpdateHelmChart},
+    Json,
+};
 use std::path::PathBuf;
 use tokio::process::Command;
 use tracing::{debug, info, warn};

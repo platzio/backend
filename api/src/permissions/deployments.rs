@@ -1,6 +1,14 @@
 use super::verify_env_admin;
 use crate::result::ApiError;
-use platz_db::{Bot, Deployment, DeploymentPermission, Identity, K8sCluster};
+use platz_db::{
+    schema::{
+        bot::Bot,
+        deployment::Deployment,
+        deployment_permission::{DeploymentPermission, UserDeploymentRole},
+        k8s_cluster::K8sCluster,
+    },
+    Identity,
+};
 use uuid::Uuid;
 
 pub async fn verify_deployment_owner<I>(
@@ -21,7 +29,7 @@ where
             None => Err(ApiError::NoPermission),
             Some(user_id) => {
                 match DeploymentPermission::find_user_role(env_id, user_id, kind_id).await? {
-                    Some(platz_db::UserDeploymentRole::Owner) => Ok(()),
+                    Some(UserDeploymentRole::Owner) => Ok(()),
                     _ => Err(ApiError::NoPermission),
                 }
             }

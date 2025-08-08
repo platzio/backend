@@ -3,9 +3,15 @@ use actix_web::{delete, get, post, put, web, HttpResponse};
 use futures::future::try_join_all;
 use platz_auth::ApiIdentity;
 use platz_db::{
-    Deployment, DeploymentResource, DeploymentResourceFilters, DeploymentResourceSyncStatus,
-    DeploymentResourceType, NewDeploymentResource, Paginated, UpdateDeploymentResource,
-    UpdateDeploymentResourceSyncStatus,
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::{
+        deployment::Deployment,
+        deployment_resource::{
+            DeploymentResource, DeploymentResourceFilters, DeploymentResourceSyncStatus,
+            NewDeploymentResource, UpdateDeploymentResource, UpdateDeploymentResourceSyncStatus,
+        },
+        deployment_resource_type::DeploymentResourceType,
+    },
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -22,7 +28,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<DeploymentResource>),
+            body = Paginated<DeploymentResource>,
         ),
     ),
 )]
@@ -30,8 +36,10 @@ use uuid::Uuid;
 async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<DeploymentResourceFilters>,
+    pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
-    let mut result = DeploymentResource::all_filtered(filters.into_inner()).await?;
+    let mut result =
+        DeploymentResource::all_filtered(filters.into_inner(), pagination.into_inner()).await?;
     result.items = try_join_all(
         result
             .items
@@ -209,11 +217,5 @@ async fn delete(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
         description = "",
     )),
     paths(get_all, get_one, create, update, delete),
-    components(schemas(
-        DeploymentResource,
-        NewDeploymentResource,
-        UpdateDeploymentResource,
-        DeploymentResourceSyncStatus,
-    )),
 )]
 pub(super) struct OpenApi;

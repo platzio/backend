@@ -1,7 +1,10 @@
 use crate::result::ApiResult;
 use actix_web::{get, post, web, HttpResponse};
 use platz_auth::{AccessToken, ApiIdentity, OAuth2Response, OidcLogin};
-use platz_db::{Bot, Deployment, Identity, User};
+use platz_db::{
+    schema::{bot::Bot, deployment::Deployment, user::User},
+    Identity,
+};
 use serde::Serialize;
 use serde_json::json;
 use std::env;
@@ -131,12 +134,5 @@ APIs for logging into Platz and getting information about the current user.
 ",
     )),
     paths(me, start_google_login, finish_google_login),
-    components(schemas(
-        MeResponse,
-        User,
-        StartGoogleLoginResponse,
-        OAuth2Response,
-        FinishGoogleLoginResponse,
-    ))
 )]
 pub(super) struct OpenApi;

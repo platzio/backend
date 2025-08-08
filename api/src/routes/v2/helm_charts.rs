@@ -1,7 +1,10 @@
 use crate::result::ApiResult;
 use actix_web::{get, web, HttpResponse};
 use platz_auth::ApiIdentity;
-use platz_db::{HelmChart, HelmChartExtraFilters, HelmChartFilters, Paginated};
+use platz_db::{
+    diesel_pagination::{Paginated, PaginationParams},
+    schema::helm_chart::{HelmChart, HelmChartExtraFilters, HelmChartFilters},
+};
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -16,7 +19,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = inline(Paginated<HelmChart>),
+            body = Paginated<HelmChart>,
         ),
     ),
 )]
@@ -25,9 +28,16 @@ async fn get_all(
     _identity: ApiIdentity,
     filters: web::Query<HelmChartFilters>,
     extra_filters: web::Query<HelmChartExtraFilters>,
+    pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
-    Ok(HttpResponse::Ok()
-        .json(HelmChart::all_filtered(filters.into_inner(), extra_filters.into_inner()).await?))
+    Ok(HttpResponse::Ok().json(
+        HelmChart::all_filtered(
+            filters.into_inner(),
+            extra_filters.into_inner(),
+            pagination.into_inner(),
+        )
+        .await?,
+    ))
 }
 
 #[utoipa::path(
@@ -59,8 +69,5 @@ This collection contains Helm charts detected by the chart-discovery service.
         ",
     )),
     paths(get_all, get_one),
-    components(schemas(
-        HelmChart,
-    )),
 )]
 pub(super) struct OpenApi;
