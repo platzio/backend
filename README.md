@@ -11,12 +11,12 @@ This repo contains Platz's backend. It's written in Rust 🦀 and is broken down
 ## Running Locally
 
 ```bash
-docker compose up
+./scripts/run-api.sh
 ```
 
-The `docker-compose.yaml` in this repo will set up a database, OIDC provider and run the API server.
+This script starts a local Postgres and Dex containers.
 
-**👉 For a list of users and their passwords see [.dev/oidc-users.json](.dev/oidc-users.json).**
+Dex starts up with one user `admin@example.com` with a password of `password`.
 
 Forwarded ports:
 
