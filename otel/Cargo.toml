@@ -1,0 +1,8 @@
+[package]
+name = "platz-otel"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }

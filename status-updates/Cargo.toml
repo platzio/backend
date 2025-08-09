@@ -13,9 +13,11 @@ reqwest = { version = "0.12.22", default-features = false, features = [
 ] }
 tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
 tracing = "0.1.41"
-tracing-subscriber = { workspace = true }
 url = "2.5.4"
 uuid = { version = "1.17.0", features = ["serde", "v4"] }
 
 [dependencies.platz-db]
 path = "../db"
+
+[dependencies.platz-otel]
+path = "../otel"

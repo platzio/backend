@@ -28,7 +28,6 @@ thiserror = "2.0.12"
 tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
 tokio-stream = { version = "0.1.17", features = ["sync"] }
 tracing = "0.1.41"
-tracing-subscriber = { workspace = true }
 url = "2.5.4"
 utoipa = { version = "5.4.0", features = [
   "actix_extras",
@@ -41,9 +40,12 @@ utoipa = { version = "5.4.0", features = [
 ] }
 uuid = { version = "1.17.0", features = ["serde", "v4"] }
 
-[dependencies.platz-db]
-path = "../db"
-
 [dependencies.platz-auth]
 features = ["actix"]
 path = "../auth"
+
+[dependencies.platz-db]
+path = "../db"
+
+[dependencies.platz-otel]
+path = "../otel"

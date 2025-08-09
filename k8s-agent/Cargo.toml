@@ -42,13 +42,15 @@ tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
 tokio-stream = "0.1.17"
 tokio-util = "0.7.15"
 tracing = { version = "0.1.41" }
-tracing-subscriber = { workspace = true }
 tryhard = "0.5.2"
 url = { version = "2.5.4", features = ["serde"] }
 uuid = { version = "1.17.0", features = ["serde", "v4"] }
 
 [dependencies.platz-db]
 path = "../db"
+
+[dependencies.platz-otel]
+path = "../otel"
 
 [dependencies.platz-auth]
 path = "../auth"

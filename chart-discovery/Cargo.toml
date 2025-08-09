@@ -24,8 +24,10 @@ serde_json = "1.0.141"
 titlecase = "3.6.0"
 tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
 tracing = "0.1.41"
-tracing-subscriber = { workspace = true }
 uuid = { version = "1.17.0", features = ["serde", "v4"] }
 
 [dependencies.platz-db]
 path = "../db"
+
+[dependencies.platz-otel]
+path = "../otel"

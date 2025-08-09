@@ -25,7 +25,7 @@ pub struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    platz_otel::init()?;
     let config = Config::parse();
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;

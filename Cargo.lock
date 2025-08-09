@@ -3230,6 +3230,7 @@ dependencies = [
  "platz-auth",
  "platz-chart-ext",
  "platz-db",
+ "platz-otel",
  "prometheus",
  "regex",
  "serde",
@@ -3239,7 +3240,6 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
- "tracing-subscriber",
  "url",
  "utoipa",
  "uuid",
@@ -3285,13 +3285,13 @@ dependencies = [
  "itertools 0.14.0",
  "platz-chart-ext",
  "platz-db",
+ "platz-otel",
  "regex",
  "serde",
  "serde_json",
  "titlecase",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -3373,6 +3373,7 @@ dependencies = [
  "platz-auth",
  "platz-chart-ext",
  "platz-db",
+ "platz-otel",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3382,10 +3383,17 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
- "tracing-subscriber",
  "tryhard",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "platz-otel"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -3395,9 +3403,9 @@ dependencies = [
  "anyhow",
  "platz-chart-ext",
  "platz-db",
+ "platz-otel",
  "tokio",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -3408,10 +3416,10 @@ dependencies = [
  "futures",
  "platz-chart-ext",
  "platz-db",
+ "platz-otel",
  "reqwest",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "url",
  "uuid",
 ]

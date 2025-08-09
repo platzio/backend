@@ -8,7 +8,9 @@ anyhow = "1.0.98"
 platz-chart-ext = { workspace = true }
 tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
 tracing = "0.1.41"
-tracing-subscriber = { workspace = true }
 
 [dependencies.platz-db]
 path = "../db"
+
+[dependencies.platz-otel]
+path = "../otel"
