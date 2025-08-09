@@ -6,6 +6,12 @@ use utoipa::{
 
 #[derive(OpenApi)]
 #[openapi(
+    info(
+        license(
+            name = "Apache-2.0",
+            url = "https://github.com/platzio/backend/blob/main/LICENSE",
+        ),
+    ),
     modifiers(&SecurityAddon),
 )]
 struct OpenApiRoot;
