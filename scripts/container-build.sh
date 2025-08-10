@@ -21,8 +21,6 @@ case "$TARGETARCH" in \
 esac
 
 dpkg --add-architecture "${TARGETARCH}"
-apt-get update
-apt-get install -y "libpq-dev:${TARGETARCH}"
 
 if [ "${LINUX_TARGETARCH}" != `uname -m` ]
 then
