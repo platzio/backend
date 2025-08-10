@@ -3374,6 +3374,7 @@ dependencies = [
  "platz-chart-ext",
  "platz-db",
  "platz-otel",
+ "rustls 0.23.31",
  "serde",
  "serde_json",
  "serde_yaml",

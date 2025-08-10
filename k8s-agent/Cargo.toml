@@ -33,6 +33,7 @@ kube = { version = "1.1.0", default-features = false, features = [
 lazy_static = "1.5.0"
 maplit = "1.0.2"
 platz-chart-ext = { workspace = true }
+rustls = "0.23.31"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.141"
 serde_yaml = "0.9.34"

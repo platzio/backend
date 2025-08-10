@@ -15,6 +15,9 @@ use tracing::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed installing default crypto provider");
     platz_otel::init()?;
     info!("Starting K8S Agent");
     let mut sigterm = signal(SignalKind::terminate())?;
