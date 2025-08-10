@@ -1,5 +1,5 @@
 use super::runnable_task::RunnableDeploymentOperation;
-use crate::k8s::K8S_TRACKER;
+use crate::{config::Config, k8s::tracker::K8S_TRACKER};
 use anyhow::anyhow;
 use anyhow::Result;
 use kube::api::Api;
@@ -10,7 +10,12 @@ use platz_db::schema::{
 };
 
 impl RunnableDeploymentOperation for DeploymentRestartK8sResourceTask {
-    async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
+    async fn run(
+        &self,
+        deployment: &Deployment,
+        _task: &DeploymentTask,
+        _config: &Config,
+    ) -> Result<String> {
         let resource = K8sResource::find(self.resource_id).await?.ok_or_else(|| {
             anyhow!(
                 "Unknown resource {} ({})",

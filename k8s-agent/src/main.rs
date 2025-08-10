@@ -4,8 +4,9 @@ mod k8s;
 mod task_runner;
 mod utils;
 
-use crate::config::CONFIG;
+use crate::{config::Config, k8s::cluster_discovery::run_cluster_discovery};
 use anyhow::Result;
+use clap::Parser;
 use platz_db::{init_db, DbTable};
 use tokio::{
     select,
@@ -15,6 +16,8 @@ use tracing::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let config = Config::parse();
+
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("Failed installing default crypto provider");
@@ -45,17 +48,17 @@ async fn main() -> Result<()> {
             result.map_err(Into::into)
         }
 
-        result = k8s::scan_for_new_clusters(CONFIG.k8s_refresh_interval()) => {
+        result = run_cluster_discovery(&config.cluster_discovery) => {
             warn!("EKS discovery task finished");
             result
         }
 
-        result = task_runner::start(db) => {
+        result = task_runner::start(&config, db) => {
             warn!("Task runner finished");
             result
         }
 
-        result = deployment_creds::start(CONFIG.should_refresh_deployment_credintials()) => {
+        result = deployment_creds::start(&config) => {
             warn!("Deployment creds task finished");
             result
         }

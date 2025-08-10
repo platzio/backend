@@ -1,15 +1,20 @@
-use super::cluster_type::K8s;
-use super::tracker::K8S_TRACKER;
+use super::{cluster_type::K8s, tracker::K8S_TRACKER};
 use anyhow::{anyhow, Result};
 use aws_types::region::Region;
 use futures::future::try_join_all;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::time;
 use tracing::{debug, error};
 
-pub async fn scan_for_new_clusters(every: Duration) -> Result<()> {
-    let mut interval = time::interval(every);
+#[derive(clap::Args)]
+#[group(skip)]
+pub struct Config {
+    #[arg(long, env = "K8S_REFRESH_INTERVAL", default_value = "1h")]
+    pub k8s_refresh_interval: humantime::Duration,
+}
+
+pub async fn run_cluster_discovery(config: &Config) -> Result<()> {
+    let mut interval = time::interval(config.k8s_refresh_interval.into());
 
     loop {
         interval.tick().await;

@@ -1,6 +1,5 @@
 use super::secrets::apply_secrets;
-use crate::config::OWN_URL;
-use crate::k8s::K8S_TRACKER;
+use crate::k8s::tracker::K8S_TRACKER;
 use anyhow::{anyhow, Result};
 use platz_chart_ext::{insert_into_map, UiSchema};
 use platz_db::{
@@ -103,6 +102,7 @@ impl IngressTls {
 pub async fn create_values_and_secrets(
     deployment: &Deployment,
     task: &DeploymentTask,
+    platz_url: &Url,
 ) -> Result<serde_json::Value> {
     let cluster = K8S_TRACKER.get_cluster(deployment.cluster_id).await?;
     let db_cluster = K8sCluster::find(deployment.cluster_id).await?;
@@ -133,7 +133,7 @@ pub async fn create_values_and_secrets(
         deployment_name: deployment.name.to_owned(),
         deployment_kind: kind_obj.name.to_owned(),
         revision_id: task.id,
-        own_url: OWN_URL.to_owned(),
+        own_url: platz_url.to_owned(),
     };
 
     let mut values = serde_json::to_value(ChartValues {

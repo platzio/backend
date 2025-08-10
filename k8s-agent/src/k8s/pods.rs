@@ -1,4 +1,5 @@
 /// The code below was copied from https://github.com/clux/kube-rs/blob/master/examples/pod_attach.rs
+use crate::utils::create_interval_stream;
 use anyhow::{anyhow, Context, Result};
 use futures::{stream, StreamExt};
 use k8s_openapi::api::core::v1::Pod;
@@ -8,9 +9,6 @@ use std::{fmt, time::Duration};
 use tap::TapFallible;
 use tokio::select;
 use tracing::{debug, error};
-
-use crate::config::CONFIG;
-use crate::utils::create_interval_stream;
 
 #[derive(Debug, thiserror::Error)]
 pub struct PodExecutionResult {
@@ -28,15 +26,15 @@ impl fmt::Display for PodExecutionResult {
     }
 }
 
-async fn client() -> Result<Api<Pod>> {
+async fn client(namespace: &str) -> Result<Api<Pod>> {
     let client = kube::Client::try_default()
         .await
         .context("Failed initializing kube client")?;
-    Ok(Api::namespaced(client, CONFIG.self_namespace()))
+    Ok(Api::namespaced(client, namespace))
 }
 
-async fn create_pod(create_params: &PostParams, pod: &Pod) -> Result<()> {
-    let client = client().await?;
+async fn create_pod(namespace: &str, create_params: &PostParams, pod: &Pod) -> Result<()> {
+    let client = client(namespace).await?;
     client
         .create(create_params, pod)
         .await
@@ -45,10 +43,11 @@ async fn create_pod(create_params: &PostParams, pod: &Pod) -> Result<()> {
 }
 
 async fn delete_pod(
+    namespace: &str,
     pod_name: &str,
     delete_params: &DeleteParams,
 ) -> Result<either::Either<Pod, kube::core::Status>> {
-    let client: Api<Pod> = client().await?;
+    let client: Api<Pod> = client(namespace).await?;
     client
         .delete(pod_name, delete_params)
         .await
@@ -56,12 +55,12 @@ async fn delete_pod(
 }
 
 #[tracing::instrument(err, skip_all)]
-pub async fn execute_pod(pod: Pod) -> Result<String> {
+pub async fn execute_pod(namespace: &str, pod: Pod) -> Result<String> {
     let pod_name = pod.metadata.name.clone().unwrap();
 
     let create_params = Default::default();
     debug!("Creating pod...");
-    tryhard::retry_fn(|| create_pod(&create_params, &pod))
+    tryhard::retry_fn(|| create_pod(namespace, &create_params, &pod))
         .retries(10)
         .fixed_backoff(Duration::from_millis(500))
         .await
@@ -69,11 +68,11 @@ pub async fn execute_pod(pod: Pod) -> Result<String> {
 
     debug!("Pod created");
 
-    let result = wait_for_pod(&client().await?, &pod_name).await;
+    let result = wait_for_pod(&client(namespace).await?, &pod_name).await;
 
     debug!("Deleting pod...");
     let delete_params = Default::default();
-    tryhard::retry_fn(|| delete_pod(&pod_name, &delete_params))
+    tryhard::retry_fn(|| delete_pod(namespace, &pod_name, &delete_params))
         .retries(10)
         .fixed_backoff(Duration::from_millis(500))
         .await

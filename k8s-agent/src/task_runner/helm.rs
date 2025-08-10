@@ -1,11 +1,14 @@
 use super::values::create_values_and_secrets;
-use crate::config::CONFIG;
-use crate::k8s::execute_pod;
-use crate::k8s::K8S_TRACKER;
+use crate::{
+    config::Config,
+    k8s::{pods::execute_pod, tracker::K8S_TRACKER},
+};
 use anyhow::Result;
 use base64::prelude::*;
-use k8s_openapi::api::core::v1::{Container, EnvVar, Pod, PodSpec};
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+use k8s_openapi::{
+    api::core::v1::{Container, EnvVar, Pod, PodSpec},
+    apimachinery::pkg::apis::meta::v1::ObjectMeta,
+};
 use platz_db::schema::{
     deployment::Deployment, deployment_task::DeploymentTask, helm_registry::HelmRegistry,
 };
@@ -20,18 +23,24 @@ use tracing::debug;
 
 #[tracing::instrument(err, skip_all)]
 pub async fn run_helm(
+    config: &Config,
     command: &str,
     deployment: &Deployment,
     task: &DeploymentTask,
 ) -> Result<String> {
     debug!("cmd={command}");
     debug!("creating values and secrets...");
-    let values = create_values_and_secrets(deployment, task).await?;
+    let values = create_values_and_secrets(deployment, task, &config.platz_url).await?;
 
-    execute_pod(helm_pod(command, task, deployment, values).await?).await
+    execute_pod(
+        &config.self_namespace,
+        helm_pod(config, command, task, deployment, values).await?,
+    )
+    .await
 }
 
 async fn helm_pod(
+    config: &Config,
     command: &str,
     task: &DeploymentTask,
     deployment: &Deployment,
@@ -61,14 +70,14 @@ async fn helm_pod(
     Ok(Pod {
         metadata: ObjectMeta {
             name: Some(format!("task-{}", task.id)),
-            namespace: Some(CONFIG.self_namespace().into()),
+            namespace: Some(config.self_namespace.to_owned()),
             ..Default::default()
         },
         spec: Some(PodSpec {
-            service_account_name: Some(CONFIG.self_service_account_name().into()),
+            service_account_name: Some(config.self_service_account_name.to_owned()),
             containers: vec![Container {
                 name: format!("task-{}", task.id),
-                image: Some(CONFIG.helm_image().into()),
+                image: Some(config.helm_image.to_owned()),
                 image_pull_policy: Some("Always".into()),
                 command: Some(vec!["/bin/bash".into(), "-cex".into(), script]),
                 env: Some(vec![

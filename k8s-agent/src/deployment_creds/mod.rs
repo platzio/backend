@@ -1,4 +1,4 @@
-use crate::{config::OWN_URL, k8s::K8S_TRACKER, task_runner::apply_secret};
+use crate::{config::Config, k8s::tracker::K8S_TRACKER, task_runner::apply_secret};
 use anyhow::Result;
 use futures::future::try_join_all;
 use maplit::btreemap;
@@ -9,13 +9,14 @@ use tokio::{
     time::{self, interval},
 };
 use tracing::{debug, error};
+use url::Url;
 
 const CREDS_SECRET_NAME: &str = "platz-creds";
 const REFRESH_CREDS_CHUNK_SIZE: usize = 10;
 const REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_secs(1);
 
-#[tracing::instrument(err, name = "d-creds")]
-pub async fn start(should_refresh_deployment_credentials: bool) -> Result<()> {
+#[tracing::instrument(err, skip_all, name = "d-creds")]
+pub async fn start(config: &Config) -> Result<()> {
     debug!("starting");
     let refresh_every = *DEPLOYMENT_TOKEN_DURATION / 2;
     let mut interval = interval(refresh_every.to_std()?);
@@ -32,16 +33,16 @@ pub async fn start(should_refresh_deployment_credentials: bool) -> Result<()> {
             }
         }
 
-        if should_refresh_deployment_credentials {
-            if let Err(err) = refresh_credentials().await {
+        if config.should_refresh_deployment_credintials() {
+            if let Err(err) = refresh_credentials(config).await {
                 error!("Error refreshing credentials: {:?}", err);
             }
         }
     }
 }
 
-#[tracing::instrument(err, name = "refresh")]
-async fn refresh_credentials() -> Result<()> {
+#[tracing::instrument(err, skip_all, name = "refresh")]
+async fn refresh_credentials(config: &Config) -> Result<()> {
     debug!("started");
 
     let cluster_ids = K8S_TRACKER.get_ids().await;
@@ -54,7 +55,7 @@ async fn refresh_credentials() -> Result<()> {
             deploy_chunk
                 .iter()
                 .filter(|deployment| deployment.enabled)
-                .map(apply_deployment_credentials),
+                .map(|deployment| apply_deployment_credentials(deployment, &config.platz_url)),
         )
         .await?;
         time::sleep(REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS).await;
@@ -64,7 +65,10 @@ async fn refresh_credentials() -> Result<()> {
 }
 
 #[tracing::instrument(err, fields(deployment=%deployment.id), name="apply-d-creds")]
-pub(crate) async fn apply_deployment_credentials(deployment: &Deployment) -> Result<()> {
+pub(crate) async fn apply_deployment_credentials(
+    deployment: &Deployment,
+    platz_url: &Url,
+) -> Result<()> {
     debug!("applying");
     let access_token = AccessToken::from(deployment);
     apply_secret(
@@ -73,7 +77,7 @@ pub(crate) async fn apply_deployment_credentials(deployment: &Deployment) -> Res
         CREDS_SECRET_NAME,
         btreemap! {
             "access_token".to_owned() => access_token.encode().await?,
-            "server_url".to_owned() => OWN_URL.to_string(),
+            "server_url".to_owned() => platz_url.to_string(),
             "expires_at".to_owned() => access_token.expires_at()?.to_rfc3339(),
         },
     )

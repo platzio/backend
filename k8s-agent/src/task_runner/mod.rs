@@ -6,7 +6,7 @@ mod runnable_task;
 mod secrets;
 mod values;
 
-use crate::{k8s::K8S_TRACKER, utils::create_interval_stream};
+use crate::{config::Config, k8s::tracker::K8S_TRACKER, utils::create_interval_stream};
 use anyhow::Result;
 use futures::StreamExt;
 use platz_db::{schema::deployment_task::DeploymentTask, Db, DbEvent, DbEventOperation, DbTable};
@@ -16,7 +16,7 @@ use tokio::{select, sync::watch};
 use tracing::{debug, error, info, Instrument};
 
 #[tracing::instrument(err, skip_all, name = "task_runner")]
-pub async fn start(db: &Db) -> Result<()> {
+pub async fn start(config: &Config, db: &Db) -> Result<()> {
     let (db_events_tx, mut db_events_rx) = watch::channel(());
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
     let mut db_rx = db.subscribe_to_events();
@@ -38,7 +38,7 @@ pub async fn start(db: &Db) -> Result<()> {
     let mut updates_interval_stream = create_interval_stream(std::time::Duration::from_secs(60));
 
     loop {
-        run_pending_tasks().await?;
+        run_pending_tasks(config).await?;
         debug!("polling...");
         select! {
             biased;
@@ -63,8 +63,8 @@ fn is_new_task(event: &DbEvent) -> bool {
     event.table == DbTable::DeploymentTasks && event.operation == DbEventOperation::Insert
 }
 
-#[tracing::instrument(err)]
-async fn run_pending_tasks() -> Result<()> {
+#[tracing::instrument(err, skip_all)]
+async fn run_pending_tasks(config: &Config) -> Result<()> {
     use std::time::Instant;
 
     debug!("fetching clusters...");
@@ -83,7 +83,7 @@ async fn run_pending_tasks() -> Result<()> {
 
         async move {
             info!("Starting...");
-            match task.run().await {
+            match task.run(config).await {
                 Ok(()) => debug!("Task finished successfully"),
                 Err(err) => error!("Task failed: {:?}", err),
             }

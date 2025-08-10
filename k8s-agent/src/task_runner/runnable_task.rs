@@ -1,3 +1,4 @@
+use crate::config::Config;
 use anyhow::Result;
 use platz_db::{
     schema::{
@@ -6,15 +7,15 @@ use platz_db::{
     },
     Json,
 };
-use tracing::debug;
+use tracing::{debug, instrument};
 
 pub trait RunnableDeploymentTask: Send + Sync {
-    async fn run(self) -> Result<()>;
+    async fn run(self, config: &Config) -> Result<()>;
 }
 
 impl RunnableDeploymentTask for DeploymentTask {
-    #[tracing::instrument(ret, err, skip_all, name = "RDT.run")]
-    async fn run(self) -> Result<()> {
+    #[instrument(ret, err, skip_all, name = "RDT.run")]
+    async fn run(self, config: &Config) -> Result<()> {
         debug!("fetching deployment...");
         let deployment = Deployment::find(self.deployment_id).await?;
         debug!("updating status to Started...");
@@ -22,16 +23,26 @@ impl RunnableDeploymentTask for DeploymentTask {
         debug!("status updated");
 
         let result = match &self.operation {
-            Json(DeploymentTaskOperation::Install(inner)) => inner.run(&deployment, &self).await,
-            Json(DeploymentTaskOperation::Upgrade(inner)) => inner.run(&deployment, &self).await,
-            Json(DeploymentTaskOperation::Recreate(inner)) => inner.run(&deployment, &self).await,
-            Json(DeploymentTaskOperation::Reinstall(inner)) => inner.run(&deployment, &self).await,
-            Json(DeploymentTaskOperation::Uninstall(inner)) => inner.run(&deployment, &self).await,
+            Json(DeploymentTaskOperation::Install(inner)) => {
+                inner.run(&deployment, &self, config).await
+            }
+            Json(DeploymentTaskOperation::Upgrade(inner)) => {
+                inner.run(&deployment, &self, config).await
+            }
+            Json(DeploymentTaskOperation::Recreate(inner)) => {
+                inner.run(&deployment, &self, config).await
+            }
+            Json(DeploymentTaskOperation::Reinstall(inner)) => {
+                inner.run(&deployment, &self, config).await
+            }
+            Json(DeploymentTaskOperation::Uninstall(inner)) => {
+                inner.run(&deployment, &self, config).await
+            }
             Json(DeploymentTaskOperation::InvokeAction(inner)) => {
-                inner.run(&deployment, &self).await
+                inner.run(&deployment, &self, config).await
             }
             Json(DeploymentTaskOperation::RestartK8sResource(inner)) => {
-                inner.run(&deployment, &self).await
+                inner.run(&deployment, &self, config).await
             }
         };
 
@@ -51,5 +62,10 @@ impl RunnableDeploymentTask for DeploymentTask {
 }
 
 pub trait RunnableDeploymentOperation: Send + Sync {
-    async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String>;
+    async fn run(
+        &self,
+        deployment: &Deployment,
+        task: &DeploymentTask,
+        config: &Config,
+    ) -> Result<String>;
 }

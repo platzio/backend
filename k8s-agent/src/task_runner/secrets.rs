@@ -1,4 +1,4 @@
-use crate::k8s::K8S_TRACKER;
+use crate::k8s::tracker::K8S_TRACKER;
 use anyhow::{Context, Result};
 use k8s_openapi::api::core::v1::Secret;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;

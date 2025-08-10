@@ -1,7 +1,11 @@
 use super::{helm::run_helm, runnable_task::RunnableDeploymentOperation};
 use crate::{
+    config::Config,
     deployment_creds::apply_deployment_credentials,
-    k8s::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS, K8S_TRACKER},
+    k8s::{
+        annotations::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS},
+        tracker::K8S_TRACKER,
+    },
 };
 use anyhow::Result;
 use k8s_openapi::{api::core::v1::Namespace, apimachinery::pkg::apis::meta::v1::ObjectMeta};
@@ -17,7 +21,12 @@ use tracing::debug;
 use uuid::Uuid;
 
 impl RunnableDeploymentOperation for DeploymentInstallTask {
-    async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
+    async fn run(
+        &self,
+        deployment: &Deployment,
+        task: &DeploymentTask,
+        config: &Config,
+    ) -> Result<String> {
         debug!("Setting status to installing");
         deployment
             .set_status(DeploymentStatus::Installing, None)
@@ -27,8 +36,8 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
             deployment_to_namespace(deployment).await,
         )
         .await?;
-        apply_deployment_credentials(deployment).await?;
-        match run_helm("install", deployment, task).await {
+        apply_deployment_credentials(deployment, &config.platz_url).await?;
+        match run_helm(config, "install", deployment, task).await {
             Ok(output) => {
                 deployment.set_revision(Some(task.id)).await?;
                 task.apply_deployment_resources().await?;
@@ -48,12 +57,17 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
 }
 
 impl RunnableDeploymentOperation for DeploymentUpgradeTask {
-    async fn run(&self, deployment: &Deployment, task: &DeploymentTask) -> Result<String> {
+    async fn run(
+        &self,
+        deployment: &Deployment,
+        task: &DeploymentTask,
+        config: &Config,
+    ) -> Result<String> {
         debug!("Setting status to upgrading");
         deployment
             .set_status(DeploymentStatus::Upgrading, None)
             .await?;
-        match run_helm("upgrade --install", deployment, task).await {
+        match run_helm(config, "upgrade --install", deployment, task).await {
             Ok(output) => {
                 deployment.set_revision(Some(task.id)).await?;
                 task.apply_deployment_resources().await?;
@@ -73,12 +87,17 @@ impl RunnableDeploymentOperation for DeploymentUpgradeTask {
 }
 
 impl RunnableDeploymentOperation for DeploymentReinstallTask {
-    async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
+    async fn run(
+        &self,
+        deployment: &Deployment,
+        _task: &DeploymentTask,
+        config: &Config,
+    ) -> Result<String> {
         deployment
             .set_status(DeploymentStatus::Upgrading, None)
             .await?;
         let revision_task = deployment.revision_task().await?;
-        match run_helm("upgrade --install", deployment, &revision_task).await {
+        match run_helm(config, "upgrade --install", deployment, &revision_task).await {
             Ok(output) => {
                 revision_task.apply_deployment_resources().await?;
                 deployment
@@ -97,7 +116,12 @@ impl RunnableDeploymentOperation for DeploymentReinstallTask {
 }
 
 impl RunnableDeploymentOperation for DeploymentRecreaseTask {
-    async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
+    async fn run(
+        &self,
+        deployment: &Deployment,
+        _task: &DeploymentTask,
+        config: &Config,
+    ) -> Result<String> {
         deployment
             .set_status(DeploymentStatus::Renaming, None)
             .await?;
@@ -107,13 +131,18 @@ impl RunnableDeploymentOperation for DeploymentRecreaseTask {
             deployment_to_namespace(deployment).await,
         )
         .await?;
-        apply_deployment_credentials(deployment).await?;
+        apply_deployment_credentials(deployment, &config.platz_url).await?;
         Ok("".to_owned())
     }
 }
 
 impl RunnableDeploymentOperation for DeploymentUninstallTask {
-    async fn run(&self, deployment: &Deployment, _task: &DeploymentTask) -> Result<String> {
+    async fn run(
+        &self,
+        deployment: &Deployment,
+        _task: &DeploymentTask,
+        _config: &Config,
+    ) -> Result<String> {
         if deployment.status == DeploymentStatus::Deleting {
             deployment
                 .set_status(DeploymentStatus::Deleting, None)
