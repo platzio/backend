@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 actix = "0.13.5"
-actix-web = { version = "4.11.0", features = ["rustls"] }
+actix-web = { version = "4.11.0", default-features = false }
 actix-web-actors = "4.3.1"
 anyhow = { version = "1.0.98", features = ["backtrace"] }
 chrono = { version = "0.4.41", default-features = false, features = [
