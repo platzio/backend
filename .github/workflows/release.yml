@@ -8,6 +8,9 @@ on:
 env:
   DOCKER_REPO: platzio/backend
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: 🧪 Run Tests
@@ -86,6 +89,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - image
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: 🏗️ Generate OpenAPI schema
         run: |
