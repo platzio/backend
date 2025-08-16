@@ -1,12 +1,12 @@
 use super::utils::ensure_user;
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
-use actix_web::{delete, get, post, web, HttpResponse};
-use platz_auth::{generate_api_token, ApiIdentity};
+use actix_web::{HttpResponse, delete, get, post, web};
+use platz_auth::{ApiIdentity, generate_api_token};
 use platz_db::{
+    DbError,
     diesel_pagination::{Paginated, PaginationParams},
     schema::bot_token::{BotToken, BotTokenFilters, NewBotToken},
-    DbError,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;

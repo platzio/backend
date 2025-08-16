@@ -1,5 +1,5 @@
 use crate::kind::get_or_create_kind;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use aws_sdk_ecr::types::Repository;
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use aws_types::region::Region;

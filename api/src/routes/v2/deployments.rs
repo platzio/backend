@@ -2,10 +2,11 @@ use crate::{
     permissions::{verify_deployment_maintainer, verify_deployment_owner},
     result::ApiResult,
 };
-use actix_web::{delete, get, post, put, web, HttpResponse};
+use actix_web::{HttpResponse, delete, get, post, put, web};
 use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
+    DbTable, DbTableOrDeploymentResource,
     diesel_pagination::{Paginated, PaginationParams},
     schema::{
         deployment::{
@@ -15,7 +16,6 @@ use platz_db::{
         deployment_task::DeploymentTask,
         helm_chart::HelmChart,
     },
-    DbTable, DbTableOrDeploymentResource,
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -157,10 +157,10 @@ async fn update(
     verify_deployment_maintainer(old_deployment.cluster_id, old_deployment.kind_id, &identity)
         .await?;
 
-    if let Some(new_cluster_id) = updates.cluster_id {
-        if new_cluster_id != old_deployment.cluster_id {
-            verify_deployment_maintainer(new_cluster_id, old_deployment.kind_id, &identity).await?;
-        }
+    if let Some(new_cluster_id) = updates.cluster_id
+        && new_cluster_id != old_deployment.cluster_id
+    {
+        verify_deployment_maintainer(new_cluster_id, old_deployment.kind_id, &identity).await?;
     }
 
     if old_deployment.enabled && updates.enabled == Some(false) {

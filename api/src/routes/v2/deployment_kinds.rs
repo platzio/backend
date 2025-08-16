@@ -1,6 +1,6 @@
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
-use actix_web::{get, put, web, HttpResponse};
+use actix_web::{HttpResponse, get, put, web};
 use platz_auth::ApiIdentity;
 use platz_db::{
     diesel_pagination::{Paginated, PaginationParams},

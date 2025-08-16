@@ -1,13 +1,13 @@
 use super::verify_env_admin;
 use crate::result::ApiError;
 use platz_db::{
+    Identity,
     schema::{
         bot::Bot,
         deployment::Deployment,
         deployment_permission::{DeploymentPermission, UserDeploymentRole},
         k8s_cluster::K8sCluster,
     },
-    Identity,
 };
 use uuid::Uuid;
 

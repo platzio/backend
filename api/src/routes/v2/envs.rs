@@ -1,6 +1,6 @@
 use super::deployments::using_error;
 use crate::{permissions::verify_site_admin, result::ApiResult};
-use actix_web::{delete, get, post, put, web, HttpResponse};
+use actix_web::{HttpResponse, delete, get, post, put, web};
 use itertools::Itertools;
 use platz_auth::ApiIdentity;
 use platz_db::{

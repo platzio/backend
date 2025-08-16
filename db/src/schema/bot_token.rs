@@ -1,4 +1,4 @@
-use crate::{db_conn, DbResult};
+use crate::{DbResult, db_conn};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;

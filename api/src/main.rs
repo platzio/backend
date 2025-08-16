@@ -1,10 +1,10 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use clap::{Parser, Subcommand};
-use platz_db::{init_db, NotificationListeningOpts};
+use platz_db::{NotificationListeningOpts, init_db};
 use routes::openapi::SchemaFormat;
 use tokio::{
     select,
-    signal::unix::{signal, SignalKind},
+    signal::unix::{SignalKind, signal},
 };
 use tracing::warn;
 

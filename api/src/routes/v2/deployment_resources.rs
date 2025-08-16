@@ -1,5 +1,5 @@
 use crate::result::ApiResult;
-use actix_web::{delete, get, post, put, web, HttpResponse};
+use actix_web::{HttpResponse, delete, get, post, put, web};
 use futures::future::try_join_all;
 use platz_auth::ApiIdentity;
 use platz_db::{

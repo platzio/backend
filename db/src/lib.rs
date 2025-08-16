@@ -11,16 +11,16 @@ mod ui_collection;
 use crate::config::database_url;
 pub use db_table::*;
 use diesel_async::{
+    AsyncPgConnection,
     async_connection_wrapper::AsyncConnectionWrapper,
     pooled_connection::{
-        bb8::{Pool, PooledConnection},
         AsyncDieselConnectionManager,
+        bb8::{Pool, PooledConnection},
     },
-    AsyncPgConnection,
 };
 pub use diesel_filter;
 pub use diesel_json::Json;
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 pub use diesel_pagination;
 pub use errors::*;
 pub use events::*;
@@ -28,7 +28,7 @@ pub use identity::Identity;
 use tokio::{
     spawn,
     sync::OnceCell,
-    task::{spawn_blocking, JoinHandle},
+    task::{JoinHandle, spawn_blocking},
 };
 use tracing::info;
 pub use ui_collection::DbTableOrDeploymentResource;

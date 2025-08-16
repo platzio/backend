@@ -1,7 +1,7 @@
 use super::runnable_task::RunnableDeploymentOperation;
 use crate::{config::Config, k8s::tracker::K8S_TRACKER};
-use anyhow::anyhow;
 use anyhow::Result;
+use anyhow::anyhow;
 use kube::api::Api;
 use platz_db::schema::{
     deployment::Deployment,

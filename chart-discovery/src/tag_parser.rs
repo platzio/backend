@@ -1,11 +1,11 @@
 use anyhow::Result;
 use platz_db::{
+    Db, DbTable,
     diesel_pagination::PaginationParams,
     schema::{
         helm_chart::{HelmChart, HelmChartFilters, HelmChartTagInfo},
         helm_tag_format::HelmTagFormat,
     },
-    Db, DbTable,
 };
 use regex::Regex;
 use tracing::{debug, info, warn};

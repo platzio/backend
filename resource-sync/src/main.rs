@@ -2,10 +2,10 @@ mod task;
 
 use crate::task::{monitor_deployment_resource_changes, scrub_deployment_resources};
 use anyhow::Result;
-use platz_db::{init_db, DbTable};
+use platz_db::{DbTable, init_db};
 use tokio::{
     select,
-    signal::unix::{signal, SignalKind},
+    signal::unix::{SignalKind, signal},
 };
 use tracing::{info, warn};
 

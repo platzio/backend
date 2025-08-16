@@ -6,7 +6,7 @@ use platz_db::schema::{
     deployment_task::{DeploymentTask, DeploymentTaskStatus},
     k8s_cluster::K8sCluster,
 };
-use prometheus::{register_int_gauge_vec, IntGaugeVec};
+use prometheus::{IntGaugeVec, register_int_gauge_vec};
 use std::collections::HashMap;
 use std::time::Duration;
 use strum::IntoEnumIterator;

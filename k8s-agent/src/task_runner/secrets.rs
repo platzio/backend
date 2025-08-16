@@ -5,8 +5,8 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 use kube::api::{Api, Patch, PatchParams};
 use platz_chart_ext::UiSchema;
 use platz_db::{
-    schema::{deployment::Deployment, deployment_task::DeploymentTask},
     DbTableOrDeploymentResource,
+    schema::{deployment::Deployment, deployment_task::DeploymentTask},
 };
 use std::collections::BTreeMap;
 use tracing::debug;

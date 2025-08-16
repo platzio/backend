@@ -1,5 +1,5 @@
 use crate::result::ApiResult;
-use actix_web::{get, web, HttpResponse};
+use actix_web::{HttpResponse, get, web};
 use platz_auth::ApiIdentity;
 use platz_db::{
     diesel_pagination::{Paginated, PaginationParams},

@@ -1,9 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
-use platz_db::{init_db, DbTable, NotificationListeningOpts};
+use platz_db::{DbTable, NotificationListeningOpts, init_db};
 use tokio::{
     select,
-    signal::unix::{signal, SignalKind},
+    signal::unix::{SignalKind, signal},
 };
 use tracing::{info, warn};
 

@@ -3,12 +3,12 @@ use crate::{
     permissions::verify_site_admin,
     result::{ApiError, ApiResult},
 };
-use actix_web::{delete, get, post, web, HttpResponse};
-use platz_auth::{generate_api_token, ApiIdentity};
+use actix_web::{HttpResponse, delete, get, post, web};
+use platz_auth::{ApiIdentity, generate_api_token};
 use platz_db::{
+    DbError,
     diesel_pagination::{Paginated, PaginationParams},
     schema::user_token::{NewUserToken, UserToken, UserTokenFilters},
-    DbError,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -68,10 +68,10 @@ async fn get_all(
 #[get("/user-tokens/{id}")]
 async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let user = ensure_user(&identity).await?;
-    if let Some(user_token) = UserToken::find(id.into_inner()).await? {
-        if user.is_admin || (user.id == user_token.user_id) {
-            return Ok(HttpResponse::Ok().json(user_token));
-        }
+    if let Some(user_token) = UserToken::find(id.into_inner()).await?
+        && (user.is_admin || (user.id == user_token.user_id))
+    {
+        return Ok(HttpResponse::Ok().json(user_token));
     }
     Err(ApiError::from(DbError::NotFound))
 }

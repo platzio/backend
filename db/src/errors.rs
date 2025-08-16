@@ -15,7 +15,9 @@ pub enum DbError {
     #[error("Failed parsing region name from helm registry domain name")]
     RegionNameParseError,
 
-    #[error("Could not generate standard_ingress hostname because the cluster has no domain configured. Please configure a domain for the cluster and try again.")]
+    #[error(
+        "Could not generate standard_ingress hostname because the cluster has no domain configured. Please configure a domain for the cluster and try again."
+    )]
     ClusterHasNoIngressDomain,
 
     #[error("This helm chart does not have any actions")]

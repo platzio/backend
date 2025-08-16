@@ -7,10 +7,10 @@ mod utils;
 use crate::{config::Config, k8s::cluster_discovery::run_cluster_discovery};
 use anyhow::Result;
 use clap::Parser;
-use platz_db::{init_db, DbTable};
+use platz_db::{DbTable, init_db};
 use tokio::{
     select,
-    signal::unix::{signal, SignalKind},
+    signal::unix::{SignalKind, signal},
 };
 use tracing::{info, warn};
 

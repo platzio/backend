@@ -1,6 +1,6 @@
-use crate::{db_conn, DbResult};
+use crate::{DbResult, db_conn};
 use chrono::prelude::*;
-use diesel::{prelude::*, QueryDsl};
+use diesel::{QueryDsl, prelude::*};
 use diesel_async::RunQueryDsl;
 use diesel_filter::DieselFilter;
 use diesel_pagination::{Paginate, Paginated, PaginationParams};

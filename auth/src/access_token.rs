@@ -1,11 +1,11 @@
 use crate::error::AuthError;
 use base64::prelude::*;
-use chrono::prelude::*;
 use chrono::Duration;
-use jsonwebtoken::{encode, EncodingKey, Header};
+use chrono::prelude::*;
+use jsonwebtoken::{EncodingKey, Header, encode};
 use platz_db::{
-    schema::{deployment::Deployment, setting::Setting, user::User},
     Identity,
+    schema::{deployment::Deployment, setting::Setting, user::User},
 };
 use rand::random;
 use serde::{Deserialize, Serialize};

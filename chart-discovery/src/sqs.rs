@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use aws_types::region::Region;
 use serde::de::DeserializeOwned;
 use std::future::Future;

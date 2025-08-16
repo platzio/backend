@@ -1,5 +1,5 @@
 use crate::registries::find_and_save_ecr_repo;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use aws_sdk_ecr::types::{ImageDetail, ImageIdentifier};
 use aws_types::region::Region;
 use chrono::prelude::*;

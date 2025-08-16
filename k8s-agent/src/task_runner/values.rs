@@ -1,13 +1,13 @@
 use super::secrets::apply_secrets;
 use crate::k8s::tracker::K8S_TRACKER;
-use anyhow::{anyhow, Result};
-use platz_chart_ext::{insert_into_map, UiSchema};
+use anyhow::{Result, anyhow};
+use platz_chart_ext::{UiSchema, insert_into_map};
 use platz_db::{
+    DbTableOrDeploymentResource,
     schema::{
         deployment::Deployment, deployment_kind::DeploymentKind, deployment_task::DeploymentTask,
         env::Env, k8s_cluster::K8sCluster,
     },
-    DbTableOrDeploymentResource,
 };
 use serde::Serialize;
 use tracing::warn;
@@ -153,7 +153,9 @@ pub async fn create_values_and_secrets(
                     )
                 }
                 (true, _) => {
-                    warn!("Deployment standard_ingress is enabled but domain_tls_secret_name is not configured for the cluster. Not creating ingress.");
+                    warn!(
+                        "Deployment standard_ingress is enabled but domain_tls_secret_name is not configured for the cluster. Not creating ingress."
+                    );
                     Default::default()
                 }
                 _ => Default::default(),

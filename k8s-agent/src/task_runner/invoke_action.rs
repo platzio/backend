@@ -1,13 +1,13 @@
 use super::runnable_task::RunnableDeploymentOperation;
 use crate::config::Config;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use platz_db::{
+    DbError, DbTableOrDeploymentResource,
     schema::{
         deployment::Deployment,
         deployment_task::{DeploymentInvokeActionTask, DeploymentTask},
         k8s_cluster::K8sCluster,
     },
-    DbError, DbTableOrDeploymentResource,
 };
 use tracing::debug;
 

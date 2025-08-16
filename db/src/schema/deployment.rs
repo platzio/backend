@@ -1,21 +1,21 @@
 use super::{
-    deployment_kind::{deployment_kinds, DeploymentKind},
+    deployment_kind::{DeploymentKind, deployment_kinds},
     deployment_status::DeploymentReportedStatus,
     deployment_task::DeploymentTask,
     helm_chart::HelmChart,
     k8s_cluster::K8sCluster,
 };
-use crate::{db_conn, DbError, DbResult, DbTableOrDeploymentResource, Identity};
+use crate::{DbError, DbResult, DbTableOrDeploymentResource, Identity, db_conn};
 use chrono::prelude::*;
-use diesel::{prelude::*, QueryDsl};
+use diesel::{QueryDsl, prelude::*};
 use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::DieselFilter;
 use diesel_json::Json;
 use diesel_pagination::{Paginate, Paginated, PaginationParams};
 use platz_chart_ext::{
-    actions::{ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver},
     ChartExtIngressHostnameFormat, UiSchema,
+    actions::{ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver},
 };
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;

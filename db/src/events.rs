@@ -114,22 +114,25 @@ impl DbEventBroadcast {
                 .await
                 .map_err(DbEventsError::ConnectError)?;
 
-        let events_task = spawn(poll_fn(move |cx| loop {
-            while let Some(message) = ready!(connection
-                .poll_message(cx)
-                .map_err(DbEventsError::PollError)?)
-            {
-                match message {
-                    AsyncMessage::Notice(notice) => {
-                        trace!("Database notice: {notice:?}");
-                    }
-                    AsyncMessage::Notification(notification) => {
-                        let event: DbEvent = serde_json::from_str(notification.payload())
-                            .map_err(DbEventsError::EventParseError)?;
-                        events_tx.send(event).ok();
-                    }
-                    other => {
-                        trace!("Got unknown message from Postgres: {other:?}");
+        let events_task = spawn(poll_fn(move |cx| {
+            loop {
+                while let Some(message) = ready!(
+                    connection
+                        .poll_message(cx)
+                        .map_err(DbEventsError::PollError)?
+                ) {
+                    match message {
+                        AsyncMessage::Notice(notice) => {
+                            trace!("Database notice: {notice:?}");
+                        }
+                        AsyncMessage::Notification(notification) => {
+                            let event: DbEvent = serde_json::from_str(notification.payload())
+                                .map_err(DbEventsError::EventParseError)?;
+                            events_tx.send(event).ok();
+                        }
+                        other => {
+                            trace!("Got unknown message from Postgres: {other:?}");
+                        }
                     }
                 }
             }

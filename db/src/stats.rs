@@ -1,5 +1,5 @@
 use crate::DbPool;
-use prometheus::{register_int_gauge, IntGauge};
+use prometheus::{IntGauge, register_int_gauge};
 use std::time::Duration;
 use tokio::time;
 

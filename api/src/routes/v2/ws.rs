@@ -1,9 +1,9 @@
 use actix::prelude::*;
-use actix_web::{web, Error, HttpRequest, HttpResponse};
+use actix_web::{Error, HttpRequest, HttpResponse, web};
 use actix_web_actors::ws;
-use platz_db::{db, DbEvent, DbEventData, DbEventOperation};
+use platz_db::{DbEvent, DbEventData, DbEventOperation, db};
 use std::time::Duration;
-use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
+use tokio_stream::wrappers::{BroadcastStream, errors::BroadcastStreamRecvError};
 use tracing::error;
 
 #[derive(Default)]

@@ -1,7 +1,7 @@
 /// The code below was copied from https://github.com/clux/kube-rs/blob/master/examples/pod_attach.rs
 use crate::utils::create_interval_stream;
-use anyhow::{anyhow, Context, Result};
-use futures::{stream, StreamExt};
+use anyhow::{Context, Result, anyhow};
+use futures::{StreamExt, stream};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{Api, AttachedProcess, DeleteParams, PostParams, ResourceExt};
 use kube::runtime::watcher::{self, Event};

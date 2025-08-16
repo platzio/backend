@@ -1,5 +1,5 @@
 use crate::result::ApiError;
-use platz_db::{schema::user::User, Identity};
+use platz_db::{Identity, schema::user::User};
 
 pub async fn verify_site_admin<I>(identity: &I) -> Result<(), ApiError>
 where

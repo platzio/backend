@@ -1,8 +1,8 @@
 use super::verify_site_admin;
 use crate::result::ApiError;
 use platz_db::{
-    schema::env_user_permission::{EnvUserPermission, EnvUserRole},
     Identity,
+    schema::env_user_permission::{EnvUserPermission, EnvUserRole},
 };
 use uuid::Uuid;
 

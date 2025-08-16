@@ -3,7 +3,7 @@ use crate::{
     config::Config,
     deployment_creds::apply_deployment_credentials,
     k8s::{
-        annotations::{deployment_namespace_annotations, DEPLOYMENT_NAMESPACE_LABELS},
+        annotations::{DEPLOYMENT_NAMESPACE_LABELS, deployment_namespace_annotations},
         tracker::K8S_TRACKER,
     },
 };
@@ -201,12 +201,12 @@ async fn delete_namespace(cluster_id: Uuid, namespace_name: &str) -> Result<()> 
     );
     if let Err(e) = api.delete(namespace_name, &Default::default()).await {
         tracing::error!(?e);
-        if let kube::Error::Api(kube::core::ErrorResponse { code, .. }) = e {
-            if http::StatusCode::NOT_FOUND == code {
-                // If it's not found, I guess it is... *drums roll* DELETED *cymbals*
-                debug!("Namespace not found - ignoring");
-                return Ok(());
-            }
+        if let kube::Error::Api(kube::core::ErrorResponse { code, .. }) = e
+            && http::StatusCode::NOT_FOUND == code
+        {
+            // If it's not found, I guess it is... *drums roll* DELETED *cymbals*
+            debug!("Namespace not found - ignoring");
+            return Ok(());
         }
         return Err(e.into());
     }

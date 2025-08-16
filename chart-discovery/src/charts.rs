@@ -1,11 +1,11 @@
 use crate::ecr_events::{EcrEvent, EcrEventDetail};
 use crate::tag_parser::parse_image_tag;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use aws_smithy_types_convert::date_time::DateTimeExt;
 use platz_chart_ext::ChartExt;
 use platz_db::{
-    schema::helm_chart::{HelmChart, HelmChartTagInfo, NewHelmChart, UpdateHelmChart},
     Json,
+    schema::helm_chart::{HelmChart, HelmChartTagInfo, NewHelmChart, UpdateHelmChart},
 };
 use std::path::PathBuf;
 use tokio::process::Command;

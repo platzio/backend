@@ -56,14 +56,14 @@ impl StatusTracker {
         };
 
         let mut configs = self.inner.configs.write().await;
-        if let Some(cur_config) = configs.get(&deployment.id) {
-            if new_config == *cur_config {
-                info!(
-                    "Deployment {} status config hasn't changed, doing nothing",
-                    deployment.id
-                );
-                return;
-            }
+        if let Some(cur_config) = configs.get(&deployment.id)
+            && new_config == *cur_config
+        {
+            info!(
+                "Deployment {} status config hasn't changed, doing nothing",
+                deployment.id
+            );
+            return;
         }
 
         info!(

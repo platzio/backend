@@ -1,8 +1,8 @@
 use crate::error::AuthError;
 use base64::prelude::*;
 use platz_db::{
-    schema::{bot_token::BotToken, user_token::UserToken},
     Identity,
+    schema::{bot_token::BotToken, user_token::UserToken},
 };
 use rand::random;
 use sha2::{Digest, Sha256};
@@ -62,10 +62,10 @@ pub(crate) async fn validate_api_token(api_token: String) -> Result<Identity, Au
         if user_token.secret_hash == secret_hash {
             return Ok(Identity::User(user_token.user_id));
         }
-    } else if let Some(bot_token) = bot_token {
-        if bot_token.secret_hash == secret_hash {
-            return Ok(Identity::Bot(bot_token.bot_id));
-        }
+    } else if let Some(bot_token) = bot_token
+        && bot_token.secret_hash == secret_hash
+    {
+        return Ok(Identity::Bot(bot_token.bot_id));
     }
 
     Err(AuthError::ApiTokenAuthenticationError("Illegal token"))

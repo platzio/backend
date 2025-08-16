@@ -2,7 +2,7 @@ use super::{
     env::Env,
     env_user_permission::{EnvUserRole, NewEnvUserPermission},
 };
-use crate::{db_conn, DbResult};
+use crate::{DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;

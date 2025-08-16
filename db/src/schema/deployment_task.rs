@@ -3,12 +3,11 @@ use super::{
     helm_chart::HelmChart, k8s_cluster::K8sCluster,
 };
 use crate::{
-    db_conn,
-    json_diff::{json_diff, JsonDiff},
-    DbError, DbResult, Identity,
+    DbError, DbResult, Identity, db_conn,
+    json_diff::{JsonDiff, json_diff},
 };
 use chrono::prelude::*;
-use diesel::{prelude::*, QueryDsl};
+use diesel::{QueryDsl, prelude::*};
 use diesel_async::RunQueryDsl;
 use diesel_enum_derive::DieselEnum;
 use diesel_filter::DieselFilter;

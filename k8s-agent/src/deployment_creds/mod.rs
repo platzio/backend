@@ -33,10 +33,10 @@ pub async fn start(config: &Config) -> Result<()> {
             }
         }
 
-        if config.should_refresh_deployment_credintials() {
-            if let Err(err) = refresh_credentials(config).await {
-                error!("Error refreshing credentials: {:?}", err);
-            }
+        if config.should_refresh_deployment_credintials()
+            && let Err(err) = refresh_credentials(config).await
+        {
+            error!("Error refreshing credentials: {:?}", err);
         }
     }
 }

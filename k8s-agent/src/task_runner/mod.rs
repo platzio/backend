@@ -9,11 +9,11 @@ mod values;
 use crate::{config::Config, k8s::tracker::K8S_TRACKER, utils::create_interval_stream};
 use anyhow::Result;
 use futures::StreamExt;
-use platz_db::{schema::deployment_task::DeploymentTask, Db, DbEvent, DbEventOperation, DbTable};
+use platz_db::{Db, DbEvent, DbEventOperation, DbTable, schema::deployment_task::DeploymentTask};
 use runnable_task::RunnableDeploymentTask;
 pub use secrets::apply_secret;
 use tokio::{select, sync::watch};
-use tracing::{debug, error, info, Instrument};
+use tracing::{Instrument, debug, error, info};
 
 #[tracing::instrument(err, skip_all, name = "task_runner")]
 pub async fn start(config: &Config, db: &Db) -> Result<()> {

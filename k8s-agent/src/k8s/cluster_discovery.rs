@@ -1,5 +1,5 @@
 use super::{cluster_type::K8s, tracker::K8S_TRACKER};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use aws_types::region::Region;
 use futures::future::try_join_all;
 use std::sync::Arc;

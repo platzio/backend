@@ -1,11 +1,11 @@
 use crate::config::Config;
 use anyhow::Result;
 use platz_db::{
+    Json,
     schema::{
         deployment::Deployment,
         deployment_task::{DeploymentTask, DeploymentTaskOperation, DeploymentTaskStatus},
     },
-    Json,
 };
 use tracing::{debug, instrument};
 

@@ -1,11 +1,11 @@
 use crate::permissions::verify_site_admin;
 use crate::result::ApiResult;
-use actix_web::{delete, get, post, put, web, HttpResponse};
+use actix_web::{HttpResponse, delete, get, post, put, web};
 use platz_auth::ApiIdentity;
 use platz_db::{
+    DbError,
     diesel_pagination::{Paginated, PaginationParams},
     schema::bot::{Bot, BotFilters, NewBot, UpdateBot},
-    DbError,
 };
 use uuid::Uuid;
 

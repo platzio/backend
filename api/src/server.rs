@@ -1,5 +1,5 @@
 use actix_web::middleware::Logger;
-use actix_web::{error::InternalError, web, App, HttpResponse, HttpServer};
+use actix_web::{App, HttpResponse, HttpServer, error::InternalError, web};
 use anyhow::Result;
 use prometheus::Encoder;
 use serde_json::json;

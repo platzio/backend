@@ -1,9 +1,9 @@
 use crate::result::ApiResult;
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{HttpResponse, get, post, web};
 use platz_auth::{AccessToken, ApiIdentity, OAuth2Response, OidcLogin};
 use platz_db::{
-    schema::{bot::Bot, deployment::Deployment, user::User},
     Identity,
+    schema::{bot::Bot, deployment::Deployment, user::User},
 };
 use serde::Serialize;
 use serde_json::json;

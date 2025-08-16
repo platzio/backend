@@ -1,5 +1,5 @@
 use super::helm_registry::helm_registries;
-use crate::{db_conn, DbError, DbResult};
+use crate::{DbError, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::pg::Pg;
 use diesel::prelude::*;
@@ -9,7 +9,7 @@ use diesel_filter::DieselFilter;
 use diesel_json::Json;
 use diesel_pagination::{Paginate, Paginated, PaginationParams};
 use platz_chart_ext::{
-    resource_types::ChartExtResourceTypes, ChartExtActions, ChartExtFeatures, UiSchema,
+    ChartExtActions, ChartExtFeatures, UiSchema, resource_types::ChartExtResourceTypes,
 };
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;

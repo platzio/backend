@@ -1,8 +1,8 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use platz_chart_ext::ChartExtActionEndpoint;
 use platz_db::schema::deployment::Deployment;
 use std::time::Duration;
-use tokio::time::{interval, Interval};
+use tokio::time::{Interval, interval};
 use url::Url;
 
 #[derive(Clone, PartialEq, Eq)]

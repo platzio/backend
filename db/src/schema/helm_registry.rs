@@ -1,4 +1,4 @@
-use crate::{db_conn, DbError, DbResult};
+use crate::{DbError, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;

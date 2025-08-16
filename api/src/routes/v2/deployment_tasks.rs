@@ -1,10 +1,11 @@
 use super::utils::ensure_user;
 use crate::permissions::verify_deployment_maintainer;
 use crate::result::ApiResult;
-use actix_web::{delete, get, post, web, HttpResponse};
+use actix_web::{HttpResponse, delete, get, post, web};
 use chrono::prelude::*;
 use platz_auth::ApiIdentity;
 use platz_db::{
+    DbError, DbTableOrDeploymentResource, Json,
     diesel_pagination::{Paginated, PaginationParams},
     schema::{
         deployment::Deployment,
@@ -16,7 +17,6 @@ use platz_db::{
         k8s_cluster::K8sCluster,
         k8s_resource::K8sResource,
     },
-    DbError, DbTableOrDeploymentResource, Json,
 };
 use serde::Deserialize;
 use serde_json::json;

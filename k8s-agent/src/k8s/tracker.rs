@@ -1,13 +1,13 @@
 use super::annotations::{
-    find_deployment_from_namespace, DEPLOYMENT_NAMESPACE_LABELS_SELECTOR,
-    NAMESPACE_ANNOTATION_DEPLOYMENT_ID,
+    DEPLOYMENT_NAMESPACE_LABELS_SELECTOR, NAMESPACE_ANNOTATION_DEPLOYMENT_ID,
+    find_deployment_from_namespace,
 };
 use super::cluster_type::K8s;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use chrono::prelude::*;
 use futures::{FutureExt, StreamExt, TryStreamExt};
-use kube::api::{Api, ListParams, WatchEvent, WatchParams};
 use kube::ResourceExt;
+use kube::api::{Api, ListParams, WatchEvent, WatchParams};
 use lazy_static::lazy_static;
 use platz_db::schema::{
     deployment::DeploymentStatus,
@@ -17,7 +17,7 @@ use platz_db::schema::{
 };
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use tokio::sync::{broadcast, watch, RwLock};
+use tokio::sync::{RwLock, broadcast, watch};
 use tokio::{select, task};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;

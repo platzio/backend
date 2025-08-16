@@ -1,16 +1,16 @@
 use crate::{
-    access_token::{get_jwt_secret, AccessToken},
+    API_TOKEN_HEADER,
+    access_token::{AccessToken, get_jwt_secret},
     api_token::validate_api_token,
     error::AuthError,
-    API_TOKEN_HEADER,
 };
-use actix_web::{dev::Payload, http::header::HeaderName, FromRequest, HttpRequest};
+use actix_web::{FromRequest, HttpRequest, dev::Payload, http::header::HeaderName};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use futures::future::{ok, ready, BoxFuture, FutureExt, TryFutureExt};
-use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
+use futures::future::{BoxFuture, FutureExt, TryFutureExt, ok, ready};
+use jsonwebtoken::{Algorithm, DecodingKey, TokenData, Validation, decode};
 use platz_db::{
-    schema::{bot::Bot, deployment::Deployment, user::User},
     Identity,
+    schema::{bot::Bot, deployment::Deployment, user::User},
 };
 
 async fn validate_token(bearer: BearerAuth) -> Result<TokenData<AccessToken>, AuthError> {

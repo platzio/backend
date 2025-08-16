@@ -1,5 +1,5 @@
 use super::deployment_kind::DeploymentKind;
-use crate::{db_conn, DbError, DbResult, DbTableOrDeploymentResource};
+use crate::{DbError, DbResult, DbTableOrDeploymentResource, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
