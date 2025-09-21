@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: 📦 Cargo version
         id: cargo
@@ -80,7 +80,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          build-args: BASE_IMAGE=platzio/base:v7
+          build-args: BASE_IMAGE=platzio/base:v6
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.DOCKER_REPO }}:${{ steps.tag.outputs.tag }}
