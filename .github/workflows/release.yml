@@ -1,6 +1,9 @@
 name: ⎈ Release Version
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     tags:
       - v**
@@ -60,7 +63,12 @@ jobs:
       - name: 🏷 Get tag
         id: tag
         run: |
-          echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" -eq "push" ]
+          then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=ci-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: 🐳 Login to DockerHub
         uses: docker/login-action@v3
@@ -81,8 +89,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          build-args: BASE_IMAGE=platzio/base:v6
-          push: true
+          build-args: BASE_IMAGE=platzio/base:v7
+          push: ${{ github.event_name == 'push' }}
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.DOCKER_REPO }}:${{ steps.tag.outputs.tag }}
           cache-from: type=gha
@@ -90,6 +98,7 @@ jobs:
 
   release:
     name: 🚀 Create Release
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs:
       - image
