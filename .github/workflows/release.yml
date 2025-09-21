@@ -68,10 +68,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: 🛠️ Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: 🛠️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           buildkitd-config: .github/buildkitd.toml
+          platforms: linux/amd64,linux/arm64
 
       - name: 🐳 Build and push
         uses: docker/build-push-action@v6
