@@ -9,7 +9,7 @@ export PGUSER="postgres"
 export PGPORT="5432"
 export PGDATABASE="test"
 export PGPASSWORD="postgres"
-export DATABASE_URL="postgres://${PGUSER}:${PGPASSWORD}@127.0.0.1:${PGPORT}/${PGDATABASE}"
+
 DB_CONTAINER="${PGDATABASE}-postgres"
 
 if ps -ef | grep kubectl | grep port-forward | grep "${PGPORT}" &> /dev/null
