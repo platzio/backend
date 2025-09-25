@@ -56,12 +56,12 @@ async fn helm_pod(
 
     let script = [
         "mkdir -p /root/.kube",
-        "echo $KUBECONFIG_BASE64 | base64 --decode > /root/.kube/config",
+        "echo $KUBECONFIG_BASE64 | base64 -d > /root/.kube/config",
         "chmod 400 /root/.kube/config",
         "aws ecr get-login-password --region $HELM_REGISTRY_REGION | helm registry login --username AWS --password-stdin $HELM_REGISTRY",
         "helm pull oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG",
-        "echo $VALUES_BASE64 | base64 --decode > values.yaml",
-        "echo $VALUES_OVERRIDE_BASE64 | base64 --decode > values-override.yaml",
+        "echo $VALUES_BASE64 | base64 -d > values.yaml",
+        "echo $VALUES_OVERRIDE_BASE64 | base64 -d > values-override.yaml",
         &format!(
             "helm --debug --kubeconfig=/root/.kube/config {command} {namespace_name} oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG --namespace={namespace_name} -f values.yaml -f values-override.yaml",
         ),
