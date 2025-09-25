@@ -105,7 +105,7 @@ async fn download_chart(event: &EcrEvent) -> Result<PathBuf> {
         "helm pull oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG -d ./ --untar",
     ].join(" && ");
 
-    let output = Command::new("/usr/bin/bash")
+    let output = Command::new("/bin/bash")
         .arg("-euxc")
         .arg(&script)
         .env("TEMP_DOWNLOAD_PATH", TEMP_DOWNLOAD_PATH)
