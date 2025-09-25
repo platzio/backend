@@ -16,7 +16,7 @@ services:
     build:
       context: .
       args:
-        BASE_IMAGE: platzio/base:v7
+        BASE_IMAGE: platzio/base:v8
         RELEASE_BUILD: 0
     command:
       - /root/platz-api
