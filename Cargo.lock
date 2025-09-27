@@ -1587,8 +1587,9 @@ dependencies = [
 
 [[package]]
 name = "diesel_json"
-version = "0.2.1"
-source = "git+https://github.com/popen2/diesel_json#e376b6e3d30daa0c50bd09f77f40ecbba5c4cfed"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b4e35cdca3d007ccca4cac79b2dd52469b74f7baf0cbdeac47bdcc7a31662e5"
 dependencies = [
  "diesel",
  "serde",
