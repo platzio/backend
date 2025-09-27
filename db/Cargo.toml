@@ -24,7 +24,7 @@ diesel-async = { version = "0.6.1", features = [
 diesel_enum_derive = { git = "https://github.com/popen2/diesel-enum-derive", default-features = false, features = [
   "plain",
 ] }
-diesel_json = { git = "https://github.com/popen2/diesel_json" }
+diesel_json = "0.3.0"
 diesel_migrations = "2.2.0"
 itertools = "0.14.0"
 lazy_static = "1.5.0"
