@@ -29,7 +29,7 @@ impl RunnableDeploymentOperation for DeploymentRestartK8sResourceTask {
             .await?
             .kube_client()
             .await?;
-        let ns = deployment.namespace_name().await;
+        let ns = deployment.namespace_name().await?;
 
         match resource.kind.as_str() {
             "Deployment" => {
