@@ -54,19 +54,15 @@ table! {
     Display,
     DieselEnum,
     ToSchema,
+    Default,
 )]
 pub enum DeploymentTaskStatus {
+    #[default]
     Pending,
     Started,
     Failed,
     Canceled,
     Done,
-}
-
-impl Default for DeploymentTaskStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
@@ -461,9 +457,9 @@ impl DeploymentTask {
             acting_deployment_id: identity.borrow().deployment_id(),
             operation: Json(DeploymentTaskOperation::Recreate(DeploymentRecreaseTask {
                 old_cluster_id: old_deployment.cluster_id,
-                old_namespace: old_deployment.namespace_name().await,
+                old_namespace: old_deployment.namespace_name().await?,
                 new_cluster_id: new_deployment.cluster_id,
-                new_namespace: new_deployment.namespace_name().await,
+                new_namespace: new_deployment.namespace_name().await?,
             })),
             status: Default::default(),
             execute_at: None,

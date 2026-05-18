@@ -20,7 +20,7 @@ impl StatusConfig {
                 bail!(
                     "Deployment {} ({}) doesn't have the status feature on, it won't be monitored",
                     deployment.id,
-                    deployment.namespace_name().await
+                    deployment.namespace_name().await?
                 );
             }
             Some(status_feature) => status_feature,

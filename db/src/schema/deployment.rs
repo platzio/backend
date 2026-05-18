@@ -302,14 +302,14 @@ impl Deployment {
             .await?)
     }
 
-    pub async fn namespace_name(&self) -> String {
-        let kind_obj = DeploymentKind::find(self.kind_id).await.unwrap();
+    pub async fn namespace_name(&self) -> DbResult<String> {
+        let kind_obj = DeploymentKind::find(self.kind_id).await?;
         let kind = kind_obj.name.to_lowercase();
-        if self.name.is_empty() {
+        Ok(if self.name.is_empty() {
             kind
         } else {
             format!("{}-{}", kind, self.name)
-        }
+        })
     }
 
     pub async fn ingress_hostname(
@@ -321,7 +321,7 @@ impl Deployment {
             "{}.{}",
             match hostname_format {
                 ChartExtIngressHostnameFormat::Name => self.name.clone(),
-                ChartExtIngressHostnameFormat::KindAndName => self.namespace_name().await,
+                ChartExtIngressHostnameFormat::KindAndName => self.namespace_name().await?,
             },
             cluster
                 .ingress_domain

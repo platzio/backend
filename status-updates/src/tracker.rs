@@ -66,10 +66,20 @@ impl StatusTracker {
             return;
         }
 
+        let deployment_namespace = match deployment.namespace_name().await {
+            Ok(namespace) => namespace,
+            Err(err) => {
+                error!(
+                    "Could not resolve namespace for deployment {}: {}",
+                    deployment.id, err
+                );
+                self.remove(deployment.id).await;
+                return;
+            }
+        };
         info!(
             "Starting to update status for deployment {} ({})",
-            deployment.id,
-            deployment.namespace_name().await
+            deployment.id, deployment_namespace
         );
 
         configs.insert(deployment.id, new_config.clone());
