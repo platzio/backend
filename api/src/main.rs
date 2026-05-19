@@ -32,7 +32,7 @@ struct RunCommand {
 impl RunCommand {
     async fn run(self) -> Result<()> {
         platz_otel::init()?;
-        let db = init_db().await;
+        let db = init_db().await?;
 
         db.run_migrations()
             .await

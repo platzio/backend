@@ -8,7 +8,7 @@ pub mod schema;
 mod stats;
 mod ui_collection;
 
-use crate::config::database_url;
+use crate::config::{DbPoolOptions, database_url, db_pool_options};
 pub use db_table::*;
 use diesel_async::{
     AsyncPgConnection,
@@ -45,18 +45,26 @@ pub struct Db {
 }
 
 impl Db {
-    async fn new() -> Self {
+    async fn new(pool_options: DbPoolOptions) -> DbResult<Self> {
         let connection_url = database_url();
         info!("Connecting to {connection_url}");
         let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(connection_url);
-        let pool = Pool::builder().build(config).await.unwrap();
+        let pool = Pool::builder()
+            .max_size(pool_options.max_size)
+            .min_idle(pool_options.min_idle)
+            .connection_timeout(pool_options.connection_timeout)
+            .idle_timeout(pool_options.idle_timeout)
+            .max_lifetime(pool_options.max_lifetime)
+            .build(config)
+            .await?;
+        info!("Pool configuration: {:?}", pool_options);
         let events = Default::default();
         let stats_task = spawn(stats::start(pool.clone()));
-        Self {
+        Ok(Self {
             pool,
             events,
             _stats_task: stats_task,
-        }
+        })
     }
 
     pub async fn run_migrations(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -83,14 +91,14 @@ impl Db {
 
 static DB: OnceCell<Db> = OnceCell::const_new();
 
-pub async fn init_db() -> &'static Db {
-    DB.get_or_init(Db::new).await
+pub async fn init_db() -> DbResult<&'static Db> {
+    DB.get_or_try_init(|| Db::new(db_pool_options())).await
 }
 
-pub fn db() -> &'static Db {
-    DB.get().unwrap()
+pub fn db() -> DbResult<&'static Db> {
+    DB.get().ok_or(DbError::DbNotInitialized)
 }
 
 pub(crate) async fn db_conn() -> DbResult<DbConn> {
-    Ok(db().pool.get().await?)
+    Ok(db()?.pool.get().await?)
 }
