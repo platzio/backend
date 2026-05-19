@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
-    let db = init_db().await;
+    let db = init_db().await?;
 
     let tag_parser_fut = async {
         if config.enable_tag_parser {

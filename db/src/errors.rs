@@ -9,6 +9,12 @@ pub enum DbError {
     #[error("Database pool error: {0}")]
     Bb8Error(#[from] diesel_async::pooled_connection::bb8::RunError),
 
+    #[error("Database pool startup error: {0}")]
+    Bb8PoolError(#[from] diesel_async::pooled_connection::PoolError),
+
+    #[error("Database was not initialized")]
+    DbNotInitialized,
+
     #[error("Not found")]
     NotFound,
 

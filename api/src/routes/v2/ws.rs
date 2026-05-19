@@ -13,7 +13,14 @@ impl Actor for DbEventsWs {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let rx = db().subscribe_to_events();
+        let rx = match db() {
+            Ok(db) => db.subscribe_to_events(),
+            Err(err) => {
+                error!("Could not subscribe to DB events: {err}");
+                ctx.stop();
+                return;
+            }
+        };
         let stream = BroadcastStream::new(rx);
         ctx.add_stream(stream);
         ctx.run_interval(Duration::from_secs(30), Self::keepalive);
@@ -44,7 +51,13 @@ impl StreamHandler<Result<DbEvent, BroadcastStreamRecvError>> for DbEventsWs {
         ctx: &mut Self::Context,
     ) {
         match event {
-            Ok(event) => ctx.text(serde_json::to_string(&event).unwrap()),
+            Ok(event) => match serde_json::to_string(&event) {
+                Ok(payload) => ctx.text(payload),
+                Err(err) => {
+                    error!("Error serializing DB event for websocket: {err}");
+                    ctx.stop();
+                }
+            },
             Err(err) => {
                 error!("Error in websocket stream handler: {:?}", err);
                 ctx.stop();

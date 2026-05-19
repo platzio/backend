@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     let mut sigterm = signal(SignalKind::terminate())?;
     let mut sigint = signal(SignalKind::interrupt())?;
 
-    let db = init_db().await;
+    let db = init_db().await?;
 
     let fut = tokio::spawn(monitor_deployment_resource_changes(db));
 
