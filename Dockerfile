@@ -77,6 +77,34 @@ RUN --mount=type=cache,id=platz-cargo-target-${TARGETARCH},target=/build/target,
     find "${out_dir}" -maxdepth 1 -type f -executable -exec cp -v {} /out/ \;
 
 # ---------------------------------------------------------------------------
+# 4a. dev — debug-mode build kept in the Rust toolchain image so Tilt's
+# live_update can run `cargo build` *inside* the container after syncing
+# source. No cache mount on the build step: the warm /build/target dir
+# survives into the resulting image and incremental rebuilds in the running
+# container reuse it. Dynamic-linked debian runtime (libpq5) — the musl-
+# static release path isn't useful when we're recompiling at runtime.
+#
+# Selected by `--target=dev` (the Tiltfile in platzio/dev sets this). Not
+# referenced by any other stage, so default builds skip it.
+# ---------------------------------------------------------------------------
+FROM ${RUST_IMAGE} AS dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libpq5 \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY . .
+RUN cargo build --workspace --bins \
+    && mkdir -p /root \
+    && cp target/debug/platz-api             /root/platz-api \
+    && cp target/debug/platz-k8s-agent       /root/platz-k8s-agent \
+    && cp target/debug/platz-chart-discovery /root/platz-chart-discovery \
+    && cp target/debug/platz-status-updates  /root/platz-status-updates \
+    && cp target/debug/platz-resource-sync   /root/platz-resource-sync
+WORKDIR /root
+
+# ---------------------------------------------------------------------------
 # 4. runtime — small base image carrying just the static musl binaries.
 # ---------------------------------------------------------------------------
 FROM ${BASE_IMAGE}
