@@ -2,16 +2,18 @@ use crate::ecr_events::{EcrEvent, EcrEventDetail};
 use crate::tag_parser::parse_image_tag;
 use anyhow::{Result, anyhow};
 use aws_smithy_types_convert::date_time::DateTimeExt;
+use chrono::prelude::*;
 use platz_chart_ext::ChartExt;
 use platz_db::{
     Json,
     schema::helm_chart::{HelmChart, HelmChartTagInfo, NewHelmChart, UpdateHelmChart},
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::process::Command;
 use tracing::{debug, info, warn};
+use uuid::Uuid;
 
-const HELM_ARTIFACT_MEDIA_TYPE: &str = "application/vnd.cncf.helm.config.v1+json";
+pub const HELM_ARTIFACT_MEDIA_TYPE: &str = "application/vnd.cncf.helm.config.v1+json";
 const TEMP_DOWNLOAD_PATH: &str = "/tmp/platz-chart-download";
 
 pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Result<()> {
@@ -45,14 +47,38 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
 
     let helm_registry = event.find_or_create_ecr_repo().await?;
 
-    let chart_ext = match download_chart(&event).await {
+    let image_digest = event.detail.image_digest.clone();
+    let image_tag = event.detail.image_tag.clone();
+
+    let chart_ext = match download_chart_via_ecr(&event).await {
         Ok(path) => ChartExt::from_path(&path).await?,
         Err(err) => ChartExt::new_with_error(err.to_string()),
     };
 
-    let tag_info = match chart_ext.metadata {
+    record_helm_chart(
+        helm_registry.id,
+        image_digest,
+        image_tag,
+        created_at,
+        chart_ext,
+    )
+    .await?;
+
+    Ok(())
+}
+
+/// Provider-agnostic insertion of a `HelmChart` row given a prepared `ChartExt`
+/// and the chart's identity in its registry.
+pub async fn record_helm_chart(
+    helm_registry_id: Uuid,
+    image_digest: String,
+    image_tag: String,
+    created_at: DateTime<Utc>,
+    chart_ext: ChartExt,
+) -> Result<()> {
+    let tag_info = match chart_ext.metadata.clone() {
         Some(metadata) if metadata.git_commit.is_none() && metadata.git_branch.is_none() => {
-            let parsed = parse_image_tag(&event.detail.image_tag).await?;
+            let parsed = parse_image_tag(&image_tag).await?;
             HelmChartTagInfo {
                 tag_format_id: parsed.tag_format_id,
                 parsed_commit: parsed.parsed_commit,
@@ -68,14 +94,14 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
             parsed_version: Some(metadata.version),
             parsed_revision: None,
         },
-        None => parse_image_tag(&event.detail.image_tag).await?,
+        None => parse_image_tag(&image_tag).await?,
     };
 
     let chart = NewHelmChart {
         created_at,
-        helm_registry_id: helm_registry.id,
-        image_digest: event.detail.image_digest,
-        image_tag: event.detail.image_tag,
+        helm_registry_id,
+        image_digest,
+        image_tag,
         values_ui: chart_ext.ui_schema.map(Json),
         actions_schema: chart_ext.actions.map(Json),
         features: chart_ext.features.map(Json),
@@ -94,9 +120,7 @@ pub async fn add_helm_chart(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Resul
     Ok(())
 }
 
-async fn download_chart(event: &EcrEvent) -> Result<PathBuf> {
-    info!("Downloading chart");
-    let path = PathBuf::from(TEMP_DOWNLOAD_PATH);
+async fn download_chart_via_ecr(event: &EcrEvent) -> Result<PathBuf> {
     let script = [
         "rm -rf $TEMP_DOWNLOAD_PATH",
         "mkdir -p $TEMP_DOWNLOAD_PATH",
@@ -105,22 +129,62 @@ async fn download_chart(event: &EcrEvent) -> Result<PathBuf> {
         "helm pull oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG -d ./ --untar",
     ].join(" && ");
 
-    let output = Command::new("/bin/bash")
-        .arg("-euxc")
-        .arg(&script)
-        .env("TEMP_DOWNLOAD_PATH", TEMP_DOWNLOAD_PATH)
-        .env("HELM_REGISTRY_REGION", &event.region)
-        .env("HELM_REGISTRY", event.helm_registry_domain_name())
-        .env("HELM_REPO", &event.detail.repository_name)
-        .env("HELM_CHART_TAG", &event.detail.image_tag)
-        .spawn()?
-        .wait_with_output()
-        .await?;
+    let extra_env = [
+        ("HELM_REGISTRY_REGION", event.region.clone()),
+        ("HELM_REGISTRY", event.helm_registry_domain_name()),
+        ("HELM_REPO", event.detail.repository_name.clone()),
+        ("HELM_CHART_TAG", event.detail.image_tag.clone()),
+    ];
+
+    download_via_helm_pull(&script, &extra_env).await
+}
+
+/// Downloads and untars a chart from a generic OCI registry. The registry must be
+/// reachable anonymously; no `helm registry login` is performed.
+pub async fn download_chart_via_oci(
+    registry_domain: &str,
+    repo_name: &str,
+    image_tag: &str,
+) -> Result<PathBuf> {
+    let script = [
+        "rm -rf $TEMP_DOWNLOAD_PATH",
+        "mkdir -p $TEMP_DOWNLOAD_PATH",
+        "cd $TEMP_DOWNLOAD_PATH",
+        "helm pull oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG -d ./ --untar",
+    ]
+    .join(" && ");
+
+    let extra_env = [
+        ("HELM_REGISTRY", registry_domain.to_owned()),
+        ("HELM_REPO", repo_name.to_owned()),
+        ("HELM_CHART_TAG", image_tag.to_owned()),
+    ];
+
+    download_via_helm_pull(&script, &extra_env).await
+}
+
+async fn download_via_helm_pull(script: &str, extra_env: &[(&str, String)]) -> Result<PathBuf> {
+    info!("Downloading chart");
+    let path = PathBuf::from(TEMP_DOWNLOAD_PATH);
+
+    let mut cmd = Command::new("/bin/bash");
+    cmd.arg("-euxc")
+        .arg(script)
+        .env("TEMP_DOWNLOAD_PATH", TEMP_DOWNLOAD_PATH);
+    for (key, value) in extra_env {
+        cmd.env(key, value);
+    }
+
+    let output = cmd.spawn()?.wait_with_output().await?;
 
     info!("Finished downloading chart ({:?})", output.status);
     info!("Stdout: {}", String::from_utf8_lossy(&output.stdout));
     info!("Stderr: {}", String::from_utf8_lossy(&output.stderr));
 
+    pick_single_entry(&path).await
+}
+
+async fn pick_single_entry(path: &Path) -> Result<PathBuf> {
     let mut dir = tokio::fs::read_dir(path).await?;
     let mut files = Vec::new();
     while let Some(entry) = dir.next_entry().await? {
