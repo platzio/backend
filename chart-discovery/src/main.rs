@@ -1,5 +1,5 @@
-use anyhow::Result;
-use clap::Parser;
+use anyhow::{Result, anyhow};
+use clap::{Parser, ValueEnum};
 use platz_db::{DbTable, NotificationListeningOpts, init_db};
 use tokio::{
     select,
@@ -10,14 +10,31 @@ use tracing::{info, warn};
 mod charts;
 mod ecr_events;
 mod kind;
+mod oci_poll;
 mod registries;
 mod sqs;
 mod tag_parser;
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+#[clap(rename_all = "lowercase")]
+enum RegistryProvider {
+    /// Watch an SQS queue fed by ECR push/delete events. Requires AWS credentials.
+    Ecr,
+    /// Periodically poll a generic OCI registry (e.g. Docker Distribution / zot)
+    /// for new chart artifacts. Used by local dev and air-gapped setups.
+    Oci,
+}
+
 #[derive(Debug, Parser)]
 pub struct Config {
+    #[clap(long, env = "PLATZ_REGISTRY_PROVIDER", value_enum, default_value = "ecr")]
+    provider: RegistryProvider,
+
     #[clap(flatten)]
     ecr_events: ecr_events::Config,
+
+    #[clap(flatten)]
+    oci_poll: oci_poll::Config,
 
     #[clap(long, default_value_t = false)]
     enable_tag_parser: bool,
@@ -40,6 +57,21 @@ async fn main() -> Result<()> {
         }
     };
 
+    let provider_fut = async {
+        match config.provider {
+            RegistryProvider::Ecr => {
+                let ecr_config = config
+                    .ecr_events
+                    .resolved()
+                    .ok_or_else(|| anyhow!(
+                        "PLATZ_ECR_EVENTS_QUEUE and PLATZ_ECR_EVENTS_REGION must be set when provider=ecr"
+                    ))?;
+                ecr_events::run(&ecr_config).await
+            }
+            RegistryProvider::Oci => oci_poll::run(&config.oci_poll).await,
+        }
+    };
+
     select! {
         _ = sigterm.recv() => {
             info!("SIGTERM received, exiting");
@@ -58,7 +90,7 @@ async fn main() -> Result<()> {
             result.map_err(Into::into)
         }
 
-        result = ecr_events::run(&config.ecr_events) => {
+        result = provider_fut => {
             result
         }
 

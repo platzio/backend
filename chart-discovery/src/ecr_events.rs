@@ -13,10 +13,27 @@ use uuid::Uuid;
 #[group(skip)]
 pub struct Config {
     #[clap(long, env = "PLATZ_ECR_EVENTS_QUEUE")]
-    ecr_events_queue: String,
+    ecr_events_queue: Option<String>,
 
     #[clap(long, env = "PLATZ_ECR_EVENTS_REGION")]
+    ecr_events_region: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct ResolvedConfig {
+    ecr_events_queue: String,
     ecr_events_region: String,
+}
+
+impl Config {
+    /// Returns a `ResolvedConfig` only when both fields are present, since they
+    /// are now optional at the CLI level (they're only required in `provider=ecr` mode).
+    pub fn resolved(&self) -> Option<ResolvedConfig> {
+        Some(ResolvedConfig {
+            ecr_events_queue: self.ecr_events_queue.clone()?,
+            ecr_events_region: self.ecr_events_region.clone()?,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -134,9 +151,9 @@ async fn handle_ecr_event(ecr: &aws_sdk_ecr::Client, event: EcrEvent) -> Result<
     }
 }
 
-pub async fn run(config: &Config) -> Result<()> {
+pub async fn run(config: &ResolvedConfig) -> Result<()> {
     info!("Starting to watch for ECR events");
-    let region = Region::new(config.ecr_events_region.to_owned());
+    let region = Region::new(config.ecr_events_region.clone());
 
     let shared_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
     let ecr_config = aws_sdk_ecr::config::Builder::from(&shared_config)
