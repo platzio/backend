@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
         }
 
         result = run_cluster_discovery(&config.cluster_discovery) => {
-            warn!("EKS discovery task finished");
+            warn!("Cluster discovery task finished");
             result
         }
 
