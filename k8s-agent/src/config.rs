@@ -15,7 +15,7 @@ pub struct Config {
     #[arg(long, env = "PLATZ_HELM_IMAGE")]
     pub helm_image: String,
 
-    #[arg(long, default_value = "false")]
+    #[arg(long, env = "PLATZ_DISABLE_DEPLOYMENT_CREDENTIALS", default_value = "false")]
     pub disable_deployment_credentials: bool,
 
     #[arg(long, env = "PLATZ_OWN_URL")]
