@@ -7,45 +7,28 @@ This repo contains Platz's backend. It's written in Rust 🦀 and is broken down
 * `platz-k8s-agent`
 * `platz-chart-discovery`
 * `platz-status-updates`
+* `platz-resource-sync`
 
 ## Running Locally
 
-```bash
-./scripts/run-api.sh
-```
+Local development uses Tilt + kind, set up from the sibling
+[`platzio/dev`](https://github.com/platzio/dev) repo. Clone it next to this
+repo and follow its README.
 
-This script starts a local Postgres and Dex containers.
+### Config knobs
 
-Dex starts up with one user `admin@example.com` with a password of `password`.
+The workers honor a few environment variables that the local setup wires up
+for you and that production deployments set via the platzio helm chart:
 
-Forwarded ports:
-
-* Port `3000`: API server
-* Port `9000`: OIDC provider
-* Port `15432`: Postgres database
-
-To connect to the development database:
-
-```bash
-PGHOST=127.0.0.1 PGPORT=15432 PGUSER=postgres PGPASSWORD=postgres psql
-```
-
-## Developing Against Production Database
-
-> ⚠️ This is potentially dangerous, don't use this method after large or dangerous changes.
-
-Run the following command in a separate tab:
-
-```bash
-kubectl --context=control -n platz port-forward platz-postgresql-0 5432:5432
-```
-
-Then run any of the workers with the `DATABASE_URL` environment variable set from the directory of the crate you'd like to execute:
-
-```bash
-cd api
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/platz cargo run -- api
-```
+* `platz-k8s-agent` reads `PLATZ_CLUSTER_PROVIDER` (default `eks`):
+  * `eks` — discovers EKS clusters across all AWS regions in the running account.
+  * `local` — registers a single cluster from a kubeconfig context.
+* `platz-chart-discovery` reads `PLATZ_REGISTRY_PROVIDER` (default `ecr`):
+  * `ecr` — watches an SQS queue fed by ECR push/delete events.
+  * `oci` — periodically polls a generic OCI registry (set by `PLATZ_OCI_REGISTRY_URL`)
+    for new chart artifacts.
+* `platz-api` reads `OIDC_*` environment variables for OIDC config and
+  `ADMIN_EMAILS` as a space-delimited allow-list.
 
 ## Crates Overview
 
@@ -58,14 +41,17 @@ In addition, this crate is responsible for distributing database notifications. 
 ### `platz-api`
 
 The API is a worker that serves the API and handles user authentication.
-
-For authenticating users, it gets the OIDC information from AWS SSM parameters which should be passed as command line arguments.
+OIDC parameters are passed via the `OIDC_*` environment variables.
+`ADMIN_EMAILS` is a space-delimited allowlist.
 
 ### `platz-k8s-agent`
 
 This worker tracks Kubernetes clusters, updates their status in the database, and keeps a fresh copy of credentials allowing other parts in the worker to communicate with Kubernetes clusters.
 
-Discovering and communicating with Kubernetes clusters is based on permissions to AWS EKS. This worker automatically discovers EKS clusters from all regions in the same AWS account it's running in.
+In `eks` mode, the worker discovers EKS clusters across all regions in the
+same AWS account it's running in. In `local` mode it registers a single
+cluster from the configured kubeconfig context (`PLATZ_LOCAL_CONTEXT`,
+defaulting to the kubeconfig's `current-context`).
 
 The first part that needs access to Kubernetes clusters is the `deploy` module. This module watches for pending deployment tasks and runs them one by one.
 
@@ -88,7 +74,11 @@ The second part is the `k8s/tracker` module. It watches Kubernetes resources and
 
 ### `platz-chart-discovery`
 
-This worker discovers charts uploaded to ECR: Terraform defines the appropriate AWS resources to receive these notifications, and this worker watches for events in an SQS queue.
+This worker discovers Helm charts pushed to a registry.
+
+* In `ecr` mode it watches an SQS queue fed by ECR push/delete events.
+* In `oci` mode it polls a generic OCI registry (e.g. Docker Distribution
+  `registry:2` or zot) for new helm-typed artifacts.
 
 See *Helm Chart Extensions* below for more information.
 
@@ -98,22 +88,10 @@ This worker is responsible for watching Platz deployments that have enabled the 
 
 For each deployment, Platz queries the status endpoint and updates the deployment's status in the database. The frontend can then display this information.
 
-## Terraform
+### `platz-resource-sync`
 
-Platz has a Terraform part that creates the AWS resources necessary for running some of the workers above.
-
-After making changes, you can apply them by running:
-
-```
-./run-terraform.sh
-```
-
-with the appropriate AWS credentials (`aws sso login`, define `AWS_PROFILE`, etc.)
-
-The main Terraform files are:
-
-* `api-role.tf` allows `platz-api` to access the OIDC SSM parameters.
-* `ecr-events.tf` creates the SQS queue for receiving events on ECR activity.
+Watches Kubernetes Namespaces, Deployments, StatefulSets, and Jobs that
+belong to Platz deployments and reflects their state into the database.
 
 ## Helm Chart Extensions
 
