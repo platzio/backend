@@ -10,7 +10,9 @@ use k8s_openapi::{
     apimachinery::pkg::apis::meta::v1::ObjectMeta,
 };
 use platz_db::schema::{
-    deployment::Deployment, deployment_task::DeploymentTask, helm_registry::HelmRegistry,
+    deployment::Deployment,
+    deployment_task::DeploymentTask,
+    helm_registry::{HelmRegistry, HelmRegistryProvider},
 };
 use tracing::debug;
 
@@ -54,18 +56,69 @@ async fn helm_pod(
     let chart = task.helm_chart().await?;
     let registry = HelmRegistry::find(chart.helm_registry_id).await?;
 
-    let script = [
-        "mkdir -p /root/.kube",
-        "echo $KUBECONFIG_BASE64 | base64 -d > /root/.kube/config",
-        "chmod 400 /root/.kube/config",
-        "aws ecr get-login-password --region $HELM_REGISTRY_REGION | helm registry login --username AWS --password-stdin $HELM_REGISTRY",
-        "helm pull oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG",
-        "echo $VALUES_BASE64 | base64 -d > values.yaml",
-        "echo $VALUES_OVERRIDE_BASE64 | base64 -d > values-override.yaml",
-        &format!(
+    let mut script_lines: Vec<String> = vec![
+        "mkdir -p /root/.kube".into(),
+        "echo $KUBECONFIG_BASE64 | base64 -d > /root/.kube/config".into(),
+        "chmod 400 /root/.kube/config".into(),
+    ];
+    if registry.provider == HelmRegistryProvider::Ecr {
+        script_lines.push(
+            "aws ecr get-login-password --region $HELM_REGISTRY_REGION | helm registry login --username AWS --password-stdin $HELM_REGISTRY".into(),
+        );
+    }
+    script_lines.extend([
+        "helm pull oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG".into(),
+        "echo $VALUES_BASE64 | base64 -d > values.yaml".into(),
+        "echo $VALUES_OVERRIDE_BASE64 | base64 -d > values-override.yaml".into(),
+        format!(
             "helm --debug --kubeconfig=/root/.kube/config {command} {namespace_name} oci://$HELM_REGISTRY/$HELM_REPO --version $HELM_CHART_TAG --namespace={namespace_name} -f values.yaml -f values-override.yaml",
         ),
-    ].join(" && ");
+    ]);
+    let script = script_lines.join(" && ");
+
+    let mut env_vars = vec![
+        EnvVar {
+            name: "KUBECONFIG_BASE64".into(),
+            value: Some(kubeconfig),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "HELM_REGISTRY".into(),
+            value: Some(registry.domain_name.clone()),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "HELM_REPO".into(),
+            value: Some(registry.repo_name.clone()),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "HELM_CHART_TAG".into(),
+            value: Some(chart.image_tag),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "VALUES_BASE64".into(),
+            value: Some(BASE64_STANDARD.encode(serde_yaml::to_string(&values)?)),
+            ..Default::default()
+        },
+        EnvVar {
+            name: "VALUES_OVERRIDE_BASE64".into(),
+            value: if let Some(values_override) = &deployment.values_override {
+                Some(BASE64_STANDARD.encode(serde_yaml::to_string(values_override)?))
+            } else {
+                None
+            },
+            ..Default::default()
+        },
+    ];
+    if let Some(region_name) = registry.region_name()? {
+        env_vars.push(EnvVar {
+            name: "HELM_REGISTRY_REGION".into(),
+            value: Some(region_name),
+            ..Default::default()
+        });
+    }
 
     Ok(Pod {
         metadata: ObjectMeta {
@@ -80,47 +133,7 @@ async fn helm_pod(
                 image: Some(config.helm_image.to_owned()),
                 image_pull_policy: Some("Always".into()),
                 command: Some(vec!["/bin/bash".into(), "-cex".into(), script]),
-                env: Some(vec![
-                    EnvVar {
-                        name: "KUBECONFIG_BASE64".into(),
-                        value: Some(kubeconfig),
-                        ..Default::default()
-                    },
-                    EnvVar {
-                        name: "HELM_REGISTRY_REGION".into(),
-                        value: Some(registry.region_name()?),
-                        ..Default::default()
-                    },
-                    EnvVar {
-                        name: "HELM_REGISTRY".into(),
-                        value: Some(registry.domain_name),
-                        ..Default::default()
-                    },
-                    EnvVar {
-                        name: "HELM_REPO".into(),
-                        value: Some(registry.repo_name),
-                        ..Default::default()
-                    },
-                    EnvVar {
-                        name: "HELM_CHART_TAG".into(),
-                        value: Some(chart.image_tag),
-                        ..Default::default()
-                    },
-                    EnvVar {
-                        name: "VALUES_BASE64".into(),
-                        value: Some(BASE64_STANDARD.encode(serde_yaml::to_string(&values)?)),
-                        ..Default::default()
-                    },
-                    EnvVar {
-                        name: "VALUES_OVERRIDE_BASE64".into(),
-                        value: if let Some(values_override) = &deployment.values_override {
-                            Some(BASE64_STANDARD.encode(serde_yaml::to_string(values_override)?))
-                        } else {
-                            None
-                        },
-                        ..Default::default()
-                    },
-                ]),
+                env: Some(env_vars),
                 ..Default::default()
             }],
             restart_policy: Some("Never".into()),
