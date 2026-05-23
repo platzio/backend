@@ -2,11 +2,13 @@ use crate::{DbError, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
+use diesel_enum_derive::DieselEnum;
 use diesel_filter::DieselFilter;
 use diesel_pagination::{Paginate, Paginated, PaginationParams};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;
+use strum::{Display, EnumString};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -19,7 +21,32 @@ table! {
         kind_id -> Uuid,
         available -> Bool,
         fa_icon -> Varchar,
+        provider -> Varchar,
     }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    EnumString,
+    Display,
+    DieselEnum,
+    ToSchema,
+)]
+pub enum HelmRegistryProvider {
+    /// AWS Elastic Container Registry. Authenticated with `aws ecr get-login-password`.
+    #[default]
+    Ecr,
+    /// Generic OCI registry (e.g. Docker Distribution `registry:2`, zot, ghcr.io).
+    /// No authentication is performed by Platz; the registry is expected to be
+    /// anonymous-readable from the cluster running the Helm pod.
+    Oci,
 }
 
 #[derive(Debug, Identifiable, Queryable, Serialize, DieselFilter, ToSchema)]
@@ -34,6 +61,7 @@ pub struct HelmRegistry {
     pub kind_id: Uuid,
     pub available: bool,
     pub fa_icon: String,
+    pub provider: HelmRegistryProvider,
 }
 
 impl HelmRegistry {
@@ -72,13 +100,20 @@ impl HelmRegistry {
             .optional()?)
     }
 
-    pub fn region_name(&self) -> DbResult<String> {
-        let (_aws_account_id, _dkr, _ecr, region_name, _amazonaws, _com) = self
-            .domain_name
-            .split('.')
-            .collect_tuple()
-            .ok_or(DbError::RegionNameParseError)?;
-        Ok(region_name.into())
+    /// Returns the AWS region embedded in the registry's domain name, when applicable.
+    /// Returns `Ok(None)` for non-ECR providers, since the concept doesn't apply.
+    pub fn region_name(&self) -> DbResult<Option<String>> {
+        match self.provider {
+            HelmRegistryProvider::Oci => Ok(None),
+            HelmRegistryProvider::Ecr => {
+                let (_aws_account_id, _dkr, _ecr, region_name, _amazonaws, _com) = self
+                    .domain_name
+                    .split('.')
+                    .collect_tuple()
+                    .ok_or(DbError::RegionNameParseError)?;
+                Ok(Some(region_name.into()))
+            }
+        }
     }
 }
 
@@ -89,6 +124,8 @@ pub struct NewHelmRegistry {
     pub domain_name: String,
     pub repo_name: String,
     pub kind_id: Uuid,
+    #[serde(default)]
+    pub provider: HelmRegistryProvider,
 }
 
 impl NewHelmRegistry {
