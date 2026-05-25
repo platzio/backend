@@ -49,10 +49,14 @@ jobs:
   # One image build per architecture, on a native runner. We push by digest;
   # a final `merge` job stitches the two digests into a multi-arch manifest list.
   # Native arm64 runners avoid QEMU emulation, which dominated build time.
+  #
+  # This job does NOT depend on `test`: the test job compiles for the host gnu
+  # target while these build for musl, so they share no artifacts and gating
+  # would only serialize clippy+test ahead of the build for no reuse. Tests run
+  # concurrently instead; the `merge` job below re-gates on `test` so a tagged
+  # multi-arch image is never published when linting or tests fail.
   image:
     name: 🐳 Build (${{ matrix.platform }})
-    needs:
-      - test
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -132,6 +136,7 @@ jobs:
     if: github.event_name == 'push'
     needs:
       - image
+      - test
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
