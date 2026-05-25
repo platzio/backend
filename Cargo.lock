@@ -1547,38 +1547,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "diesel-filter"
-version = "2.0.0"
-source = "git+https://github.com/popen2/diesel_filter?tag=v2.0.0#a29373f9683fe9aeff9518cf145d462a9f0b26ae"
-dependencies = [
- "diesel-filter-query",
- "serde",
- "serde_with",
-]
-
-[[package]]
-name = "diesel-filter-query"
-version = "2.0.0"
-source = "git+https://github.com/popen2/diesel_filter?tag=v2.0.0#a29373f9683fe9aeff9518cf145d462a9f0b26ae"
-dependencies = [
- "darling 0.21.3",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
-name = "diesel-pagination"
-version = "2.0.0"
-source = "git+https://github.com/popen2/diesel_filter?tag=v2.0.0#a29373f9683fe9aeff9518cf145d462a9f0b26ae"
-dependencies = [
- "diesel",
- "diesel-async",
- "serde",
- "utoipa",
-]
-
-[[package]]
 name = "diesel_derives"
 version = "2.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1602,6 +1570,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel_filter"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6eade71bf638bbe2c43d7a3d6db9881ffc1e8656dcb89e9b0cb508264db28e2f"
+dependencies = [
+ "diesel_filter_query",
+ "serde",
+ "serde_with",
+]
+
+[[package]]
+name = "diesel_filter_query"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f46d44ad2d2185b03f6979aa27d7a9807ecd8bf7713ba2d18d3bc1ca8cc0282"
+dependencies = [
+ "darling 0.21.3",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "diesel_json"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1621,6 +1612,18 @@ dependencies = [
  "diesel",
  "migrations_internals",
  "migrations_macros",
+]
+
+[[package]]
+name = "diesel_pagination"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b25ca691b6021465e3da6e3297cac439685671016889645c1c58d071a1a1d06b"
+dependencies = [
+ "diesel",
+ "diesel-async",
+ "serde",
+ "utoipa",
 ]
 
 [[package]]
@@ -3348,11 +3351,11 @@ dependencies = [
  "clap",
  "diesel",
  "diesel-async",
- "diesel-filter",
- "diesel-pagination",
  "diesel_enum_derive",
+ "diesel_filter",
  "diesel_json",
  "diesel_migrations",
+ "diesel_pagination",
  "itertools",
  "lazy_static",
  "maplit",

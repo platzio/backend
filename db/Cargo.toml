@@ -52,12 +52,10 @@ utoipa = { version = "5.5.0", features = [
 ] }
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
 
-[dependencies.diesel-filter]
+[dependencies.diesel_filter]
 features = ["actix", "serde", "utoipa"]
-git = "https://github.com/popen2/diesel_filter"
-tag = "v2.0.0"
+version = "2.0.0"
 
-[dependencies.diesel-pagination]
+[dependencies.diesel_pagination]
 features = ["diesel-async", "serde", "utoipa"]
-git = "https://github.com/popen2/diesel_filter"
-tag = "v2.0.0"
+version = "2.0.0"
