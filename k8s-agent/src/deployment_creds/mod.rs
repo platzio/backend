@@ -18,7 +18,8 @@ const REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_
 #[tracing::instrument(err, skip_all, name = "d-creds")]
 pub async fn start(config: &Config) -> Result<()> {
     debug!("starting");
-    let refresh_every = *DEPLOYMENT_TOKEN_DURATION / 3;
+    let refresh_every =
+        *DEPLOYMENT_TOKEN_DURATION / config.deployment_credentials_refresh_frequency;
     let mut interval = interval(refresh_every.to_std()?);
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
 

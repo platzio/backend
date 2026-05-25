@@ -22,6 +22,15 @@ pub struct Config {
     )]
     pub disable_deployment_credentials: bool,
 
+    /// How many times an hour to refresh deployment credentials.
+    #[arg(
+        long,
+        env = "PLATZ_DEPLOYMENT_CREDENTIALS_REFRESH_FREQUENCY",
+        default_value_t = 2,
+        value_parser = clap::value_parser!(i32).range(1..=60),
+    )]
+    pub deployment_credentials_refresh_frequency: i32,
+
     #[arg(long, env = "PLATZ_OWN_URL")]
     pub platz_url: Url,
 }
