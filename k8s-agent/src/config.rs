@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use url::Url;
 
 #[derive(clap::Parser)]
@@ -30,6 +31,14 @@ pub struct Config {
     )]
     pub deployment_credentials_refresh_interval: humantime::Duration,
 
+    /// Lifetime of issued deployment credential tokens.
+    #[arg(
+        long,
+        env = "PLATZ_DEPLOYMENT_CREDENTIALS_TOKEN_DURATION",
+        default_value = "1h"
+    )]
+    pub deployment_credentials_token_duration: humantime::Duration,
+
     #[arg(long, env = "PLATZ_OWN_URL")]
     pub platz_url: Url,
 }
@@ -37,5 +46,10 @@ pub struct Config {
 impl Config {
     pub fn should_refresh_deployment_credintials(&self) -> bool {
         !self.disable_deployment_credentials
+    }
+
+    pub fn deployment_token_duration(&self) -> Result<chrono::Duration> {
+        chrono::Duration::from_std(self.deployment_credentials_token_duration.into())
+            .context("PLATZ_DEPLOYMENT_CREDENTIALS_TOKEN_DURATION is out of range")
     }
 }
