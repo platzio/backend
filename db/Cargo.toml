@@ -24,8 +24,14 @@ diesel-async = { version = "0.6.1", features = [
 diesel_enum_derive = { git = "https://github.com/popen2/diesel-enum-derive", default-features = false, features = [
   "plain",
 ] }
+diesel_filter = { version = "2.0.0", features = ["actix", "serde", "utoipa"] }
 diesel_json = "0.3.0"
 diesel_migrations = "2.2.0"
+diesel_pagination = { version = "2.0.0", features = [
+  "diesel-async",
+  "serde",
+  "utoipa",
+] }
 itertools = "0.14.0"
 lazy_static = "1.5.0"
 maplit = "1.0.2"
@@ -51,11 +57,3 @@ utoipa = { version = "5.5.0", features = [
   "uuid",
 ] }
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
-
-[dependencies.diesel_filter]
-features = ["actix", "serde", "utoipa"]
-version = "2.0.0"
-
-[dependencies.diesel_pagination]
-features = ["diesel-async", "serde", "utoipa"]
-version = "2.0.0"
