@@ -1,5 +1,8 @@
-# Multi-stage build using cargo-chef for dep-only layer caching and per-arch
-# cache mounts so amd64 and arm64 don't fight over the same target dir.
+# Multi-stage build using cargo-chef so dependency compilation lands in a
+# dedicated layer that is only invalidated when the dependency graph
+# (recipe.json) changes. That layer is what CI restores from the GHA layer
+# cache (see `cache-to: type=gha,mode=max`, scoped per arch in the workflow),
+# so source-only changes skip recompiling dependencies.
 #
 # Drives the workspace into a static musl binary so the runtime image (alpine-
 # based platzio/base) doesn't need a libc. Architecture is selected via Docker
@@ -31,9 +34,14 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # ---------------------------------------------------------------------------
-# 3. builder — cook deps from the recipe, then build the workspace. The cooked
-# deps live in a buildkit cache mount keyed by TARGETARCH, so each architecture
-# keeps its own warm target dir across CI runs.
+# 3. builder — cook deps from the recipe, then build the workspace. The cook
+# step writes compiled deps (and downloaded crates) into the layer filesystem
+# — deliberately NOT a buildkit cache mount, which would be excluded from the
+# image layer and dropped between CI runs on fresh builders. Keeping them in
+# the layer lets Docker's layer cache capture the cook step; the workflow
+# exports it via `cache-to: type=gha,mode=max` scoped per arch. recipe.json
+# only changes when the dep graph changes, so source-only edits restore the
+# cook layer from cache and re-run just the final `cargo build`.
 # ---------------------------------------------------------------------------
 FROM chef AS builder
 ARG RELEASE_BUILD=1
@@ -49,10 +57,7 @@ RUN set -eux; \
     rustup target add "${target}"
 
 COPY --from=planner /build/recipe.json recipe.json
-RUN --mount=type=cache,id=platz-cargo-target-${TARGETARCH},target=/build/target,sharing=locked \
-    --mount=type=cache,id=platz-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=platz-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
-    set -eux; \
+RUN set -eux; \
     target="$(cat /target.txt)"; \
     if [ "${RELEASE_BUILD}" = "1" ]; then \
         cargo chef cook --release --target "${target}" --recipe-path recipe.json; \
@@ -61,10 +66,7 @@ RUN --mount=type=cache,id=platz-cargo-target-${TARGETARCH},target=/build/target,
     fi
 
 COPY . .
-RUN --mount=type=cache,id=platz-cargo-target-${TARGETARCH},target=/build/target,sharing=locked \
-    --mount=type=cache,id=platz-cargo-git,target=/usr/local/cargo/git,sharing=locked \
-    --mount=type=cache,id=platz-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
-    set -eux; \
+RUN set -eux; \
     target="$(cat /target.txt)"; \
     if [ "${RELEASE_BUILD}" = "1" ]; then \
         cargo build --release --target "${target}"; \
