@@ -15,6 +15,19 @@ permissions:
   contents: read
 
 jobs:
+  fmt:
+    name: 🎨 Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v5
+
+      - name: 🧰 Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: 🎨 Cargo fmt
+        run: cargo fmt --all -- --check
+
   test:
     name: 🧪 Run Tests
     runs-on: ubuntu-latest
