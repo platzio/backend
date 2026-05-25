@@ -27,7 +27,12 @@ enum RegistryProvider {
 
 #[derive(Debug, Parser)]
 pub struct Config {
-    #[clap(long, env = "PLATZ_REGISTRY_PROVIDER", value_enum, default_value = "ecr")]
+    #[clap(
+        long,
+        env = "PLATZ_REGISTRY_PROVIDER",
+        value_enum,
+        default_value = "ecr"
+    )]
     provider: RegistryProvider,
 
     #[clap(flatten)]

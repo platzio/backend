@@ -1,15 +1,11 @@
-use crate::charts::{
-    HELM_ARTIFACT_MEDIA_TYPE, download_chart_via_oci, record_helm_chart,
-};
+use crate::charts::{HELM_ARTIFACT_MEDIA_TYPE, download_chart_via_oci, record_helm_chart};
 use crate::kind::get_or_create_kind;
 use anyhow::{Result, anyhow};
 use chrono::prelude::*;
 use clap::Parser;
 use platz_chart_ext::ChartExt;
 use platz_db::schema::helm_chart::HelmChart;
-use platz_db::schema::helm_registry::{
-    HelmRegistry, HelmRegistryProvider, NewHelmRegistry,
-};
+use platz_db::schema::helm_registry::{HelmRegistry, HelmRegistryProvider, NewHelmRegistry};
 use serde::Deserialize;
 use std::collections::HashSet;
 use tokio::time;
