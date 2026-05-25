@@ -4,17 +4,17 @@ name = "platz-status-updates"
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.98"
-futures = "0.3.31"
+anyhow = "1.0.102"
+futures = "0.3.32"
 platz-chart-ext = { workspace = true }
-reqwest = { version = "0.12.22", default-features = false, features = [
-    "rustls-tls",
+reqwest = { version = "0.13.3", default-features = false, features = [
+    "rustls",
     "json",
 ] }
-tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
-tracing = "0.1.41"
-url = "2.5.4"
-uuid = { version = "1.17.0", features = ["serde", "v4"] }
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "signal"] }
+tracing = "0.1.44"
+url = "2.5.8"
+uuid = { version = "1.23.1", features = ["serde", "v4"] }
 
 [dependencies.platz-db]
 path = "../db"
