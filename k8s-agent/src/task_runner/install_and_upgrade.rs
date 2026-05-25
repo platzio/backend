@@ -36,7 +36,12 @@ impl RunnableDeploymentOperation for DeploymentInstallTask {
             deployment_to_namespace(deployment).await?,
         )
         .await?;
-        apply_deployment_credentials(deployment, &config.platz_url).await?;
+        apply_deployment_credentials(
+            deployment,
+            &config.platz_url,
+            config.deployment_token_duration()?,
+        )
+        .await?;
         match run_helm(config, "install", deployment, task).await {
             Ok(output) => {
                 deployment.set_revision(Some(task.id)).await?;
@@ -131,7 +136,12 @@ impl RunnableDeploymentOperation for DeploymentRecreaseTask {
             deployment_to_namespace(deployment).await?,
         )
         .await?;
-        apply_deployment_credentials(deployment, &config.platz_url).await?;
+        apply_deployment_credentials(
+            deployment,
+            &config.platz_url,
+            config.deployment_token_duration()?,
+        )
+        .await?;
         Ok("".to_owned())
     }
 }

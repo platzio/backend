@@ -14,7 +14,6 @@ const JWT_SECRET_BYTES: usize = 24;
 
 lazy_static::lazy_static! {
     pub static ref USER_TOKEN_DURATION: Duration = Duration::days(7);
-    pub static ref DEPLOYMENT_TOKEN_DURATION: Duration = Duration::hours(1);
 }
 
 pub(crate) async fn get_jwt_secret() -> Result<Vec<u8>, AuthError> {
@@ -53,6 +52,17 @@ impl AccessToken {
         DateTime::from_timestamp(self.exp as i64, 0)
             .ok_or_else(|| AuthError::NaiveDateTimeConvertOverflow(self.exp))
     }
+
+    pub fn for_deployment(deployment: &Deployment, duration: Duration) -> Self {
+        let iat = chrono::Utc::now();
+        let exp = iat + duration;
+        Self {
+            iat: iat.timestamp() as usize,
+            nbf: iat.timestamp() as usize,
+            exp: exp.timestamp() as usize,
+            identity: deployment.into(),
+        }
+    }
 }
 
 impl From<&User> for AccessToken {
@@ -64,19 +74,6 @@ impl From<&User> for AccessToken {
             nbf: iat.timestamp() as usize,
             exp: exp.timestamp() as usize,
             identity: user.into(),
-        }
-    }
-}
-
-impl From<&Deployment> for AccessToken {
-    fn from(deployment: &Deployment) -> Self {
-        let iat = chrono::Utc::now();
-        let exp = iat + *DEPLOYMENT_TOKEN_DURATION;
-        Self {
-            iat: iat.timestamp() as usize,
-            nbf: iat.timestamp() as usize,
-            exp: exp.timestamp() as usize,
-            identity: deployment.into(),
         }
     }
 }
