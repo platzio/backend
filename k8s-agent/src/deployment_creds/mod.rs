@@ -2,7 +2,7 @@ use crate::{config::Config, k8s::tracker::K8S_TRACKER, task_runner::apply_secret
 use anyhow::Result;
 use futures::future::join_all;
 use maplit::btreemap;
-use platz_auth::{AccessToken, DEPLOYMENT_TOKEN_DURATION};
+use platz_auth::AccessToken;
 use platz_db::schema::deployment::Deployment;
 use tokio::{
     select,
@@ -18,9 +18,8 @@ const REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_
 #[tracing::instrument(err, skip_all, name = "d-creds")]
 pub async fn start(config: &Config) -> Result<()> {
     debug!("starting");
-    let refresh_every =
-        *DEPLOYMENT_TOKEN_DURATION / config.deployment_credentials_refresh_frequency;
-    let mut interval = interval(refresh_every.to_std()?);
+    let refresh_every: time::Duration = config.deployment_credentials_refresh_interval.into();
+    let mut interval = interval(refresh_every);
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
 
     loop {
