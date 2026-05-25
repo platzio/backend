@@ -28,7 +28,12 @@ pub struct Config {
 
     /// Selects how clusters are discovered. Defaults to `eks` (production behaviour);
     /// set to `local` for laptop/dev workflows that target a kubeconfig context.
-    #[arg(long, env = "PLATZ_CLUSTER_PROVIDER", value_enum, default_value = "eks")]
+    #[arg(
+        long,
+        env = "PLATZ_CLUSTER_PROVIDER",
+        value_enum,
+        default_value = "eks"
+    )]
     pub provider: ClusterProvider,
 
     /// Path to the kubeconfig file used in `local` mode.
@@ -129,10 +134,9 @@ async fn discover_local_cluster(config: &Config) -> Result<K8s> {
 
     let context_name = match &config.local_context {
         Some(name) => name.clone(),
-        None => kubeconfig
-            .current_context
-            .clone()
-            .ok_or_else(|| anyhow!("Kubeconfig has no current-context and PLATZ_LOCAL_CONTEXT is not set"))?,
+        None => kubeconfig.current_context.clone().ok_or_else(|| {
+            anyhow!("Kubeconfig has no current-context and PLATZ_LOCAL_CONTEXT is not set")
+        })?,
     };
 
     let context = kubeconfig
@@ -184,7 +188,9 @@ async fn discover_local_cluster(config: &Config) -> Result<K8s> {
     })))
 }
 
-async fn load_local_kubeconfig(explicit_path: Option<&std::path::Path>) -> Result<kube::config::Kubeconfig> {
+async fn load_local_kubeconfig(
+    explicit_path: Option<&std::path::Path>,
+) -> Result<kube::config::Kubeconfig> {
     if let Some(path) = explicit_path {
         debug!("Loading kubeconfig from {}", path.display());
         return Ok(kube::config::Kubeconfig::read_from(path)?);
