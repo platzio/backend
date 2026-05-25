@@ -201,8 +201,8 @@ async fn delete_namespace(cluster_id: Uuid, namespace_name: &str) -> Result<()> 
     );
     if let Err(e) = api.delete(namespace_name, &Default::default()).await {
         tracing::error!(?e);
-        if let kube::Error::Api(kube::core::ErrorResponse { code, .. }) = e
-            && http::StatusCode::NOT_FOUND == code
+        if let kube::Error::Api(status) = &e
+            && http::StatusCode::NOT_FOUND == status.code
         {
             // If it's not found, I guess it is... *drums roll* DELETED *cymbals*
             debug!("Namespace not found - ignoring");

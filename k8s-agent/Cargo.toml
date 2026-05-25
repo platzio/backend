@@ -4,25 +4,25 @@ name = "platz-k8s-agent"
 version = "0.1.0"
 
 [dependencies]
-anyhow = { version = "1.0.98", features = ["backtrace"] }
+anyhow = { version = "1.0.102", features = ["backtrace"] }
 aws-arn = "0.3.1"
-aws-config = "1.8.3"
-aws-sdk-ec2 = "1.152.0"
-aws-sdk-eks = "1.99.0"
-aws-types = "1.3.8"
+aws-config = "1.8.17"
+aws-sdk-ec2 = "1.227.0"
+aws-sdk-eks = "1.131.0"
+aws-types = "1.3.16"
 base64 = "0.22.1"
-chrono = { version = "0.4.41", default-features = false, features = [
+chrono = { version = "0.4.44", default-features = false, features = [
   "std",
   "serde",
 ] }
-clap = { version = "4.5.41", features = ["derive", "env"] }
-either = "1.15.0"
-futures = "0.3.31"
-http = "1.3.1"
-humantime = "2.2.0"
+clap = { version = "4.6.1", features = ["derive", "env"] }
+either = "1.16.0"
+futures = "0.3.32"
+http = "1.4.0"
+humantime = "2.3.0"
 itertools = "0.14.0"
-k8s-openapi = { version = "0.25.0", features = ["v1_33"] }
-kube = { version = "1.1.0", default-features = false, features = [
+k8s-openapi = { version = "0.27.1", features = ["v1_33"] }
+kube = { version = "3.1.0", default-features = false, features = [
   "client",
   "config",
   "gzip",
@@ -33,19 +33,19 @@ kube = { version = "1.1.0", default-features = false, features = [
 lazy_static = "1.5.0"
 maplit = "1.0.2"
 platz-chart-ext = { workspace = true }
-rustls = "0.23.31"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.141"
+rustls = "0.23.40"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
 serde_yaml = "0.9.34"
 tap = "1.0.1"
-thiserror = "2.0.12"
-tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
-tokio-stream = "0.1.17"
-tokio-util = "0.7.15"
-tracing = { version = "0.1.41" }
+thiserror = "2.0.18"
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "signal"] }
+tokio-stream = "0.1.18"
+tokio-util = "0.7.18"
+tracing = { version = "0.1.44" }
 tryhard = "0.5.2"
-url = { version = "2.5.4", features = ["serde"] }
-uuid = { version = "1.17.0", features = ["serde", "v4"] }
+url = { version = "2.5.8", features = ["serde"] }
+uuid = { version = "1.23.1", features = ["serde", "v4"] }
 
 [dependencies.platz-db]
 path = "../db"

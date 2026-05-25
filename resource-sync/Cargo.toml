@@ -4,10 +4,10 @@ name = "platz-resource-sync"
 version = "0.1.0"
 
 [dependencies]
-anyhow = "1.0.98"
+anyhow = "1.0.102"
 platz-chart-ext = { workspace = true }
-tokio = { version = "1.47.0", features = ["rt-multi-thread", "signal"] }
-tracing = "0.1.41"
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "signal"] }
+tracing = "0.1.44"
 
 [dependencies.platz-db]
 path = "../db"
