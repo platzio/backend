@@ -1,6 +1,6 @@
 use crate::{config::Config, k8s::tracker::K8S_TRACKER, task_runner::apply_secret};
 use anyhow::Result;
-use futures::future::try_join_all;
+use futures::future::join_all;
 use maplit::btreemap;
 use platz_auth::{AccessToken, DEPLOYMENT_TOKEN_DURATION};
 use platz_db::schema::deployment::Deployment;
@@ -18,7 +18,7 @@ const REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS: time::Duration = time::Duration::from_
 #[tracing::instrument(err, skip_all, name = "d-creds")]
 pub async fn start(config: &Config) -> Result<()> {
     debug!("starting");
-    let refresh_every = *DEPLOYMENT_TOKEN_DURATION / 2;
+    let refresh_every = *DEPLOYMENT_TOKEN_DURATION / 3;
     let mut interval = interval(refresh_every.to_std()?);
     let mut k8s_events_rx = K8S_TRACKER.outbound_notifications_rx().await;
 
@@ -51,13 +51,15 @@ async fn refresh_credentials(config: &Config) -> Result<()> {
         .await?
         .chunks(REFRESH_CREDS_CHUNK_SIZE)
     {
-        try_join_all(
+        join_all(
             deploy_chunk
                 .iter()
                 .filter(|deployment| deployment.enabled)
                 .map(|deployment| apply_deployment_credentials(deployment, &config.platz_url)),
         )
-        .await?;
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
         time::sleep(REFRESH_CREDS_SLEEP_BETWEEN_CHUNKS).await;
     }
 
