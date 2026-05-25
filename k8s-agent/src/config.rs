@@ -18,18 +18,17 @@ pub struct Config {
     #[arg(
         long,
         env = "PLATZ_DISABLE_DEPLOYMENT_CREDENTIALS",
-        default_value = "false"
+        default_value_t = false
     )]
     pub disable_deployment_credentials: bool,
 
-    /// How many times an hour to refresh deployment credentials.
+    /// How often to refresh deployment credentials.
     #[arg(
         long,
-        env = "PLATZ_DEPLOYMENT_CREDENTIALS_REFRESH_FREQUENCY",
-        default_value_t = 2,
-        value_parser = clap::value_parser!(i32).range(1..=60),
+        env = "PLATZ_DEPLOYMENT_CREDENTIALS_REFRESH_INTERVAL",
+        default_value = "20m"
     )]
-    pub deployment_credentials_refresh_frequency: i32,
+    pub deployment_credentials_refresh_interval: humantime::Duration,
 
     #[arg(long, env = "PLATZ_OWN_URL")]
     pub platz_url: Url,
