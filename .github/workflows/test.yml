@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🧰 Install rustfmt
         run: rustup component add rustfmt
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 📦 Cargo version
         id: cargo
@@ -36,7 +36,7 @@ jobs:
           echo "rustc=$(rustc --version)" >> "${GITHUB_OUTPUT}"
 
       - name: 🪣 Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: ${{ steps.cargo.outputs.rustc }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: |

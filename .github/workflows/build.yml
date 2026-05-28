@@ -13,6 +13,7 @@ on:
 
 env:
   DOCKER_REPO: platzio/backend
+  BASE_IMAGE: platzio/base:v8
 
 permissions:
   contents: read
@@ -42,45 +43,33 @@ jobs:
           echo "PLATFORM_PAIR=${platform//\//-}" >> "${GITHUB_ENV}"
 
       - name: 🛎️ Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🗽 Free disk space
         uses: ShubhamTatvamasi/free-disk-space-action@master
 
       - name: 🐳 Login to DockerHub
         if: inputs.push
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: 🛠️ Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      # PR validation: build the image but don't push. Cache scoped per arch so
-      # the two matrix entries don't clobber each other's GHA cache.
-      - name: 🐳 Build (PR validation)
-        if: ${{ !inputs.push }}
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          build-args: BASE_IMAGE=platzio/base:v8
-          platforms: ${{ matrix.platform }}
-          push: false
-          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
-
-      # Release path: build and push by digest. The caller assembles the final
-      # tagged manifest from the uploaded digest artifacts.
-      - name: 🐳 Build & push by digest
-        if: inputs.push
+      # On push:true we push by digest and the caller assembles the multi-arch
+      # manifest from the uploaded digests. On PR (push:false) we discard the
+      # output (type=cacheonly) — the build itself still validates the
+      # Dockerfile and warms the per-arch GHA cache.
+      - name: 🐳 Build
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
-          build-args: BASE_IMAGE=platzio/base:v8
+          build-args: BASE_IMAGE=${{ env.BASE_IMAGE }}
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.DOCKER_REPO }},push-by-digest=true,name-canonical=true,push=true
+          outputs: ${{ inputs.push && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', env.DOCKER_REPO) || 'type=cacheonly' }}
           cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
 
@@ -93,7 +82,7 @@ jobs:
 
       - name: 📦 Upload digest
         if: inputs.push
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
