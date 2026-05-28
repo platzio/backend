@@ -92,6 +92,9 @@ impl OpenapiCommand {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed installing default crypto provider");
     dotenvy::dotenv().ok();
     let command = Command::parse();
     match command {

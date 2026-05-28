@@ -13,6 +13,9 @@ use tracing::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed installing default crypto provider");
     platz_otel::init()?;
     info!("Starting status updates worker");
     let mut sigterm = signal(SignalKind::terminate())?;

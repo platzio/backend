@@ -11,6 +11,7 @@ reqwest = { version = "0.13.3", default-features = false, features = [
     "rustls",
     "json",
 ] }
+rustls = "0.23.40"
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "signal"] }
 tracing = "0.1.44"
 url = "2.5.8"
