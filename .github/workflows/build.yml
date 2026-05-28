@@ -1,0 +1,101 @@
+name: 🐳 Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+    inputs:
+      push:
+        description: Push images by digest after building
+        type: boolean
+        default: false
+
+env:
+  DOCKER_REPO: platzio/backend
+
+permissions:
+  contents: read
+
+# One image build per architecture, on a native runner. When called with
+# push:true we push by digest; the caller is responsible for assembling
+# the multi-arch manifest list. On pull_request we build only, to validate
+# the Dockerfile without publishing.
+#
+# Native arm64 runners avoid QEMU emulation, which dominated build time.
+jobs:
+  image:
+    name: 🐳 Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: 🧷 Platform pair
+        run: |
+          platform="${{ matrix.platform }}"
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "${GITHUB_ENV}"
+
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v5
+
+      - name: 🗽 Free disk space
+        uses: ShubhamTatvamasi/free-disk-space-action@master
+
+      - name: 🐳 Login to DockerHub
+        if: inputs.push
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # PR validation: build the image but don't push. Cache scoped per arch so
+      # the two matrix entries don't clobber each other's GHA cache.
+      - name: 🐳 Build (PR validation)
+        if: ${{ !inputs.push }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: BASE_IMAGE=platzio/base:v8
+          platforms: ${{ matrix.platform }}
+          push: false
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+
+      # Release path: build and push by digest. The caller assembles the final
+      # tagged manifest from the uploaded digest artifacts.
+      - name: 🐳 Build & push by digest
+        if: inputs.push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: BASE_IMAGE=platzio/base:v8
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.DOCKER_REPO }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+
+      - name: 📤 Export digest
+        if: inputs.push
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: 📦 Upload digest
+        if: inputs.push
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
