@@ -47,6 +47,9 @@ pub struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed installing default crypto provider");
     platz_otel::init()?;
     let config = Config::parse();
     let mut sigterm = signal(SignalKind::terminate())?;
