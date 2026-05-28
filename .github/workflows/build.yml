@@ -18,12 +18,6 @@ env:
 permissions:
   contents: read
 
-# One image build per architecture, on a native runner. When called with
-# push:true we push by digest; the caller is responsible for assembling
-# the multi-arch manifest list. On pull_request we build only, to validate
-# the Dockerfile without publishing.
-#
-# Native arm64 runners avoid QEMU emulation, which dominated build time.
 jobs:
   image:
     name: 🐳 Build (${{ matrix.platform }})
