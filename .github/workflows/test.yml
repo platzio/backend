@@ -1,0 +1,55 @@
+name: 🧪 Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  fmt:
+    name: 🎨 Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v5
+
+      - name: 🧰 Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: 🎨 Cargo fmt
+        run: cargo fmt --all -- --check
+
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v5
+
+      - name: 📦 Cargo version
+        id: cargo
+        run: |
+          echo "rustc=$(rustc --version)" >> "${GITHUB_OUTPUT}"
+
+      - name: 🪣 Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          key: ${{ steps.cargo.outputs.rustc }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ steps.cargo.outputs.rustc }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+
+      - name: 📎 Cargo clippy
+        run: |
+          cargo clippy --release -- -D warnings
+
+      - name: 🔨 Cargo test
+        run: |
+          cargo test --release
