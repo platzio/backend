@@ -102,14 +102,24 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(DbTable, DbTableOrDeploymentResource)))]
+#[openapi(components(schemas(
+    DbTable,
+    DbTableOrDeploymentResource,
+    // chart-ext schemas that aren't reachable from any endpoint response
+    // type, so utoipa won't auto-collect them. chart-ext 0.7.x dropped its
+    // aggregate `openapi::OpenApi` (utoipa 5 upgrade), so register them here
+    // to keep them in the generated spec (and thus in the JS SDK).
+    platz_chart_ext::ChartExt,
+    platz_chart_ext::ChartMetadata,
+    platz_chart_ext::UiSchemaInputSingleType,
+    platz_chart_ext::UiSchemaInputType,
+)))]
 pub(super) struct ApiV2;
 
 impl ApiV2 {
     pub fn openapi() -> utoipa::openapi::OpenApi {
         let mut openapi = <ApiV2 as OpenApi>::openapi();
         openapi.merge(auth::OpenApi::openapi());
-        openapi.merge(platz_chart_ext::openapi::OpenApi::openapi());
         openapi.merge(deployment_kinds::OpenApi::openapi());
         openapi.merge(deployment_permissions::OpenApi::openapi());
         openapi.merge(deployment_resource_types::OpenApi::openapi());
