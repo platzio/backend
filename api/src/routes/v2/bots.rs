@@ -136,6 +136,6 @@ async fn delete(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
         name = "Bots",
         description = "This collection contains all bots in Platz.",
     )),
-    paths(get_all, get_one, update),
+    paths(get_all, get_one, create, update, delete),
 )]
 pub(super) struct OpenApi;
