@@ -11,6 +11,13 @@ members = [
 ]
 resolver = "2"
 
+# Shared package metadata inherited by every workspace member via
+# `version.workspace = true`. Bumping the release version is a single edit
+# here (or `cargo set-version --workspace <VER>`), which keeps all crates —
+# and the OpenAPI `info.version` derived from the api crate — in lockstep.
+[workspace.package]
+version = "0.1.0"
+
 [profile.release]
 debug = true
 
