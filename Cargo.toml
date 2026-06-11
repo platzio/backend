@@ -16,7 +16,7 @@ resolver = "2"
 # here (or `cargo set-version --workspace <VER>`), which keeps all crates —
 # and the OpenAPI `info.version` derived from the api crate — in lockstep.
 [workspace.package]
-version = "0.1.0"
+version = "0.7.0-beta.5"
 
 [profile.release]
 debug = true
