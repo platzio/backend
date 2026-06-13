@@ -6,15 +6,16 @@ mod identity;
 pub mod json_diff;
 pub mod schema;
 mod stats;
+mod tls;
 mod ui_collection;
 
-use crate::config::{DbPoolOptions, database_url, db_pool_options};
+use crate::config::{DbPoolOptions, SslSettings, database_url, db_pool_options};
 pub use db_table::*;
 use diesel_async::{
     AsyncPgConnection,
     async_connection_wrapper::AsyncConnectionWrapper,
     pooled_connection::{
-        AsyncDieselConnectionManager,
+        AsyncDieselConnectionManager, ManagerConfig,
         bb8::{Pool, PooledConnection},
     },
 };
@@ -47,8 +48,24 @@ pub struct Db {
 impl Db {
     async fn new(pool_options: DbPoolOptions) -> DbResult<Self> {
         let connection_url = database_url();
-        info!("Connecting to {connection_url}");
-        let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new(connection_url);
+        let ssl = SslSettings::from_env().map_err(errors::DbError::SslConfigError)?;
+        info!("Connecting to {connection_url} (sslmode={:?})", ssl.mode);
+
+        // Wire the TLS connector into every pooled connection via a custom
+        // setup callback, so the pool negotiates TLS exactly like the
+        // LISTEN/NOTIFY connection in `events.rs`.
+        let connector = tls::build_connector(&ssl)?;
+        let mode = ssl.mode;
+        let mut manager_config = ManagerConfig::default();
+        manager_config.custom_setup = Box::new(move |url| {
+            let connector = connector.clone();
+            let url = url.to_string();
+            Box::pin(async move { tls::establish_connection(&url, connector, mode).await })
+        });
+        let config = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(
+            connection_url,
+            manager_config,
+        );
         let pool = Pool::builder()
             .max_size(pool_options.max_size)
             .min_idle(pool_options.min_idle)

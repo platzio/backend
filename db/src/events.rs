@@ -1,8 +1,15 @@
 use crate::DbTable;
+use crate::config::SslSettings;
 use serde::{Deserialize, Serialize};
 use std::{future::poll_fn, task::ready};
-use tokio::{spawn, sync::broadcast, time};
-use tokio_postgres::AsyncMessage;
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    spawn,
+    sync::broadcast,
+    task::JoinHandle,
+    time,
+};
+use tokio_postgres::{AsyncMessage, Connection, NoTls};
 use tracing::{debug, error, trace};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -72,6 +79,10 @@ pub enum DbEventsError {
     PollError(tokio_postgres::Error),
     #[error("Error running LISTEN query: {0}")]
     ListenQueryFailed(tokio_postgres::Error),
+    #[error("Invalid database TLS configuration: {0}")]
+    SslConfigError(String),
+    #[error("Database TLS error: {0}")]
+    TlsError(crate::tls::TlsError),
 }
 
 impl DbEventsError {
@@ -82,6 +93,9 @@ impl DbEventsError {
             Self::ConnectError(_) => true,
             Self::PollError(_) => true,
             Self::ListenQueryFailed(_) => false,
+            // Misconfiguration won't fix itself on retry.
+            Self::SslConfigError(_) => false,
+            Self::TlsError(_) => false,
         }
     }
 }
@@ -109,34 +123,31 @@ impl DbEventBroadcast {
 
     async fn listen_for_notifications(&self, channel_name: &str) -> Result<(), DbEventsError> {
         let events_tx = self.tx.clone();
-        let (client, mut connection) =
-            tokio_postgres::connect(&crate::config::database_url(), tokio_postgres::NoTls)
-                .await
-                .map_err(DbEventsError::ConnectError)?;
+        let url = crate::config::database_url();
+        let ssl = SslSettings::from_env().map_err(DbEventsError::SslConfigError)?;
 
-        let events_task = spawn(poll_fn(move |cx| {
-            loop {
-                while let Some(message) = ready!(
-                    connection
-                        .poll_message(cx)
-                        .map_err(DbEventsError::PollError)?
-                ) {
-                    match message {
-                        AsyncMessage::Notice(notice) => {
-                            trace!("Database notice: {notice:?}");
-                        }
-                        AsyncMessage::Notification(notification) => {
-                            let event: DbEvent = serde_json::from_str(notification.payload())
-                                .map_err(DbEventsError::EventParseError)?;
-                            events_tx.send(event).ok();
-                        }
-                        other => {
-                            trace!("Got unknown message from Postgres: {other:?}");
-                        }
-                    }
+        // Establish the dedicated LISTEN/NOTIFY connection using the same TLS
+        // settings as the connection pool. With TLS disabled we keep the
+        // original plaintext (`NoTls`) path.
+        let (client, events_task) =
+            match crate::tls::build_connector(&ssl).map_err(DbEventsError::TlsError)? {
+                None => {
+                    let (client, connection) = tokio_postgres::connect(&url, NoTls)
+                        .await
+                        .map_err(DbEventsError::ConnectError)?;
+                    (client, spawn_event_pump(connection, events_tx))
                 }
-            }
-        }));
+                Some(connector) => {
+                    let mut config: tokio_postgres::Config =
+                        url.parse().map_err(DbEventsError::ConnectError)?;
+                    config.ssl_mode(crate::tls::pg_ssl_mode(ssl.mode));
+                    let (client, connection) = config
+                        .connect(connector)
+                        .await
+                        .map_err(DbEventsError::ConnectError)?;
+                    (client, spawn_event_pump(connection, events_tx))
+                }
+            };
 
         client
             .execute(&format!("LISTEN {channel_name}"), &[])
@@ -145,4 +156,40 @@ impl DbEventBroadcast {
 
         events_task.await?
     }
+}
+
+/// Pumps `LISTEN`/`NOTIFY` messages off a Postgres connection and rebroadcasts
+/// them as [`DbEvent`]s. Generic over the connection's stream type so it works
+/// with both the plaintext (`NoTls`) and TLS-wrapped connections.
+fn spawn_event_pump<S, T>(
+    mut connection: Connection<S, T>,
+    events_tx: DbEventSender,
+) -> JoinHandle<Result<(), DbEventsError>>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    T: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    spawn(poll_fn(move |cx| {
+        loop {
+            while let Some(message) = ready!(
+                connection
+                    .poll_message(cx)
+                    .map_err(DbEventsError::PollError)?
+            ) {
+                match message {
+                    AsyncMessage::Notice(notice) => {
+                        trace!("Database notice: {notice:?}");
+                    }
+                    AsyncMessage::Notification(notification) => {
+                        let event: DbEvent = serde_json::from_str(notification.payload())
+                            .map_err(DbEventsError::EventParseError)?;
+                        events_tx.send(event).ok();
+                    }
+                    other => {
+                        trace!("Got unknown message from Postgres: {other:?}");
+                    }
+                }
+            }
+        }
+    }))
 }
