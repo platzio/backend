@@ -33,6 +33,13 @@ pub struct DbEventData {
 pub struct DbEvent {
     pub operation: DbEventOperation,
     pub table: DbTable,
+    /// Environment the changed row belongs to, resolved by the database trigger.
+    /// `None` for rows that are not environment-scoped (global tables) or whose
+    /// environment could not be resolved. Used to forward each event only to
+    /// clients permitted to see that environment.
+    #[serde(default)]
+    #[schema(required)]
+    pub env_id: Option<Uuid>,
     pub data: DbEventData,
 }
 

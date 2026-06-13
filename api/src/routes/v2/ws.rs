@@ -4,9 +4,8 @@ use actix_web_actors::ws;
 use platz_auth::ApiIdentity;
 use platz_db::{AccessScope, DbEvent, DbEventData, DbEventOperation, db};
 use std::time::Duration;
-use tokio::sync::{broadcast::error::RecvError, mpsc};
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{error, warn};
+use tokio_stream::wrappers::{BroadcastStream, errors::BroadcastStreamRecvError};
+use tracing::error;
 
 /// Subprotocol used to carry the access token. Browsers cannot set an
 /// `Authorization` header on a WebSocket, so the client authenticates by
@@ -15,20 +14,25 @@ use tracing::{error, warn};
 const WS_AUTH_PROTOCOL: &str = "platz-auth-bearer";
 
 /// A websocket connection that streams database change events to a single
-/// authenticated client. The events have already been filtered to the client's
-/// [`AccessScope`] by a per-connection task before reaching the actor.
+/// authenticated client, filtered to the environments the client may access.
 struct DbEventsWs {
-    /// Stream of authorized events. Taken in `started` to feed the actor.
-    events: Option<UnboundedReceiverStream<DbEvent>>,
+    scope: AccessScope,
 }
 
 impl Actor for DbEventsWs {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        if let Some(events) = self.events.take() {
-            ctx.add_stream(events);
-        }
+        let rx = match db() {
+            Ok(db) => db.subscribe_to_events(),
+            Err(err) => {
+                error!("Could not subscribe to DB events: {err}");
+                ctx.stop();
+                return;
+            }
+        };
+        let stream = BroadcastStream::new(rx);
+        ctx.add_stream(stream);
         ctx.run_interval(Duration::from_secs(30), Self::keepalive);
     }
 }
@@ -50,13 +54,29 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for DbEventsWs {
     }
 }
 
-/// Authorized database events forwarded by the per-connection filter task.
-impl StreamHandler<DbEvent> for DbEventsWs {
-    fn handle(&mut self, event: DbEvent, ctx: &mut Self::Context) {
-        match serde_json::to_string(&event) {
-            Ok(payload) => ctx.text(payload),
+impl StreamHandler<Result<DbEvent, BroadcastStreamRecvError>> for DbEventsWs {
+    fn handle(
+        &mut self,
+        event: Result<DbEvent, BroadcastStreamRecvError>,
+        ctx: &mut Self::Context,
+    ) {
+        match event {
+            Ok(event) => {
+                // Only forward events the connected identity is allowed to see.
+                // The event carries its environment, so this is a cheap check.
+                if !self.scope.can_receive_event(&event) {
+                    return;
+                }
+                match serde_json::to_string(&event) {
+                    Ok(payload) => ctx.text(payload),
+                    Err(err) => {
+                        error!("Error serializing DB event for websocket: {err}");
+                        ctx.stop();
+                    }
+                }
+            }
             Err(err) => {
-                error!("Error serializing DB event for websocket: {err}");
+                error!("Error in websocket stream handler: {:?}", err);
                 ctx.stop();
             }
         }
@@ -75,7 +95,10 @@ fn extract_token(req: &HttpRequest) -> Option<String> {
     if parts.next()? != WS_AUTH_PROTOCOL {
         return None;
     }
-    parts.next().filter(|token| !token.is_empty()).map(String::from)
+    parts
+        .next()
+        .filter(|token| !token.is_empty())
+        .map(String::from)
 }
 
 async fn connect_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
@@ -88,41 +111,9 @@ async fn connect_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpRespon
         .await
         .map_err(|err| actix_web::error::ErrorServiceUnavailable(err.to_string()))?;
 
-    let db = db().map_err(|err| actix_web::error::ErrorServiceUnavailable(err.to_string()))?;
-    let mut events = db.subscribe_to_events();
-
-    // The actor runs synchronously and cannot await the per-event authorization
-    // queries. A dedicated task does that work, forwarding only the events this
-    // identity may see. Decisions are awaited sequentially so event ordering
-    // (e.g. UPDATE before DELETE for the same row) is preserved.
-    let (tx, rx) = mpsc::unbounded_channel::<DbEvent>();
-    actix_web::rt::spawn(async move {
-        loop {
-            match events.recv().await {
-                Ok(event) => match scope.can_receive_event(&event).await {
-                    Ok(true) => {
-                        if tx.send(event).is_err() {
-                            // Receiver (the websocket actor) is gone.
-                            break;
-                        }
-                    }
-                    Ok(false) => {}
-                    Err(err) => error!("Error authorizing websocket event: {err}"),
-                },
-                Err(RecvError::Lagged(skipped)) => {
-                    warn!("Websocket event listener lagged, skipped {skipped} events");
-                }
-                Err(RecvError::Closed) => break,
-            }
-        }
-    });
-
-    let actor = DbEventsWs {
-        events: Some(UnboundedReceiverStream::new(rx)),
-    };
     // Echo the auth subprotocol back so the browser's WebSocket handshake
     // succeeds.
-    ws::WsResponseBuilder::new(actor, &req, stream)
+    ws::WsResponseBuilder::new(DbEventsWs { scope }, &req, stream)
         .protocols(&[WS_AUTH_PROTOCOL])
         .start()
 }
