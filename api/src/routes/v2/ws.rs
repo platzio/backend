@@ -2,10 +2,13 @@ use actix::prelude::*;
 use actix_web::{Error, HttpRequest, HttpResponse, web};
 use actix_web_actors::ws;
 use platz_auth::ApiIdentity;
-use platz_db::{AccessScope, DbEvent, DbEventData, DbEventOperation, db};
+use platz_db::{AccessScope, DbEvent, DbEventData, DbEventOperation, DbTable, db};
+use serde::Deserialize;
+use std::collections::HashSet;
 use std::time::Duration;
 use tokio_stream::wrappers::{BroadcastStream, errors::BroadcastStreamRecvError};
-use tracing::error;
+use tracing::{error, warn};
+use uuid::Uuid;
 
 /// Subprotocol used to carry the access token. Browsers cannot set an
 /// `Authorization` header on a WebSocket, so the client authenticates by
@@ -13,10 +16,37 @@ use tracing::error;
 /// which the browser sends as the `Sec-WebSocket-Protocol` request header.
 const WS_AUTH_PROTOCOL: &str = "platz-auth-bearer";
 
+/// A message sent by the client to control which events it receives. The client
+/// subscribes to the (collection, environment) pairs the current view needs and
+/// unsubscribes when navigating away, so the server only forwards events that
+/// are both permitted and currently relevant.
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum ClientMessage {
+    Subscribe {
+        table: DbTable,
+        /// Environment to scope the subscription to. Omit for global
+        /// (non-environment-scoped) collections.
+        #[serde(default)]
+        #[schema(required)]
+        env_id: Option<Uuid>,
+    },
+    Unsubscribe {
+        table: DbTable,
+        #[serde(default)]
+        #[schema(required)]
+        env_id: Option<Uuid>,
+    },
+}
+
 /// A websocket connection that streams database change events to a single
-/// authenticated client, filtered to the environments the client may access.
+/// authenticated client, filtered to the environments the client may access and
+/// to the (collection, environment) pairs it has subscribed to.
 struct DbEventsWs {
     scope: AccessScope,
+    /// Active subscriptions as (table, env) pairs. `None` env means a global
+    /// collection. An event is forwarded only when its (table, env_id) is here.
+    subscriptions: HashSet<(DbTable, Option<Uuid>)>,
 }
 
 impl Actor for DbEventsWs {
@@ -43,12 +73,25 @@ impl DbEventsWs {
     }
 }
 
+impl DbEventsWs {
+    fn handle_client_message(&mut self, text: &str) {
+        match serde_json::from_str::<ClientMessage>(text) {
+            Ok(ClientMessage::Subscribe { table, env_id }) => {
+                self.subscriptions.insert((table, env_id));
+            }
+            Ok(ClientMessage::Unsubscribe { table, env_id }) => {
+                self.subscriptions.remove(&(table, env_id));
+            }
+            Err(err) => warn!("Ignoring invalid websocket client message: {err}"),
+        }
+    }
+}
+
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for DbEventsWs {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
             Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
-            Ok(ws::Message::Text(text)) => ctx.text(text),
-            Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
+            Ok(ws::Message::Text(text)) => self.handle_client_message(&text),
             _ => (),
         }
     }
@@ -65,6 +108,10 @@ impl StreamHandler<Result<DbEvent, BroadcastStreamRecvError>> for DbEventsWs {
                 // Only forward events the connected identity is allowed to see.
                 // The event carries its environment, so this is a cheap check.
                 if !self.scope.can_receive_event(&event) {
+                    return;
+                }
+                // ...and only those the client is currently subscribed to.
+                if !self.subscriptions.contains(&(event.table, event.env_id)) {
                     return;
                 }
                 match serde_json::to_string(&event) {
@@ -112,8 +159,13 @@ async fn connect_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpRespon
         .map_err(|err| actix_web::error::ErrorServiceUnavailable(err.to_string()))?;
 
     // Echo the auth subprotocol back so the browser's WebSocket handshake
-    // succeeds.
-    ws::WsResponseBuilder::new(DbEventsWs { scope }, &req, stream)
+    // succeeds. The connection starts with no subscriptions; the client
+    // subscribes to what each view needs.
+    let actor = DbEventsWs {
+        scope,
+        subscriptions: HashSet::new(),
+    };
+    ws::WsResponseBuilder::new(actor, &req, stream)
         .protocols(&[WS_AUTH_PROTOCOL])
         .start()
 }
@@ -128,6 +180,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         name = "Events",
         description = "Events sent through the Websocket.",
     )),
-    components(schemas(DbEvent, DbEventOperation, DbEventData)),
+    components(schemas(DbEvent, DbEventOperation, DbEventData, ClientMessage)),
 )]
 pub(super) struct OpenApi;
