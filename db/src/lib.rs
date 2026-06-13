@@ -10,8 +10,8 @@ mod stats;
 pub mod tls;
 mod ui_collection;
 
-pub use access::AccessScope;
 use crate::config::{DbPoolOptions, database_url, db_pool_options};
+pub use access::AccessScope;
 pub use config::{SslMode, SslSettings};
 pub use db_table::*;
 use diesel_async::{

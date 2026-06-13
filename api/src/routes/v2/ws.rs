@@ -133,11 +133,7 @@ impl StreamHandler<Result<DbEvent, BroadcastStreamRecvError>> for DbEventsWs {
 /// Extract the access token from the `Sec-WebSocket-Protocol` header. The header
 /// carries the auth subprotocol name followed by the token itself.
 fn extract_token(req: &HttpRequest) -> Option<String> {
-    let header = req
-        .headers()
-        .get("Sec-WebSocket-Protocol")?
-        .to_str()
-        .ok()?;
+    let header = req.headers().get("Sec-WebSocket-Protocol")?.to_str().ok()?;
     let mut parts = header.split(',').map(str::trim);
     if parts.next()? != WS_AUTH_PROTOCOL {
         return None;
