@@ -212,3 +212,87 @@ impl ServerCertVerifier for AcceptAnyServerCert {
         ]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Connects with the given settings and reports whether the resulting
+    /// session is actually encrypted (per `pg_stat_ssl`). Exercises the real
+    /// `build_connector` / `pg_ssl_mode` logic against a live server.
+    ///
+    /// Skipped unless `PLATZ_TLS_TEST_URL` points at a reachable PostgreSQL.
+    /// `PLATZ_TLS_TEST_CA` may point at the server's PEM cert for `verify-full`.
+    async fn connect_and_check_ssl(
+        url: &str,
+        mode: SslMode,
+        root_cert: Option<String>,
+    ) -> Result<bool, String> {
+        let settings = SslSettings { mode, root_cert };
+        let connector = build_connector(&settings).map_err(|e| e.to_string())?;
+        let client = match connector {
+            None => {
+                let (client, conn) = tokio_postgres::connect(url, NoTls)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                tokio::spawn(async move {
+                    let _ = conn.await;
+                });
+                client
+            }
+            Some(connector) => {
+                let mut config: tokio_postgres::Config = url
+                    .parse()
+                    .map_err(|e: tokio_postgres::Error| e.to_string())?;
+                config.ssl_mode(pg_ssl_mode(mode));
+                let (client, conn) = config.connect(connector).await.map_err(|e| e.to_string())?;
+                tokio::spawn(async move {
+                    let _ = conn.await;
+                });
+                client
+            }
+        };
+        let row = client
+            .query_one(
+                "SELECT coalesce(ssl, false) FROM pg_stat_ssl WHERE pid = pg_backend_pid()",
+                &[],
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(row.get::<_, bool>(0))
+    }
+
+    #[tokio::test]
+    async fn tls_modes_against_live_server() {
+        let Ok(url) = std::env::var("PLATZ_TLS_TEST_URL") else {
+            eprintln!("skipping: set PLATZ_TLS_TEST_URL to run this test");
+            return;
+        };
+        let ca = std::env::var("PLATZ_TLS_TEST_CA").ok();
+
+        // require / prefer encrypt the connection (cert not verified).
+        assert_eq!(
+            connect_and_check_ssl(&url, SslMode::Require, None).await,
+            Ok(true),
+            "require should produce an encrypted session"
+        );
+        assert_eq!(
+            connect_and_check_ssl(&url, SslMode::Prefer, None).await,
+            Ok(true),
+            "prefer should use TLS when the server offers it"
+        );
+
+        // verify-full succeeds only when the server cert is trusted.
+        assert_eq!(
+            connect_and_check_ssl(&url, SslMode::VerifyFull, ca.clone()).await,
+            Ok(true),
+            "verify-full should succeed with the server CA trusted"
+        );
+        assert!(
+            connect_and_check_ssl(&url, SslMode::VerifyFull, None)
+                .await
+                .is_err(),
+            "verify-full must reject an untrusted (self-signed) certificate"
+        );
+    }
+}
