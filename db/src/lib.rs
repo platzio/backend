@@ -1,3 +1,4 @@
+mod access;
 mod config;
 mod db_table;
 mod errors;
@@ -9,6 +10,7 @@ mod stats;
 pub mod tls;
 mod ui_collection;
 
+pub use access::AccessScope;
 use crate::config::{DbPoolOptions, database_url, db_pool_options};
 pub use config::{SslMode, SslSettings};
 pub use db_table::*;

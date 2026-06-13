@@ -1,5 +1,5 @@
 use super::{deployment::Deployment, deployment_resource_type::DeploymentResourceType};
-use crate::{DbError, DbResult, db_conn};
+use crate::{AccessScope, DbError, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -76,8 +76,17 @@ impl DeploymentResource {
     pub async fn all_filtered(
         filters: DeploymentResourceFilters,
         pagination: PaginationParams,
+        scope: &AccessScope,
     ) -> DbResult<Paginated<Self>> {
-        Ok(Self::filter(filters)
+        let mut filtered = Self::filter(filters);
+        // A resource is visible if its owning deployment is in an accessible
+        // environment. Resources with no deployment are not env-scoped and are
+        // hidden from restricted users.
+        if let AccessScope::Envs(env_ids) = scope {
+            let deployment_ids = Deployment::ids_in_envs(env_ids).await?;
+            filtered = filtered.filter(deployment_resources::deployment_id.eq_any(deployment_ids));
+        }
+        Ok(filtered
             .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
             .await?)
@@ -88,6 +97,22 @@ impl DeploymentResource {
             .find(id)
             .get_result(db_conn().await?.deref_mut())
             .await?)
+    }
+
+    /// Like [`Self::find`] but only returns the resource if its owning
+    /// deployment is within the identity's [`AccessScope`].
+    pub async fn find_scoped(id: Uuid, scope: &AccessScope) -> DbResult<Self> {
+        match scope {
+            AccessScope::All => Self::find(id).await,
+            AccessScope::Envs(env_ids) => {
+                let deployment_ids = Deployment::ids_in_envs(env_ids).await?;
+                Ok(deployment_resources::table
+                    .find(id)
+                    .filter(deployment_resources::deployment_id.eq_any(deployment_ids))
+                    .get_result(db_conn().await?.deref_mut())
+                    .await?)
+            }
+        }
     }
 
     pub async fn find_by_type(type_id: Uuid) -> DbResult<Vec<Self>> {

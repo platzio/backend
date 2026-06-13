@@ -2,7 +2,7 @@ use crate::error::AuthError;
 use base64::prelude::*;
 use chrono::Duration;
 use chrono::prelude::*;
-use jsonwebtoken::{EncodingKey, Header, encode};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use platz_db::{
     Identity,
     schema::{deployment::Deployment, setting::Setting, user::User},
@@ -46,6 +46,23 @@ impl AccessToken {
             &EncodingKey::from_secret(&jwt_secret),
         )
         .map_err(AuthError::JwtEncodeError)
+    }
+
+    /// Decode and validate a signed access token (JWT) string into its claims.
+    /// Shared by the `Authorization: Bearer` extractor and the websocket
+    /// subprotocol authentication path, which cannot use request headers.
+    pub(crate) async fn decode(token: &str) -> Result<Self, AuthError> {
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.set_required_spec_claims(&["exp", "nbf"]);
+        validation.validate_exp = true;
+        validation.validate_nbf = true;
+        validation.leeway = 5;
+        let jwt_secret = get_jwt_secret().await?;
+        Ok(
+            decode::<Self>(token, &DecodingKey::from_secret(&jwt_secret), &validation)
+                .map_err(AuthError::JwtDecodeError)?
+                .claims,
+        )
     }
 
     pub fn expires_at(&self) -> Result<DateTime<Utc>, AuthError> {

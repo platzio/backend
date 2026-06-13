@@ -89,6 +89,17 @@ impl K8sCluster {
             .await?)
     }
 
+    /// IDs of all clusters attached to any of the given environments. Used to
+    /// translate an [`AccessScope`](crate::AccessScope) of environments into the
+    /// cluster IDs that env-scoped queries (deployments, tasks) filter on.
+    pub async fn ids_in_envs(env_ids: &[Uuid]) -> DbResult<Vec<Uuid>> {
+        Ok(k8s_clusters::table
+            .filter(k8s_clusters::env_id.eq_any(env_ids.to_vec()))
+            .select(k8s_clusters::id)
+            .get_results(db_conn().await?.deref_mut())
+            .await?)
+    }
+
     pub async fn find_by_provider_id(value: String) -> DbResult<Option<Self>> {
         Ok(k8s_clusters::table
             .filter(k8s_clusters::provider_id.eq(value))

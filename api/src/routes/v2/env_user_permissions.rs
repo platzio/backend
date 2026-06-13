@@ -2,6 +2,7 @@ use crate::{permissions::verify_env_admin, result::ApiResult};
 use actix_web::{HttpResponse, delete, get, post, web};
 use platz_auth::ApiIdentity;
 use platz_db::{
+    AccessScope,
     diesel_pagination::{Paginated, PaginationParams},
     schema::env_user_permission::{
         EnvUserPermission, EnvUserPermissionFilters, NewEnvUserPermission,
@@ -28,12 +29,14 @@ use uuid::Uuid;
 )]
 #[get("/env-user-permissions")]
 async fn get_all(
-    _identity: ApiIdentity,
+    identity: ApiIdentity,
     filters: web::Query<EnvUserPermissionFilters>,
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
     Ok(HttpResponse::Ok().json(
-        EnvUserPermission::all_filtered(filters.into_inner(), pagination.into_inner()).await?,
+        EnvUserPermission::all_filtered(filters.into_inner(), pagination.into_inner(), &scope)
+            .await?,
     ))
 }
 
@@ -53,8 +56,9 @@ async fn get_all(
     ),
 )]
 #[get("/env-user-permissions/{id}")]
-async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(EnvUserPermission::find(id.into_inner()).await?))
+async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
+    Ok(HttpResponse::Ok().json(EnvUserPermission::find_scoped(id.into_inner(), &scope).await?))
 }
 
 #[utoipa::path(

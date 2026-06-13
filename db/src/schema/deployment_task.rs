@@ -3,7 +3,7 @@ use super::{
     helm_chart::HelmChart, k8s_cluster::K8sCluster,
 };
 use crate::{
-    DbError, DbResult, Identity, db_conn,
+    AccessScope, DbError, DbResult, Identity, db_conn,
     json_diff::{JsonDiff, json_diff},
 };
 use chrono::prelude::*;
@@ -125,6 +125,7 @@ impl DeploymentTask {
         filters: DeploymentTaskFilters,
         extra_filters: DeploymentTaskExtraFilters,
         pagination: PaginationParams,
+        scope: &AccessScope,
     ) -> DbResult<Paginated<Self>> {
         let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
             Some(
@@ -138,6 +139,10 @@ impl DeploymentTask {
             None
         };
         let mut filtered = Self::filter(filters);
+        if let AccessScope::Envs(env_ids) = scope {
+            let cluster_ids = K8sCluster::ids_in_envs(env_ids).await?;
+            filtered = filtered.filter(deployment_tasks::cluster_id.eq_any(cluster_ids));
+        }
         if extra_filters.active_only.unwrap_or(false) {
             filtered = filtered.filter(
                 deployment_tasks::status
@@ -174,6 +179,23 @@ impl DeploymentTask {
             .find(id)
             .get_result(db_conn().await?.deref_mut())
             .await?)
+    }
+
+    /// Like [`Self::find`] but only returns the task if it is within the
+    /// identity's [`AccessScope`]. Out-of-scope and missing both yield
+    /// `NotFound` so the endpoint cannot be used to probe existence.
+    pub async fn find_scoped(id: Uuid, scope: &AccessScope) -> DbResult<Self> {
+        match scope {
+            AccessScope::All => Self::find(id).await,
+            AccessScope::Envs(env_ids) => {
+                let cluster_ids = K8sCluster::ids_in_envs(env_ids).await?;
+                Ok(deployment_tasks::table
+                    .find(id)
+                    .filter(deployment_tasks::cluster_id.eq_any(cluster_ids))
+                    .get_result(db_conn().await?.deref_mut())
+                    .await?)
+            }
+        }
     }
 
     pub async fn next_pending(cluster_ids: &Vec<Uuid>) -> DbResult<Option<Self>> {

@@ -6,7 +6,7 @@ use actix_web::{HttpResponse, delete, get, post, put, web};
 use platz_auth::ApiIdentity;
 use platz_chart_ext::ChartExtCardinality;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource,
+    AccessScope, DbTable, DbTableOrDeploymentResource,
     diesel_pagination::{Paginated, PaginationParams},
     schema::{
         deployment::{
@@ -38,16 +38,18 @@ use uuid::Uuid;
 )]
 #[get("/deployments")]
 async fn get_all(
-    _identity: ApiIdentity,
+    identity: ApiIdentity,
     filters: web::Query<DeploymentFilters>,
     extra_filters: web::Query<DeploymentExtraFilters>,
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
     Ok(HttpResponse::Ok().json(
         Deployment::all_filtered(
             filters.into_inner(),
             extra_filters.into_inner(),
             pagination.into_inner(),
+            &scope,
         )
         .await?,
     ))
@@ -69,8 +71,9 @@ async fn get_all(
     ),
 )]
 #[get("/deployments/{id}")]
-async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Deployment::find(id.into_inner()).await?))
+async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
+    Ok(HttpResponse::Ok().json(Deployment::find_scoped(id.into_inner(), &scope).await?))
 }
 
 #[utoipa::path(

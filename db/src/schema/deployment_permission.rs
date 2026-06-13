@@ -1,4 +1,4 @@
-use crate::{DbResult, db_conn};
+use crate::{AccessScope, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -65,8 +65,13 @@ impl DeploymentPermission {
     pub async fn all_filtered(
         filters: DeploymentPermissionFilters,
         pagination: PaginationParams,
+        scope: &AccessScope,
     ) -> DbResult<Paginated<Self>> {
-        Ok(Self::filter(filters)
+        let mut filtered = Self::filter(filters);
+        if let AccessScope::Envs(env_ids) = scope {
+            filtered = filtered.filter(deployment_permissions::env_id.eq_any(env_ids.clone()));
+        }
+        Ok(filtered
             .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
             .await?)
@@ -77,6 +82,19 @@ impl DeploymentPermission {
             .find(id)
             .get_result(db_conn().await?.deref_mut())
             .await?)
+    }
+
+    /// Like [`Self::find`] but only returns the permission if its environment is
+    /// within the identity's [`AccessScope`].
+    pub async fn find_scoped(id: Uuid, scope: &AccessScope) -> DbResult<Self> {
+        match scope {
+            AccessScope::All => Self::find(id).await,
+            AccessScope::Envs(env_ids) => Ok(deployment_permissions::table
+                .find(id)
+                .filter(deployment_permissions::env_id.eq_any(env_ids.clone()))
+                .get_result(db_conn().await?.deref_mut())
+                .await?),
+        }
     }
 
     pub async fn find_user_role(

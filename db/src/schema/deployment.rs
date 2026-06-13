@@ -5,7 +5,7 @@ use super::{
     helm_chart::HelmChart,
     k8s_cluster::K8sCluster,
 };
-use crate::{DbError, DbResult, DbTableOrDeploymentResource, Identity, db_conn};
+use crate::{AccessScope, DbError, DbResult, DbTableOrDeploymentResource, Identity, db_conn};
 use chrono::prelude::*;
 use diesel::{QueryDsl, prelude::*};
 use diesel_async::RunQueryDsl;
@@ -124,6 +124,7 @@ impl Deployment {
         filters: DeploymentFilters,
         extra_filters: DeploymentExtraFilters,
         pagination: PaginationParams,
+        scope: &AccessScope,
     ) -> DbResult<Paginated<Self>> {
         let allowed_cluster_ids: Option<Vec<Uuid>> = if let Some(env_id) = extra_filters.env_id {
             Some(
@@ -141,6 +142,12 @@ impl Deployment {
         if let Some(cluster_ids) = allowed_cluster_ids {
             filtered = filtered.filter(deployments::cluster_id.eq_any(cluster_ids))
         }
+        // Restrict to clusters in the environments the identity may access. The
+        // database does the filtering as part of the single paginated query.
+        if let AccessScope::Envs(env_ids) = scope {
+            let cluster_ids = K8sCluster::ids_in_envs(env_ids).await?;
+            filtered = filtered.filter(deployments::cluster_id.eq_any(cluster_ids));
+        }
 
         Ok(filtered
             .order_by(deployments::created_at.asc())
@@ -153,6 +160,35 @@ impl Deployment {
         Ok(deployments::table
             .find(id)
             .get_result(db_conn().await?.deref_mut())
+            .await?)
+    }
+
+    /// Like [`Self::find`] but only returns the deployment if it is within the
+    /// identity's [`AccessScope`]. A deployment outside the scope is
+    /// indistinguishable from a missing one (both yield `NotFound`), so the
+    /// endpoint returns the same `404` either way and does not leak existence.
+    pub async fn find_scoped(id: Uuid, scope: &AccessScope) -> DbResult<Self> {
+        match scope {
+            AccessScope::All => Self::find(id).await,
+            AccessScope::Envs(env_ids) => {
+                let cluster_ids = K8sCluster::ids_in_envs(env_ids).await?;
+                Ok(deployments::table
+                    .find(id)
+                    .filter(deployments::cluster_id.eq_any(cluster_ids))
+                    .get_result(db_conn().await?.deref_mut())
+                    .await?)
+            }
+        }
+    }
+
+    /// IDs of all deployments in any of the given environments. Used to scope
+    /// env-scoped child collections (such as deployment resources).
+    pub async fn ids_in_envs(env_ids: &[Uuid]) -> DbResult<Vec<Uuid>> {
+        let cluster_ids = K8sCluster::ids_in_envs(env_ids).await?;
+        Ok(deployments::table
+            .filter(deployments::cluster_id.eq_any(cluster_ids))
+            .select(deployments::id)
+            .get_results(db_conn().await?.deref_mut())
             .await?)
     }
 

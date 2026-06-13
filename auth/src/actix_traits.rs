@@ -8,10 +8,7 @@ use actix_web::{FromRequest, HttpRequest, dev::Payload, http::header::HeaderName
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use futures::future::{BoxFuture, FutureExt, TryFutureExt, ok, ready};
 use jsonwebtoken::{Algorithm, DecodingKey, TokenData, Validation, decode};
-use platz_db::{
-    Identity,
-    schema::{bot::Bot, deployment::Deployment, user::User},
-};
+use platz_db::Identity;
 
 async fn validate_token(bearer: BearerAuth) -> Result<TokenData<AccessToken>, AuthError> {
     let mut validation = Validation::new(Algorithm::HS256);
@@ -38,27 +35,6 @@ impl FromRequest for AccessToken {
             .and_then(validate_token)
             .map_ok(|token_data| token_data.claims)
             .boxed()
-    }
-}
-
-impl super::ApiIdentity {
-    async fn validate(self) -> Result<Self, AuthError> {
-        match self.inner() {
-            Identity::User(user_id) => User::find_only_active(user_id.to_owned())
-                .await?
-                .map(|_| self)
-                .ok_or(AuthError::UserNotFound),
-            Identity::Bot(bot_id) => Bot::find(bot_id.to_owned())
-                .await?
-                .map(|_| self)
-                .ok_or(AuthError::BotNotFound),
-            Identity::Deployment(deployment_id) => {
-                Deployment::find_optional(deployment_id.to_owned())
-                    .await?
-                    .map(|_| self)
-                    .ok_or(AuthError::DeploymentNotFound)
-            }
-        }
     }
 }
 
