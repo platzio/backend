@@ -66,6 +66,12 @@ pub struct DeploymentResource {
     pub sync_reason: Option<String>,
 }
 
+#[derive(Debug, Default, Deserialize, ToSchema)]
+pub struct DeploymentResourceExtraFilters {
+    #[schema(required)]
+    env_id: Option<Uuid>,
+}
+
 impl DeploymentResource {
     pub async fn all() -> DbResult<Vec<Self>> {
         Ok(deployment_resources::table
@@ -75,10 +81,17 @@ impl DeploymentResource {
 
     pub async fn all_filtered(
         filters: DeploymentResourceFilters,
+        extra_filters: DeploymentResourceExtraFilters,
         pagination: PaginationParams,
         scope: &AccessScope,
     ) -> DbResult<Paginated<Self>> {
         let mut filtered = Self::filter(filters);
+        // Narrow to a single environment when requested, so a view can load
+        // just the resources of the environment it shows.
+        if let Some(env_id) = extra_filters.env_id {
+            let deployment_ids = Deployment::ids_in_envs(&[env_id]).await?;
+            filtered = filtered.filter(deployment_resources::deployment_id.eq_any(deployment_ids));
+        }
         // A resource is visible if its owning deployment is in an accessible
         // environment. Resources with no deployment are not env-scoped and are
         // hidden from restricted users.

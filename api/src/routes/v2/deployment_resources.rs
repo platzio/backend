@@ -8,8 +8,9 @@ use platz_db::{
     schema::{
         deployment::Deployment,
         deployment_resource::{
-            DeploymentResource, DeploymentResourceFilters, DeploymentResourceSyncStatus,
-            NewDeploymentResource, UpdateDeploymentResource, UpdateDeploymentResourceSyncStatus,
+            DeploymentResource, DeploymentResourceExtraFilters, DeploymentResourceFilters,
+            DeploymentResourceSyncStatus, NewDeploymentResource, UpdateDeploymentResource,
+            UpdateDeploymentResourceSyncStatus,
         },
         deployment_resource_type::DeploymentResourceType,
     },
@@ -37,12 +38,17 @@ use uuid::Uuid;
 async fn get_all(
     identity: ApiIdentity,
     filters: web::Query<DeploymentResourceFilters>,
+    extra_filters: web::Query<DeploymentResourceExtraFilters>,
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
     let scope = AccessScope::for_identity(identity.inner()).await?;
-    let mut result =
-        DeploymentResource::all_filtered(filters.into_inner(), pagination.into_inner(), &scope)
-            .await?;
+    let mut result = DeploymentResource::all_filtered(
+        filters.into_inner(),
+        extra_filters.into_inner(),
+        pagination.into_inner(),
+        &scope,
+    )
+    .await?;
     result.items = try_join_all(
         result
             .items
