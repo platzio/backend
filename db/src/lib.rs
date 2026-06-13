@@ -6,10 +6,11 @@ mod identity;
 pub mod json_diff;
 pub mod schema;
 mod stats;
-mod tls;
+pub mod tls;
 mod ui_collection;
 
-use crate::config::{DbPoolOptions, SslSettings, database_url, db_pool_options};
+use crate::config::{DbPoolOptions, database_url, db_pool_options};
+pub use config::{SslMode, SslSettings};
 pub use db_table::*;
 use diesel_async::{
     AsyncPgConnection,

@@ -5,6 +5,62 @@
 //! here and turned into a `rustls`-backed TLS connector that is shared by both
 //! the `diesel-async` connection pool and the dedicated `LISTEN`/`NOTIFY`
 //! connection in [`crate::events`].
+//!
+//! # Connectivity notes
+//!
+//! These are the behaviors observed while validating this code against a live
+//! TLS-enabled PostgreSQL, captured here so the next person doesn't have to
+//! rediscover them.
+//!
+//! ## Who decides what
+//!
+//! - **`tokio-postgres` decides _whether_ to use TLS.** The `SslMode` we pass
+//!   via [`pg_ssl_mode`] only controls negotiation: `Disable` never offers
+//!   TLS, `Prefer` uses it if the server supports it (falling back to
+//!   plaintext otherwise), and `Require` insists on it. It performs **no**
+//!   certificate checks itself.
+//! - **The rustls connector decides _whether to trust_ the server.** All
+//!   certificate validation lives in the [`ClientConfig`] built by
+//!   [`build_connector`]. This split is why `require` can encrypt without
+//!   verifying, while `verify-full` adds full chain + hostname checks.
+//!
+//! ## Mode behavior, confirmed end-to-end
+//!
+//! Validated by connecting to a live server and reading `pg_stat_ssl`:
+//!
+//! | `PGSSLMODE`   | Server offers TLS        | Result                                  |
+//! |---------------|--------------------------|-----------------------------------------|
+//! | `disable`     | (irrelevant)             | plaintext session (`ssl = false`)       |
+//! | `prefer`      | yes                      | encrypted (`ssl = true`), cert unchecked |
+//! | `prefer`      | no                       | falls back to plaintext, connects        |
+//! | `require`     | yes                      | encrypted, cert unchecked                |
+//! | `verify-full` | yes, cert trusted        | encrypted, chain + hostname verified     |
+//! | `verify-full` | yes, cert **untrusted**  | connection **rejected** at the handshake |
+//!
+//! ## `verify-full` requires a real, CA-signed certificate
+//!
+//! Two rustls/webpki requirements bite when testing `verify-full`:
+//!
+//! 1. **A bare self-signed leaf cert is not a usable trust anchor.** rustls
+//!    will not validate a server cert that is simply its own issuer; you need
+//!    an actual CA certificate (with `CA:TRUE`) that signed the server cert,
+//!    and that CA is what `PGSSLROOTCERT` must point at.
+//! 2. **The hostname is matched against the certificate's SAN, not its CN.**
+//!    The server cert must carry a `subjectAltName` covering the host you
+//!    connect to (e.g. `DNS:localhost`); a CN-only cert is rejected.
+//!
+//! This is why the local dev Postgres (a quick self-signed cert) is fine for
+//! `prefer`/`require` but cannot be used with `verify-full` without minting a
+//! proper CA → server chain. Production `verify-full` deployments should point
+//! `PGSSLROOTCERT` at the CA that issued the database's server certificate.
+//!
+//! ## Testing
+//!
+//! The end-to-end behavior above is covered by the self-contained
+//! `tests/tls_modes.rs` integration test, which spins up a TLS-enabled
+//! PostgreSQL via `testcontainers` (mints its own CA → server chain with
+//! `rcgen`) and exercises every mode. It is skipped automatically when no
+//! Docker daemon is reachable.
 
 use crate::config::{SslMode, SslSettings};
 use diesel::{ConnectionError, ConnectionResult};
@@ -210,89 +266,5 @@ impl ServerCertVerifier for AcceptAnyServerCert {
             SignatureScheme::ED25519,
             SignatureScheme::ED448,
         ]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Connects with the given settings and reports whether the resulting
-    /// session is actually encrypted (per `pg_stat_ssl`). Exercises the real
-    /// `build_connector` / `pg_ssl_mode` logic against a live server.
-    ///
-    /// Skipped unless `PLATZ_TLS_TEST_URL` points at a reachable PostgreSQL.
-    /// `PLATZ_TLS_TEST_CA` may point at the server's PEM cert for `verify-full`.
-    async fn connect_and_check_ssl(
-        url: &str,
-        mode: SslMode,
-        root_cert: Option<String>,
-    ) -> Result<bool, String> {
-        let settings = SslSettings { mode, root_cert };
-        let connector = build_connector(&settings).map_err(|e| e.to_string())?;
-        let client = match connector {
-            None => {
-                let (client, conn) = tokio_postgres::connect(url, NoTls)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                tokio::spawn(async move {
-                    let _ = conn.await;
-                });
-                client
-            }
-            Some(connector) => {
-                let mut config: tokio_postgres::Config = url
-                    .parse()
-                    .map_err(|e: tokio_postgres::Error| e.to_string())?;
-                config.ssl_mode(pg_ssl_mode(mode));
-                let (client, conn) = config.connect(connector).await.map_err(|e| e.to_string())?;
-                tokio::spawn(async move {
-                    let _ = conn.await;
-                });
-                client
-            }
-        };
-        let row = client
-            .query_one(
-                "SELECT coalesce(ssl, false) FROM pg_stat_ssl WHERE pid = pg_backend_pid()",
-                &[],
-            )
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(row.get::<_, bool>(0))
-    }
-
-    #[tokio::test]
-    async fn tls_modes_against_live_server() {
-        let Ok(url) = std::env::var("PLATZ_TLS_TEST_URL") else {
-            eprintln!("skipping: set PLATZ_TLS_TEST_URL to run this test");
-            return;
-        };
-        let ca = std::env::var("PLATZ_TLS_TEST_CA").ok();
-
-        // require / prefer encrypt the connection (cert not verified).
-        assert_eq!(
-            connect_and_check_ssl(&url, SslMode::Require, None).await,
-            Ok(true),
-            "require should produce an encrypted session"
-        );
-        assert_eq!(
-            connect_and_check_ssl(&url, SslMode::Prefer, None).await,
-            Ok(true),
-            "prefer should use TLS when the server offers it"
-        );
-
-        // verify-full succeeds only when the server cert is trusted.
-        assert_eq!(
-            connect_and_check_ssl(&url, SslMode::VerifyFull, ca.clone()).await,
-            Ok(true),
-            "verify-full should succeed with the server CA trusted"
-        );
-        assert!(
-            connect_and_check_ssl(&url, SslMode::VerifyFull, None)
-                .await
-                .is_err(),
-            "verify-full must reject an untrusted (self-signed) certificate"
-        );
     }
 }
