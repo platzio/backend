@@ -3,6 +3,7 @@ use actix_web::{HttpResponse, delete, get, post, put, web};
 use futures::future::try_join_all;
 use platz_auth::ApiIdentity;
 use platz_db::{
+    AccessScope,
     diesel_pagination::{Paginated, PaginationParams},
     schema::{
         deployment::Deployment,
@@ -34,12 +35,14 @@ use uuid::Uuid;
 )]
 #[get("/deployment-resources")]
 async fn get_all(
-    _identity: ApiIdentity,
+    identity: ApiIdentity,
     filters: web::Query<DeploymentResourceFilters>,
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
     let mut result =
-        DeploymentResource::all_filtered(filters.into_inner(), pagination.into_inner()).await?;
+        DeploymentResource::all_filtered(filters.into_inner(), pagination.into_inner(), &scope)
+            .await?;
     result.items = try_join_all(
         result
             .items
@@ -66,9 +69,10 @@ async fn get_all(
     ),
 )]
 #[get("/deployment-resources/{id}")]
-async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
     Ok(HttpResponse::Ok().json(
-        DeploymentResource::find(id.into_inner())
+        DeploymentResource::find_scoped(id.into_inner(), &scope)
             .await?
             .without_sensitive_props()
             .await?,

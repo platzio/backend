@@ -5,7 +5,7 @@ use actix_web::{HttpResponse, delete, get, post, web};
 use chrono::prelude::*;
 use platz_auth::ApiIdentity;
 use platz_db::{
-    DbError, DbTableOrDeploymentResource, Json,
+    AccessScope, DbError, DbTableOrDeploymentResource, Json,
     diesel_pagination::{Paginated, PaginationParams},
     schema::{
         deployment::Deployment,
@@ -41,16 +41,18 @@ use uuid::Uuid;
 )]
 #[get("/deployment-tasks")]
 async fn get_all(
-    _identity: ApiIdentity,
+    identity: ApiIdentity,
     filters: web::Query<DeploymentTaskFilters>,
     extra_filters: web::Query<DeploymentTaskExtraFilters>,
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
     Ok(HttpResponse::Ok().json(
         DeploymentTask::all_filtered(
             filters.into_inner(),
             extra_filters.into_inner(),
             pagination.into_inner(),
+            &scope,
         )
         .await?,
     ))
@@ -72,8 +74,9 @@ async fn get_all(
     ),
 )]
 #[get("/deployment-tasks/{id}")]
-async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(DeploymentTask::find(id.into_inner()).await?))
+async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
+    Ok(HttpResponse::Ok().json(DeploymentTask::find_scoped(id.into_inner(), &scope).await?))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -105,7 +108,8 @@ async fn cancel_one(
     body: web::Json<CancelDeploymentTask>,
 ) -> ApiResult {
     let body = body.into_inner();
-    let task = DeploymentTask::find(id.into_inner()).await?;
+    let scope = AccessScope::for_identity(identity.inner()).await?;
+    let task = DeploymentTask::find_scoped(id.into_inner(), &scope).await?;
     let canceled_by_user_id = identity.inner().user_id();
     let canceled_by_deployment_id = identity.inner().deployment_id();
 

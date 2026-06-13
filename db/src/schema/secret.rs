@@ -1,4 +1,4 @@
-use crate::{DbResult, db_conn};
+use crate::{AccessScope, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::{QueryDsl, prelude::*};
 use diesel_async::RunQueryDsl;
@@ -47,8 +47,13 @@ impl Secret {
     pub async fn all_filtered(
         filters: SecretFilters,
         pagination: PaginationParams,
+        scope: &AccessScope,
     ) -> DbResult<Paginated<Self>> {
-        Ok(Self::filter(filters)
+        let mut filtered = Self::filter(filters);
+        if let AccessScope::Envs(env_ids) = scope {
+            filtered = filtered.filter(secrets::env_id.eq_any(env_ids.clone()));
+        }
+        Ok(filtered
             .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
             .await?)
@@ -59,6 +64,20 @@ impl Secret {
             .find(id)
             .get_result(db_conn().await?.deref_mut())
             .await?)
+    }
+
+    /// Like [`Self::find`] but only returns the secret if it is within the
+    /// identity's [`AccessScope`]. Out-of-scope and missing both yield
+    /// `NotFound`.
+    pub async fn find_scoped(id: Uuid, scope: &AccessScope) -> DbResult<Self> {
+        match scope {
+            AccessScope::All => Self::find(id).await,
+            AccessScope::Envs(env_ids) => Ok(secrets::table
+                .find(id)
+                .filter(secrets::env_id.eq_any(env_ids.clone()))
+                .get_result(db_conn().await?.deref_mut())
+                .await?),
+        }
     }
 
     pub async fn delete(&self) -> DbResult<()> {

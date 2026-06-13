@@ -2,7 +2,7 @@ use crate::schema::{deployment::Deployment, user::User};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Identity {
     User(Uuid),
     Bot(Uuid),

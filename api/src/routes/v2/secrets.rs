@@ -3,7 +3,7 @@ use crate::{permissions::verify_env_admin, result::ApiResult};
 use actix_web::{HttpResponse, delete, get, post, put, web};
 use platz_auth::ApiIdentity;
 use platz_db::{
-    DbTable, DbTableOrDeploymentResource,
+    AccessScope, DbTable, DbTableOrDeploymentResource,
     diesel_pagination::{Paginated, PaginationParams},
     schema::{
         deployment::Deployment,
@@ -31,12 +31,13 @@ use uuid::Uuid;
 )]
 #[get("/secrets")]
 async fn get_all(
-    _identity: ApiIdentity,
+    identity: ApiIdentity,
     filters: web::Query<SecretFilters>,
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
     Ok(HttpResponse::Ok()
-        .json(Secret::all_filtered(filters.into_inner(), pagination.into_inner()).await?))
+        .json(Secret::all_filtered(filters.into_inner(), pagination.into_inner(), &scope).await?))
 }
 
 #[utoipa::path(
@@ -55,8 +56,9 @@ async fn get_all(
     ),
 )]
 #[get("/secrets/{id}")]
-async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(Secret::find(id.into_inner()).await?))
+async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
+    Ok(HttpResponse::Ok().json(Secret::find_scoped(id.into_inner(), &scope).await?))
 }
 
 #[utoipa::path(

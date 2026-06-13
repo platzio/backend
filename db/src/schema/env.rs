@@ -1,5 +1,5 @@
 use super::k8s_cluster::K8sCluster;
-use crate::{DbResult, db_conn};
+use crate::{AccessScope, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -44,8 +44,13 @@ impl Env {
     pub async fn all_filtered(
         filters: EnvFilters,
         pagination: PaginationParams,
+        scope: &AccessScope,
     ) -> DbResult<Paginated<Self>> {
-        Ok(Self::filter(filters)
+        let mut filtered = Self::filter(filters);
+        if let AccessScope::Envs(env_ids) = scope {
+            filtered = filtered.filter(envs::id.eq_any(env_ids.clone()));
+        }
+        Ok(filtered
             .paginate(pagination)
             .load_and_count(db_conn().await?.deref_mut())
             .await?)
@@ -56,6 +61,16 @@ impl Env {
             .find(id)
             .get_result(db_conn().await?.deref_mut())
             .await?)
+    }
+
+    /// Like [`Self::find`] but only returns the env if it is within the
+    /// identity's [`AccessScope`]. Out-of-scope and missing both yield
+    /// `NotFound`.
+    pub async fn find_scoped(id: Uuid, scope: &AccessScope) -> DbResult<Self> {
+        if !scope.allows_env(Some(id)) {
+            return Err(crate::DbError::NotFound);
+        }
+        Self::find(id).await
     }
 
     pub async fn delete(&self) -> DbResult<()> {

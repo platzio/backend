@@ -3,6 +3,7 @@ use crate::result::ApiResult;
 use actix_web::{HttpResponse, delete, get, post, web};
 use platz_auth::ApiIdentity;
 use platz_db::{
+    AccessScope,
     diesel_pagination::{Paginated, PaginationParams},
     schema::deployment_permission::{
         DeploymentPermission, DeploymentPermissionFilters, NewDeploymentPermission,
@@ -28,12 +29,14 @@ use uuid::Uuid;
 )]
 #[get("/deployment-permissions")]
 async fn get_all(
-    _identity: ApiIdentity,
+    identity: ApiIdentity,
     filters: web::Query<DeploymentPermissionFilters>,
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
     Ok(HttpResponse::Ok().json(
-        DeploymentPermission::all_filtered(filters.into_inner(), pagination.into_inner()).await?,
+        DeploymentPermission::all_filtered(filters.into_inner(), pagination.into_inner(), &scope)
+            .await?,
     ))
 }
 
@@ -53,8 +56,9 @@ async fn get_all(
     ),
 )]
 #[get("/deployment-permissions/{id}")]
-async fn get_one(_identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
-    Ok(HttpResponse::Ok().json(DeploymentPermission::find(id.into_inner()).await?))
+async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
+    let scope = AccessScope::for_identity(identity.inner()).await?;
+    Ok(HttpResponse::Ok().json(DeploymentPermission::find_scoped(id.into_inner(), &scope).await?))
 }
 
 #[utoipa::path(
