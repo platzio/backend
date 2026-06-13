@@ -61,3 +61,10 @@ utoipa = { version = "5.5.0", features = [
   "uuid",
 ] }
 uuid = { version = "1.23.1", features = ["serde", "v4"] }
+
+[dev-dependencies]
+rcgen = "0.14.8"
+tempfile = "3"
+testcontainers = "0.27.3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-postgres = "0.7"

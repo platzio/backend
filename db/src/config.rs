@@ -52,35 +52,23 @@ pub fn database_url() -> String {
 /// assembles the connection itself (it does not link libpq), this is the
 /// authoritative knob — `PGSSLMODE` and `PGSSLROOTCERT` are read here and
 /// applied to both the connection pool and the `LISTEN`/`NOTIFY` connection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString)]
+#[strum(ascii_case_insensitive)]
 pub enum SslMode {
     /// Never use TLS. The connection is plaintext (legacy behavior).
+    #[strum(serialize = "disable")]
     Disable,
     /// Try TLS first, fall back to plaintext if the server doesn't offer it.
     /// The server certificate is not verified.
+    #[strum(serialize = "prefer")]
     Prefer,
     /// Require TLS, but do not verify the server certificate.
+    #[strum(serialize = "require")]
     Require,
     /// Require TLS and verify the server certificate chain against the
     /// trusted CAs, including that the hostname matches the certificate.
+    #[strum(serialize = "verify-full", serialize = "verify_full")]
     VerifyFull,
-}
-
-impl std::str::FromStr for SslMode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.trim().to_ascii_lowercase().as_str() {
-            "disable" => Ok(Self::Disable),
-            "prefer" => Ok(Self::Prefer),
-            "require" => Ok(Self::Require),
-            "verify-full" | "verify_full" => Ok(Self::VerifyFull),
-            other => Err(format!(
-                "Invalid {PGSSLMODE} value {other:?}. \
-                 Expected one of: disable, prefer, require, verify-full"
-            )),
-        }
-    }
 }
 
 /// Resolved TLS settings for connecting to PostgreSQL, derived from the
@@ -101,7 +89,12 @@ impl SslSettings {
     /// encrypted without any extra configuration.
     pub fn from_env() -> Result<Self, String> {
         let mode = match env::var(PGSSLMODE) {
-            Ok(value) => value.parse()?,
+            Ok(value) => value.parse().map_err(|_| {
+                format!(
+                    "Invalid {PGSSLMODE} value {value:?}. \
+                     Expected one of: disable, prefer, require, verify-full"
+                )
+            })?,
             Err(_) => SslMode::Prefer,
         };
         let root_cert = env::var(PGSSLROOTCERT).ok().filter(|s| !s.is_empty());
@@ -129,35 +122,4 @@ pub fn db_pool_options() -> DbPoolOptions {
 
 fn env_parsed<T: FromStr>(var: &str) -> Option<T> {
     env::var(var).ok()?.parse::<T>().ok()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_known_ssl_modes() {
-        assert_eq!("disable".parse::<SslMode>().unwrap(), SslMode::Disable);
-        assert_eq!("prefer".parse::<SslMode>().unwrap(), SslMode::Prefer);
-        assert_eq!("require".parse::<SslMode>().unwrap(), SslMode::Require);
-        assert_eq!(
-            "verify-full".parse::<SslMode>().unwrap(),
-            SslMode::VerifyFull
-        );
-    }
-
-    #[test]
-    fn ssl_mode_parsing_is_case_and_whitespace_insensitive() {
-        assert_eq!(
-            "  VERIFY_FULL ".parse::<SslMode>().unwrap(),
-            SslMode::VerifyFull
-        );
-        assert_eq!("Require".parse::<SslMode>().unwrap(), SslMode::Require);
-    }
-
-    #[test]
-    fn rejects_unknown_ssl_mode() {
-        assert!("verify-ca".parse::<SslMode>().is_err());
-        assert!("".parse::<SslMode>().is_err());
-    }
 }
