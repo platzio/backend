@@ -29,6 +29,17 @@ for you and that production deployments set via the platzio helm chart:
     for new chart artifacts.
 * `platz-api` reads `OIDC_*` environment variables for OIDC config and
   `ADMIN_EMAILS` as a space-delimited allow-list.
+* All workers connect to PostgreSQL using the `PG*` variables (`PGHOST`,
+  `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`). TLS for those connections —
+  including the `LISTEN`/`NOTIFY` event stream — is controlled by `PGSSLMODE`
+  (mirroring libpq), defaulting to `prefer`:
+  * `disable` — plaintext, no TLS.
+  * `prefer` *(default)* — use TLS if the server offers it, otherwise
+    plaintext; the server certificate is not verified.
+  * `require` — always use TLS; the certificate is not verified.
+  * `verify-full` — always use TLS and verify the certificate chain and
+    hostname against the system trust store, or against the CA bundle pointed
+    to by `PGSSLROOTCERT`.
 
 ## Crates Overview
 

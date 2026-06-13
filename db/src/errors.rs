@@ -12,6 +12,12 @@ pub enum DbError {
     #[error("Database pool startup error: {0}")]
     Bb8PoolError(#[from] diesel_async::pooled_connection::PoolError),
 
+    #[error("Database TLS error: {0}")]
+    TlsError(#[from] crate::tls::TlsError),
+
+    #[error("Invalid database TLS configuration: {0}")]
+    SslConfigError(String),
+
     #[error("Database was not initialized")]
     DbNotInitialized,
 
