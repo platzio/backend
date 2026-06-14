@@ -1,0 +1,2 @@
+drop trigger notify_env_deployment_count_changes on deployments;
+drop function notify_env_deployment_count;

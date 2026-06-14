@@ -8,7 +8,7 @@ use platz_db::{
     diesel_pagination::{Paginated, PaginationParams},
     schema::{
         deployment::Deployment,
-        env::{Env, EnvFilters, NewEnv, UpdateEnv},
+        env::{Env, EnvFilters, EnvWithStats, NewEnv, UpdateEnv},
         env_user_permission::{EnvUserRole, NewEnvUserPermission},
     },
 };
@@ -27,7 +27,7 @@ use uuid::Uuid;
     responses(
         (
             status = OK,
-            body = Paginated<Env>,
+            body = Paginated<EnvWithStats>,
         ),
     ),
 )]
@@ -38,8 +38,9 @@ async fn get_all(
     pagination: web::Query<PaginationParams>,
 ) -> ApiResult {
     let scope = AccessScope::for_identity(identity.inner()).await?;
-    Ok(HttpResponse::Ok()
-        .json(Env::all_filtered(filters.into_inner(), pagination.into_inner(), &scope).await?))
+    Ok(HttpResponse::Ok().json(
+        Env::all_filtered_with_stats(filters.into_inner(), pagination.into_inner(), &scope).await?,
+    ))
 }
 
 #[utoipa::path(
@@ -53,14 +54,14 @@ async fn get_all(
     responses(
         (
             status = OK,
-            body = Env,
+            body = EnvWithStats,
         ),
     ),
 )]
 #[get("/envs/{id}")]
 async fn get_one(identity: ApiIdentity, id: web::Path<Uuid>) -> ApiResult {
     let scope = AccessScope::for_identity(identity.inner()).await?;
-    Ok(HttpResponse::Ok().json(Env::find_scoped(id.into_inner(), &scope).await?))
+    Ok(HttpResponse::Ok().json(Env::find_scoped_with_stats(id.into_inner(), &scope).await?))
 }
 
 #[utoipa::path(
