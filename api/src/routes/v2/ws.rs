@@ -44,8 +44,10 @@ pub enum ClientMessage {
 /// to the (collection, environment) pairs it has subscribed to.
 struct DbEventsWs {
     scope: AccessScope,
-    /// Active subscriptions as (table, env) pairs. `None` env means a global
-    /// collection. An event is forwarded only when its (table, env_id) is here.
+    /// Active subscriptions as (table, env) pairs. A `None` env is a wildcard:
+    /// every permitted event of that table (used by globally loaded
+    /// collections). A `Some(env)` subscription receives only that
+    /// environment's events. See [`Self::is_subscribed`].
     subscriptions: HashSet<(DbTable, Option<Uuid>)>,
 }
 
@@ -74,6 +76,18 @@ impl DbEventsWs {
 }
 
 impl DbEventsWs {
+    /// Whether the client is subscribed to this event. A wildcard subscription
+    /// (no env) for a table receives every event of that table the identity is
+    /// permitted to see -- used by globally loaded collections such as `envs`
+    /// and `env_user_permissions`, whose rows belong to different environments.
+    /// An env-scoped subscription receives only that environment's events.
+    fn is_subscribed(&self, event: &DbEvent) -> bool {
+        self.subscriptions.contains(&(event.table, None))
+            || event
+                .env_id
+                .is_some_and(|env_id| self.subscriptions.contains(&(event.table, Some(env_id))))
+    }
+
     fn handle_client_message(&mut self, text: &str) {
         match serde_json::from_str::<ClientMessage>(text) {
             Ok(ClientMessage::Subscribe { table, env_id }) => {
@@ -111,7 +125,7 @@ impl StreamHandler<Result<DbEvent, BroadcastStreamRecvError>> for DbEventsWs {
                     return;
                 }
                 // ...and only those the client is currently subscribed to.
-                if !self.subscriptions.contains(&(event.table, event.env_id)) {
+                if !self.is_subscribed(&event) {
                     return;
                 }
                 match serde_json::to_string(&event) {
