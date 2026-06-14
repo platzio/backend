@@ -1,4 +1,4 @@
-use super::k8s_cluster::K8sCluster;
+use super::{deployment::Deployment, k8s_cluster::K8sCluster};
 use crate::{AccessScope, DbResult, db_conn};
 use chrono::prelude::*;
 use diesel::prelude::*;
@@ -32,6 +32,16 @@ pub struct Env {
     pub tolerations: serde_json::Value,
     #[filter]
     pub auto_add_new_users: bool,
+}
+
+/// An environment together with its live deployment count, as returned by the
+/// env list/detail endpoints. The count updates live on the frontend because a
+/// deployment change emits an `envs` refresh event.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct EnvWithStats {
+    #[serde(flatten)]
+    pub env: Env,
+    pub num_deployments: i64,
 }
 
 impl Env {
@@ -71,6 +81,42 @@ impl Env {
             return Err(crate::DbError::NotFound);
         }
         Self::find(id).await
+    }
+
+    /// Like [`Self::all_filtered`] but augments each env with its live
+    /// deployment count. The count is kept current on the frontend by an `envs`
+    /// refresh event emitted whenever a deployment changes (see the
+    /// `env-deployment-count` migration).
+    pub async fn all_filtered_with_stats(
+        filters: EnvFilters,
+        pagination: PaginationParams,
+        scope: &AccessScope,
+    ) -> DbResult<Paginated<EnvWithStats>> {
+        let page = Self::all_filtered(filters, pagination, scope).await?;
+        let counts = Deployment::count_by_env(scope).await?;
+        Ok(Paginated {
+            page: page.page,
+            per_page: page.per_page,
+            num_total: page.num_total,
+            items: page
+                .items
+                .into_iter()
+                .map(|env| EnvWithStats {
+                    num_deployments: counts.get(&env.id).copied().unwrap_or(0),
+                    env,
+                })
+                .collect(),
+        })
+    }
+
+    /// Like [`Self::find_scoped`] but augments the env with its deployment count.
+    pub async fn find_scoped_with_stats(id: Uuid, scope: &AccessScope) -> DbResult<EnvWithStats> {
+        let env = Self::find_scoped(id, scope).await?;
+        let num_deployments = Deployment::count_in_env(env.id).await?;
+        Ok(EnvWithStats {
+            env,
+            num_deployments,
+        })
     }
 
     pub async fn delete(&self) -> DbResult<()> {

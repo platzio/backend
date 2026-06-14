@@ -3,7 +3,7 @@ use super::{
     deployment_status::DeploymentReportedStatus,
     deployment_task::DeploymentTask,
     helm_chart::HelmChart,
-    k8s_cluster::K8sCluster,
+    k8s_cluster::{K8sCluster, k8s_clusters},
 };
 use crate::{AccessScope, DbError, DbResult, DbTableOrDeploymentResource, Identity, db_conn};
 use chrono::prelude::*;
@@ -18,6 +18,7 @@ use platz_chart_ext::{
     actions::{ChartExtActionEndpoint, ChartExtActionTarget, ChartExtActionTargetResolver},
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::ops::DerefMut;
 use strum::{AsRefStr, Display, EnumIter, EnumString};
 use url::Url;
@@ -443,6 +444,49 @@ impl Deployment {
                 deployments::cluster_id,
             ))
             .get_results(db_conn().await?.deref_mut())
+            .await?)
+    }
+
+    /// Number of deployments in each environment the identity may access,
+    /// keyed by environment id, without loading the deployments themselves.
+    /// Computed from two small aggregate/lookup queries (counts grouped by
+    /// cluster in the database, then summed per environment), so the env list
+    /// can show per-environment counts cheaply. Environments with no
+    /// deployments are absent from the map (callers default them to 0).
+    pub async fn count_by_env(scope: &AccessScope) -> DbResult<HashMap<Uuid, i64>> {
+        let per_cluster: Vec<(Uuid, i64)> = deployments::table
+            .group_by(deployments::cluster_id)
+            .select((deployments::cluster_id, diesel::dsl::count_star()))
+            .get_results(db_conn().await?.deref_mut())
+            .await?;
+
+        let cluster_env: HashMap<Uuid, Uuid> = k8s_clusters::table
+            .select((k8s_clusters::id, k8s_clusters::env_id))
+            .get_results::<(Uuid, Option<Uuid>)>(db_conn().await?.deref_mut())
+            .await?
+            .into_iter()
+            .filter_map(|(cluster_id, env_id)| env_id.map(|env_id| (cluster_id, env_id)))
+            .collect();
+
+        let mut by_env: HashMap<Uuid, i64> = HashMap::new();
+        for (cluster_id, count) in per_cluster {
+            if let Some(&env_id) = cluster_env.get(&cluster_id)
+                && scope.allows_env(Some(env_id))
+            {
+                *by_env.entry(env_id).or_default() += count;
+            }
+        }
+
+        Ok(by_env)
+    }
+
+    /// Number of deployments in a single environment, via the env's clusters.
+    pub async fn count_in_env(env_id: Uuid) -> DbResult<i64> {
+        let cluster_ids = K8sCluster::ids_in_envs(&[env_id]).await?;
+        Ok(deployments::table
+            .filter(deployments::cluster_id.eq_any(cluster_ids))
+            .count()
+            .get_result(db_conn().await?.deref_mut())
             .await?)
     }
 }
